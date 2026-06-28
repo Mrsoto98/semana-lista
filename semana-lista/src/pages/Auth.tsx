@@ -50,7 +50,7 @@ export default function Auth() {
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/menu` },
+      options: { redirectTo: `${window.location.origin}/` },
     })
   }
 
