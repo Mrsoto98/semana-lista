@@ -104,7 +104,7 @@ export default function Menu() {
       for (const dia of DIAS) {
         for (const franja of FRANJAS) {
           const clave: ClaveMenu = `${dia}_${franja}`
-          if (!next[clave] && estados[clave]?.datos) {
+          if (next[clave] === undefined && estados[clave]?.datos) {
             next[clave] = Math.floor(Math.random() * 3)
           }
         }
@@ -113,7 +113,9 @@ export default function Menu() {
     })
   }
 
-  const totalSeleccionadas = Object.keys(seleccion).length
+  const totalSeleccionadas = Object.keys(seleccion).filter(
+    k => estados[k as ClaveMenu]?.estado === 'listo'
+  ).length
 
   function irALista() {
     // Build MenuSemanal from selections
