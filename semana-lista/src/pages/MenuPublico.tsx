@@ -12,16 +12,21 @@ export default function MenuPublico() {
 
   useEffect(() => {
     if (!semanaId) return
-    supabase
-      .from('semanas')
-      .select('recetas_elegidas')
-      .eq('id', semanaId)
-      .eq('es_publica', true)
-      .single()
-      .then(({ data }) => {
+    ;(async () => {
+      try {
+        const { data } = await supabase
+          .from('semanas')
+          .select('recetas_elegidas')
+          .eq('id', semanaId)
+          .eq('es_publica', true)
+          .single()
         setMenu(data?.recetas_elegidas ?? null)
+      } catch {
+        setMenu(null)
+      } finally {
         setLoading(false)
-      })
+      }
+    })()
   }, [semanaId])
 
   if (loading) return <div className="p-8 text-center">Cargando...</div>

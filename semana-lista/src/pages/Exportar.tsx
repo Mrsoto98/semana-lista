@@ -100,8 +100,10 @@ export default function Exportar() {
         await supabase.from('historial_recetas').insert(recetas)
       }
 
-      const url = `${window.location.origin}/menu/${semana.id}`
-      setEnlacePublico(url)
+      if (semana?.id) {
+        const url = `${window.location.origin}/menu/${semana.id}`
+        setEnlacePublico(url)
+      }
     } catch (err) {
       console.error('Error guardando semana:', err)
     } finally {
