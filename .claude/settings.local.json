@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(bash \"C:/Users/Soto1/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/e78867e7-5d73-4cd4-b2f4-493e0ad234a9/26bbba90-9bc8-4869-8205-50bdf656d955/skills/subagent-driven-development/scripts/task-brief\" \"docs/superpowers/plans/2026-06-28-semana-lista.md\" 10)",
+      "Bash(git -C \"C:\\\\CLAUDE SKIL\" add semana-lista/src/components/IngredienteRow.tsx semana-lista/src/pages/Lista.tsx)",
+      "Bash(git -C \"C:\\\\CLAUDE SKIL\" commit -m \"feat: shopping list screen with Mercadona prices and budget alert\")",
+      "Bash(bash \"C:/Users/Soto1/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/e78867e7-5d73-4cd4-b2f4-493e0ad234a9/26bbba90-9bc8-4869-8205-50bdf656d955/skills/subagent-driven-development/scripts/review-package\" \"f23398febb1a46b21a9a6e70dae0e65a55708cb1\" \"HEAD\")",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(bash \"C:/Users/Soto1/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/e78867e7-5d73-4cd4-b2f4-493e0ad234a9/26bbba90-9bc8-4869-8205-50bdf656d955/skills/subagent-driven-development/scripts/review-package\" \"51c502b254c69ba701f61bfc16e8710b717ebe3a\" \"HEAD\")",
+      "Bash(bash \"C:/Users/Soto1/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/e78867e7-5d73-4cd4-b2f4-493e0ad234a9/26bbba90-9bc8-4869-8205-50bdf656d955/skills/subagent-driven-development/scripts/task-brief\" \"docs/superpowers/plans/2026-06-28-semana-lista.md\" 12)",
+      "PowerShell(head -20)",
+      "Bash(git -C \"C:/CLAUDE SKIL\" log --oneline ef40736..HEAD)"
+    ]
+  }
+}

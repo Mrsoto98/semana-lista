@@ -3,12 +3,16 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CeldaMenu } from '../components/CeldaMenu'
 import { ProgressBar } from '../components/ui/ProgressBar'
+import { ModalGenerarMenu, type ConfigGeneracion } from '../components/ModalGenerarMenu'
 import { usePerfil } from '../hooks/usePerfil'
+import { useListasCompartidas } from '../hooks/useListaCompartida'
+import { usePreferencias } from '../hooks/usePreferencias'
+import { useAnalytics } from '../hooks/useAnalytics'
 import { guardar, recuperar } from '../lib/storage'
 import type { Dia, Franja, OpcionesSlot, MenuSemanal, ClaveMenu, Receta } from '../types'
 import { DIAS, DIAS_LABEL, FRANJAS } from '../types'
 
-type EstadoCelda = 'idle' | 'cargando' | 'listo' | 'error'
+type EstadoCelda = 'idle' | 'cargando' | 'listo' | 'error' | 'vacio'
 interface EstadoSlot { estado: EstadoCelda; datos?: OpcionesSlot }
 type MapaEstados = Partial<Record<ClaveMenu, EstadoSlot>>
 type MapaSeleccion = Partial<Record<ClaveMenu, number>>
@@ -19,21 +23,26 @@ interface SemanaGuardada {
 }
 
 interface Cuestionario {
-  cocina: string; tiempo: string; ocasion: string; extra: string; no_quiero: string
+  cocina: string; tiempo: string; dificultad: string; ocasion: string; extra: string; no_quiero: string
 }
 
 const CUESTIONARIO_INICIAL: Cuestionario = {
-  cocina: 'española y mediterránea', tiempo: 'normal (30-60 min)',
-  ocasion: 'semana normal', extra: '', no_quiero: '',
+  cocina: 'combinado', tiempo: 'combinado',
+  dificultad: 'combinado', ocasion: 'semana normal', extra: '', no_quiero: '',
 }
 
 
-function perfilConNevera(perfil: object, extraPrompt?: string): object {
+function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvitar: string[] = []): object {
+  const p = perfil as { nevera?: string[]; ingredientes_no?: string[] }
   return {
     ...perfil,
     nevera: [
-      ...((perfil as { nevera?: string[] }).nevera ?? []),
+      ...(p.nevera ?? []),
       ...(recuperar<string[]>('lista_nevera') ?? []),
+    ].filter((v, i, a) => a.indexOf(v) === i),
+    ingredientes_no: [
+      ...(p.ingredientes_no ?? []),
+      ...ingredientesEvitar,
     ].filter((v, i, a) => a.indexOf(v) === i),
     ...(extraPrompt ? { extra_instrucciones: extraPrompt } : {}),
   }
@@ -42,12 +51,26 @@ function perfilConNevera(perfil: object, extraPrompt?: string): object {
 export default function Menu() {
   const navigate = useNavigate()
   const { perfil, loading: perfilLoading } = usePerfil()
+  const { listas: listasCompartidas } = useListasCompartidas()
+  const { dislikes, ingredientesEvitar, guardarPreferencia, quitarPreferencia } = usePreferencias()
+  const { track } = useAnalytics()
 
   const [estados, setEstados] = useState<MapaEstados>(() => recuperar<MapaEstados>('menu_estados') ?? {})
   const [seleccion, setSeleccion] = useState<MapaSeleccion>(() => recuperar<MapaSeleccion>('menu_seleccion') ?? {})
   const [generando, setGenerando] = useState(false)
+  const [modalGenerar, setModalGenerar] = useState(false)
   const [modalSorpresa, setModalSorpresa] = useState(false)
+  const [infoGenerarVisible, setInfoGenerarVisible] = useState(false)
+  const [modalAjustesSemana, setModalAjustesSemana] = useState(false)
   const [cuestionario, setCuestionario] = useState<Cuestionario>(CUESTIONARIO_INICIAL)
+
+  function abrirModalSorpresa() {
+    setCuestionario(prev => ({
+      ...prev,
+      dificultad: (perfil as { dificultad_recetas?: string })?.dificultad_recetas ?? 'combinado',
+    }))
+    setModalSorpresa(true)
+  }
   const [semanasGuardadas, setSemanasGuardadas] = useState<SemanaGuardada[]>(() => recuperar<SemanaGuardada[]>('semanas_guardadas') ?? [])
   const [modalGuardar, setModalGuardar] = useState(false)
   const [nombreGuardar, setNombreGuardar] = useState('')
@@ -56,6 +79,31 @@ export default function Menu() {
   const [favoritas, setFavoritas] = useState<Receta[]>(() => recuperar<Receta[]>('recetas_favoritas') ?? [])
   const [errorMsg, setErrorMsg] = useState('')
 
+  // Configuración de días y franjas a generar (persistida en localStorage)
+  type DiasConfig = 'semana' | 'laboral' | 'personalizado'
+  type FranjaConfig = 'ambas' | 'comida' | 'cena'
+  const DIAS_LABORALES: Dia[] = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
+  const [diasConfig, setDiasConfigRaw] = useState<DiasConfig>(() => recuperar<DiasConfig>('menu_dias_config') ?? 'semana')
+  const [diasPersonalizados, setDiasPersonalizadosRaw] = useState<Set<Dia>>(() => new Set(recuperar<Dia[]>('menu_dias_personalizados') ?? DIAS))
+  const [franjaConfig, setFranjaConfigRaw] = useState<FranjaConfig>(() => recuperar<FranjaConfig>('menu_franja_config') ?? 'ambas')
+
+  function setDiasConfig(v: DiasConfig) { setDiasConfigRaw(v); guardar('menu_dias_config', v) }
+  function setDiasPersonalizados(fn: (prev: Set<Dia>) => Set<Dia>) {
+    setDiasPersonalizadosRaw(prev => { const next = fn(prev); guardar('menu_dias_personalizados', Array.from(next)); return next })
+  }
+  function setFranjaConfig(v: FranjaConfig) { setFranjaConfigRaw(v); guardar('menu_franja_config', v) }
+
+  function diasActivos(): Dia[] {
+    if (diasConfig === 'semana') return DIAS
+    if (diasConfig === 'laboral') return DIAS_LABORALES
+    return DIAS.filter(d => diasPersonalizados.has(d))
+  }
+  function franjasActivas(): Franja[] {
+    if (franjaConfig === 'comida') return ['comida']
+    if (franjaConfig === 'cena') return ['cena']
+    return ['comida', 'cena']
+  }
+
   const favoritasNombres = new Set(favoritas.map(r => r.nombre))
 
   function toggleFavorita(receta: Receta) {
@@ -63,6 +111,16 @@ export default function Menu() {
     const next = yaEsta ? favoritas.filter(r => r.nombre !== receta.nombre) : [receta, ...favoritas]
     setFavoritas(next)
     guardar('recetas_favoritas', next)
+    if (!yaEsta) track('receta_favorita', { receta: receta.nombre })
+  }
+
+  function handleDislike(receta: Receta, ingredientes: string[], motivo: string) {
+    guardarPreferencia(receta.nombre, 'dislike', motivo || undefined, ingredientes)
+    track('receta_dislike', { receta: receta.nombre, ingredientes_count: ingredientes.length })
+  }
+
+  function handleQuitarDislike(receta: Receta) {
+    quitarPreferencia(receta.nombre)
   }
 
   useEffect(() => { guardar('menu_estados', estados) }, [estados])
@@ -73,9 +131,16 @@ export default function Menu() {
     if (!perfil || generando) return
     setGenerando(true)
 
-    // Marcar todas las celdas como cargando
+    // Marcar solo las celdas seleccionadas como cargando, el resto vacío
+    const activeDias = diasActivos()
+    const activeFranjas = franjasActivas()
     const todoCargando: MapaEstados = {}
-    for (const dia of DIAS) for (const franja of FRANJAS) todoCargando[`${dia}_${franja}` as ClaveMenu] = { estado: 'cargando' }
+    for (const dia of DIAS) for (const franja of FRANJAS) {
+      const clave = `${dia}_${franja}` as ClaveMenu
+      todoCargando[clave] = activeDias.includes(dia) && activeFranjas.includes(franja)
+        ? { estado: 'cargando' }
+        : { estado: 'vacio' } as unknown as MapaEstados[ClaveMenu]
+    }
     setEstados(todoCargando)
 
     let recetasYaUsadas: string[] = []
@@ -89,8 +154,10 @@ export default function Menu() {
       const { supabase } = await import('../lib/supabase')
       const { data, error: fnError } = await supabase.functions.invoke('generar-recetas', {
         body: {
-          perfil: perfilConNevera(perfil, extraPrompt),
+          perfil: perfilConNevera(perfil, extraPrompt, ingredientesEvitar),
           recetas_ya_usadas: recetasYaUsadas,
+          dias: activeDias,
+          franjas: activeFranjas,
         },
       })
       if (fnError) throw new Error(fnError.message)
@@ -103,6 +170,7 @@ export default function Menu() {
       for (const dia of DIAS) {
         for (const franja of FRANJAS) {
           const clave = `${dia}_${franja}` as ClaveMenu
+          if (!activeDias.includes(dia) || !activeFranjas.includes(franja)) continue
           const slot = semana[clave]
           if (slot?.opciones?.length) {
             nuevosEstados[clave] = { estado: 'listo', datos: slot as OpcionesSlot }
@@ -114,11 +182,24 @@ export default function Menu() {
       }
       setEstados(nuevosEstados)
       setSeleccion(nuevaSeleccion)
+      track('menu_generado', { slots: Object.keys(nuevosEstados).filter(k => nuevosEstados[k as ClaveMenu]?.estado === 'listo').length })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      const raw = err instanceof Error ? err.message : 'Error desconocido'
+      const msg = raw.includes('429') || raw.includes('rate') || raw.includes('TPM')
+        ? 'Demasiadas peticiones al generador de recetas. Espera 1 minuto e inténtalo de nuevo.'
+        : raw.includes('JSON') || raw.includes('inválido')
+        ? 'El modelo devolvió una respuesta inesperada. Vuelve a intentarlo.'
+        : raw.includes('network') || raw.includes('fetch')
+        ? 'Sin conexión a internet. Comprueba tu red e inténtalo de nuevo.'
+        : raw.includes('401') || raw.includes('403')
+        ? 'Sesión expirada. Recarga la página e inicia sesión de nuevo.'
+        : raw
       setErrorMsg(msg)
       const todoError: MapaEstados = {}
-      for (const dia of DIAS) for (const franja of FRANJAS) todoError[`${dia}_${franja}` as ClaveMenu] = { estado: 'error' }
+      for (const dia of DIAS) for (const franja of FRANJAS) {
+        const clave = `${dia}_${franja}` as ClaveMenu
+        todoError[clave] = activeDias.includes(dia) && activeFranjas.includes(franja) ? { estado: 'error' } : { estado: 'vacio' } as unknown as MapaEstados[ClaveMenu]
+      }
       setEstados(todoError)
     }
     setGenerando(false)
@@ -132,7 +213,7 @@ export default function Menu() {
     try {
       const { supabase } = await import('../lib/supabase')
       const { data, error: fnError } = await supabase.functions.invoke('generar-recetas', {
-        body: { dia, franja, perfil: perfilConNevera(perfil), recetas_ya_usadas: [] },
+        body: { dia, franja, perfil: perfilConNevera(perfil, undefined, ingredientesEvitar), recetas_ya_usadas: [] },
       })
       if (fnError) throw new Error(fnError.message)
       if (data?.error) throw new Error(data.mensaje)
@@ -150,24 +231,44 @@ export default function Menu() {
   async function generarSorpresa() {
     if (!perfil || generando) return
     setModalSorpresa(false)
+    track('menu_sorpresa', { cocina: cuestionario.cocina })
 
-    const estilos: Record<string, string> = {
+    const estilosSorpresa: Record<string, string> = {
+      'combinado':               '',
+      'aleatorio':               '',
       'española y mediterránea': 'española y mediterránea: paella, gazpacho, tortilla española, cocido madrileño, pisto manchego, bacalao al pil-pil, gambas al ajillo, ensalada mixta, merluza a la romana',
-      'italiana': 'italiana: pasta carbonara, risotto, lasaña, gnocchi al pesto, ossobuco, bruschetta, pollo alla parmigiana, pasta arrabiata, sopa minestrone',
-      'asiática': 'asiática: arroz frito wok, curry de pollo, ramen, pad thai, pollo teriyaki, gyozas, rollitos, salteado de verduras, cerdo agridulce',
-      'americana': 'americana: hamburguesas caseras, BBQ de costillas, mac & cheese, wraps de pollo, chili con carne, chicken nuggets, alitas buffalo, burritos',
-      'mexicana': 'mexicana: tacos, enchiladas, quesadillas, pozole, chiles rellenos, burritos, fajitas, guacamole con pollo, arroz a la mexicana',
+      'italiana':                'italiana: pasta carbonara, risotto, lasaña, gnocchi al pesto, ossobuco, bruschetta, pollo alla parmigiana, pasta arrabiata, sopa minestrone',
+      'asiática':                'asiática: arroz frito wok, curry de pollo, ramen, pad thai, pollo teriyaki, gyozas, rollitos, salteado de verduras, cerdo agridulce',
+      'americana':               'americana: hamburguesas caseras, BBQ de costillas, mac & cheese, wraps de pollo, chili con carne, chicken nuggets, alitas buffalo, burritos',
+      'mexicana':                'mexicana: tacos, enchiladas, quesadillas, pozole, chiles rellenos, burritos, fajitas, guacamole con pollo, arroz a la mexicana',
       'variada e internacional': 'variada internacional: mezcla de cocinas del mundo, un plato diferente cada día',
-      'saludable y ligera': 'saludable y ligera: ensaladas, verduras al vapor o horno, proteína magra, sin fritos, bowl de quinoa, wraps integrales',
-      'tradicional española': 'tradicional española de cuchara: cocido, fabada, lentejas con chorizo, potaje, puchero, estofado de ternera, arroz con leche de postre',
+      'saludable y ligera':      'saludable y ligera: ensaladas, verduras al vapor o horno, proteína magra, sin fritos, bowl de quinoa, wraps integrales',
+      'tradicional española':    'tradicional española de cuchara: cocido, fabada, lentejas con chorizo, potaje, puchero, estofado de ternera, arroz con leche de postre',
     }
 
-    const estiloDesc = estilos[cuestionario.cocina] ?? `cocina ${cuestionario.cocina}`
+    const esCombinado = cuestionario.cocina === 'combinado'
+    const esAleatorio = cuestionario.cocina === 'aleatorio'
+    const estiloDesc = estilosSorpresa[cuestionario.cocina] ?? `cocina ${cuestionario.cocina}`
+
+    const dificultadExtra: Record<string, string> = {
+      'fácil':     'Todas las recetas de esta semana deben ser fáciles (≤30 min, técnicas simples, pocos pasos).',
+      'media':     'Recetas de dificultad media (30-60 min, técnicas habituales).',
+      'difícil':   'Recetas elaboradas y de alta dificultad (+45 min, técnicas avanzadas, presentación cuidada).',
+      'combinado': '',
+    }
+    const tiempoExtra: Record<string, string> = {
+      'rápido (menos de 30 min)':  'TIEMPO MÁX: todas las recetas en menos de 30 minutos.',
+      'normal (30-60 min)':        '',
+      'sin prisa (más de 1 hora)': 'Recetas de cocción lenta, guisos y elaboradas de más de 1 hora.',
+      'combinado':                 '',
+    }
 
     const partes = [
+      esCombinado ? 'Mezcla varios estilos de cocina a lo largo de la semana: española, italiana, asiática, etc.' :
+      esAleatorio ? 'Elige tú libremente el estilo de cada día, sorpréndeme con variedad total.' :
       `OBLIGATORIO: TODAS las recetas de la semana deben ser de cocina ${estiloDesc}. Nada fuera de este estilo.`,
-      cuestionario.tiempo !== 'normal (30-60 min)' ? `Tiempo: ${cuestionario.tiempo}.` : '',
-      cuestionario.ocasion !== 'semana normal' ? `Ocasión: ${cuestionario.ocasion}.` : '',
+      dificultadExtra[cuestionario.dificultad] ?? '',
+      tiempoExtra[cuestionario.tiempo] ?? '',
       cuestionario.extra ? `También quiero: ${cuestionario.extra}.` : '',
       cuestionario.no_quiero ? `Excluir: ${cuestionario.no_quiero}.` : '',
     ].filter(Boolean).join(' ')
@@ -175,21 +276,54 @@ export default function Menu() {
     await generarSemanaCompleta(partes)
   }
 
-  async function generarConNevera() {
-    if (!perfil || generando) return
-    const nevera = [
-      ...((perfil as { nevera?: string[] }).nevera ?? []),
-      ...(recuperar<string[]>('lista_nevera') ?? []),
-    ].filter((v, i, a) => a.indexOf(v) === i)
+  const ESTILOS_COCINA: Record<string, string> = {
+    'española y mediterránea': 'española y mediterránea: paella, gazpacho, tortilla española, cocido madrileño, pisto manchego, bacalao al pil-pil, gambas al ajillo, ensalada mixta, merluza a la romana',
+    'italiana': 'italiana: pasta carbonara, risotto, lasaña, gnocchi al pesto, ossobuco, bruschetta, pollo alla parmigiana, pasta arrabiata, sopa minestrone',
+    'asiática': 'asiática: arroz frito wok, curry de pollo, ramen, pad thai, pollo teriyaki, gyozas, rollitos, salteado de verduras, cerdo agridulce',
+    'americana': 'americana: hamburguesas caseras, BBQ de costillas, mac & cheese, wraps de pollo, chili con carne, chicken nuggets, alitas buffalo, burritos',
+    'mexicana': 'mexicana: tacos, enchiladas, quesadillas, pozole, chiles rellenos, burritos, fajitas, guacamole con pollo, arroz a la mexicana',
+    'variada e internacional': 'variada internacional: mezcla de cocinas del mundo, un plato diferente cada día',
+    'saludable y ligera': 'saludable y ligera: ensaladas, verduras al vapor o horno, proteína magra, sin fritos, bowl de quinoa, wraps integrales',
+    'tradicional española': 'tradicional española de cuchara: cocido, fabada, lentejas con chorizo, potaje, puchero, estofado de ternera, arroz con leche de postre',
+  }
+  const DIFICULTAD_PROMPT: Record<string, string> = {
+    'fácil':     'Todas las recetas deben ser fáciles (≤30 min, técnicas simples, pocos pasos).',
+    'media':     'Recetas de dificultad media (30-60 min, técnicas habituales).',
+    'difícil':   'Recetas elaboradas y de alta dificultad (+45 min, técnicas avanzadas).',
+    'combinado': '',
+  }
+  const TIEMPO_PROMPT: Record<string, string> = {
+    'rápido (menos de 30 min)':  'TIEMPO MÁX: todas las recetas en menos de 30 minutos.',
+    'sin prisa (más de 1 hora)': 'Recetas de cocción lenta, guisos y elaboradas de más de 1 hora.',
+    'normal (30-60 min)': '', 'combinado': '',
+  }
 
-    if (nevera.length < 6) {
-      setErrorMsg(`Tienes ${nevera.length} ingrediente${nevera.length === 1 ? '' : 's'} en casa. Añade al menos 6 en la lista de la compra (pulsa 🏠 en cualquier producto) para que pueda generar recetas con variedad.`)
-      return
+  async function generarDesdeModal(config: ConfigGeneracion) {
+    setModalGenerar(false)
+    if (!perfil || generando) return
+    guardar('menu_lista_destino', config.listaDestinoId)
+    track('menu_generado', { via: 'modal', cocina: config.cocina, dificultad: config.dificultad })
+
+    const estiloDesc = ESTILOS_COCINA[config.cocina] ?? `cocina ${config.cocina}`
+    const partes: string[] = [
+      `OBLIGATORIO: TODAS las recetas de la semana deben ser de cocina ${estiloDesc}.`,
+      DIFICULTAD_PROMPT[config.dificultad] ?? '',
+      TIEMPO_PROMPT[config.tiempo] ?? '',
+      config.ocasion !== 'semana normal' ? `Ocasión: ${config.ocasion}.` : '',
+    ].filter(Boolean)
+
+    if (config.modoIngredientes === 'nevera') {
+      const nevera = config.neveraItems && config.neveraItems.length > 0
+        ? config.neveraItems
+        : [...((perfil as { nevera?: string[] }).nevera ?? []), ...(recuperar<string[]>('lista_nevera') ?? [])].filter((v, i, a) => a.indexOf(v) === i)
+      partes.push(`MODO NEVERA: Crea recetas usando principalmente estos ingredientes disponibles en casa: ${nevera.join(', ')}. Puedes asumir sal, aceite, ajo y especias básicas.`)
+    } else if (config.modoIngredientes === 'personalizada' && config.ingredientesPersonalizados.length > 0) {
+      partes.push(`USA ESTOS INGREDIENTES: Diseña las recetas usando principalmente estos ingredientes: ${config.ingredientesPersonalizados.join(', ')}. Adapta las combinaciones a lo disponible.`)
     }
 
-    const prompt = `MODO NEVERA: Crea recetas usando ÚNICAMENTE estos ingredientes disponibles en casa: ${nevera.join(', ')}. Puedes asumir que hay sal, aceite, ajo y especias básicas. No uses ningún otro ingrediente. Adapta las combinaciones a lo disponible. Si algún slot no encaja bien, hazlo igualmente con lo que hay.`
-    await generarSemanaCompleta(prompt)
+    await generarSemanaCompleta(partes.join(' '))
   }
+
 
   function eliminarSlot(clave: ClaveMenu) {
     setEstados(prev => { const n = { ...prev }; delete n[clave]; return n })
@@ -239,11 +373,12 @@ export default function Menu() {
 
   const totalListos = DIAS.flatMap(d => FRANJAS.map(f => `${d}_${f}` as ClaveMenu)).filter(k => estados[k]?.estado === 'listo').length
   const totalSeleccionadas = Object.keys(seleccion).filter(k => estados[k as ClaveMenu]?.estado === 'listo').length
+  const menuVacio = totalListos === 0 && !generando
 
   if (perfilLoading) return null
 
   return (
-    <div className="min-h-screen p-4 max-w-2xl mx-auto">
+    <div className="min-h-screen p-4 pb-28 max-w-2xl mx-auto page-enter">
 
       {/* Modal Sorpréndeme */}
       {modalSorpresa && (
@@ -255,24 +390,36 @@ export default function Menu() {
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Tipo de cocina</label>
                 <select value={cuestionario.cocina} onChange={e => setCuestionario(p => ({ ...p, cocina: e.target.value }))}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800">
-                  <option>española y mediterránea</option><option>italiana</option><option>asiática</option>
-                  <option>americana</option><option>mexicana</option><option>variada e internacional</option>
-                  <option>saludable y ligera</option><option>tradicional española</option>
+                  <option value="combinado">🎲 Combinado (mezcla varios estilos)</option>
+                  <option value="aleatorio">🔀 Aleatorio (la IA elige libremente)</option>
+                  <option value="española y mediterránea">🥘 Española y mediterránea</option>
+                  <option value="italiana">🍝 Italiana</option>
+                  <option value="asiática">🍜 Asiática</option>
+                  <option value="americana">🍔 Americana</option>
+                  <option value="mexicana">🌮 Mexicana</option>
+                  <option value="variada e internacional">🌍 Variada e internacional</option>
+                  <option value="saludable y ligera">🥗 Saludable y ligera</option>
+                  <option value="tradicional española">🍲 Tradicional española</option>
                 </select>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Tiempo para cocinar</label>
                 <select value={cuestionario.tiempo} onChange={e => setCuestionario(p => ({ ...p, tiempo: e.target.value }))}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800">
-                  <option>rápido (menos de 30 min)</option><option>normal (30-60 min)</option><option>sin prisa (más de 1 hora)</option>
+                  <option value="combinado">🎲 Combinado (variado)</option>
+                  <option value="rápido (menos de 30 min)">⚡ Rápido (menos de 30 min)</option>
+                  <option value="normal (30-60 min)">🕐 Normal (30–60 min)</option>
+                  <option value="sin prisa (más de 1 hora)">🍲 Sin prisa (más de 1 hora)</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Ocasión</label>
-                <select value={cuestionario.ocasion} onChange={e => setCuestionario(p => ({ ...p, ocasion: e.target.value }))}
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Dificultad de las recetas</label>
+                <select value={cuestionario.dificultad} onChange={e => setCuestionario(p => ({ ...p, dificultad: e.target.value }))}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800">
-                  <option>semana normal</option><option>visita de amigos o familia</option><option>cena romántica</option>
-                  <option>comida con niños</option><option>semana de dieta</option><option>semana de caprichos</option>
+                  <option value="combinado">🎲 Combinado (mezcla de todo)</option>
+                  <option value="fácil">😊 Fácil (≤30 min, técnicas simples)</option>
+                  <option value="media">👨‍🍳 Media (30–60 min)</option>
+                  <option value="difícil">🔥 Difícil (elaboradas, +45 min)</option>
                 </select>
               </div>
               <div>
@@ -312,6 +459,17 @@ export default function Menu() {
         </div>
       )}
 
+      {/* Modal Generar menú */}
+      {modalGenerar && perfil && (
+        <ModalGenerarMenu
+          dificultadPerfil={(perfil as { dificultad_recetas?: string })?.dificultad_recetas as import('../types').DificultadPreferida ?? 'combinado'}
+          ingredientesNevera={[...((perfil as { nevera?: string[] }).nevera ?? []), ...(recuperar<string[]>('lista_nevera') ?? [])].filter((v, i, a) => a.indexOf(v) === i)}
+          listasCompartidas={listasCompartidas.map(l => ({ id: l.id, nombre: l.nombre }))}
+          onConfirmar={generarDesdeModal}
+          onCancelar={() => setModalGenerar(false)}
+        />
+      )}
+
       {/* Banner de error */}
       {errorMsg && (
         <div className="mb-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 flex items-start gap-3">
@@ -323,7 +481,7 @@ export default function Menu() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4 sticky top-4 bg-warm-white dark:bg-gray-950 py-2 z-10 gap-2">
-        <h1 className="text-xl font-bold shrink-0">🗓️ Tu semana</h1>
+        <h1 className="text-2xl font-black shrink-0 tracking-tight">Tu semana</h1>
         <div className="flex gap-1.5 flex-wrap justify-end">
           <button onClick={() => { setMostrarFavoritas(p => !p); setMostrarGuardadas(false) }}
             className="text-sm border rounded-card px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800">
@@ -337,20 +495,133 @@ export default function Menu() {
             className="text-sm border rounded-card px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40">
             💾 Guardar
           </button>
-          <button onClick={() => setModalSorpresa(true)} disabled={generando || !perfil}
+          <button onClick={abrirModalSorpresa} disabled={generando || !perfil}
             className="text-sm border rounded-card px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50">
             🎲 Sorpresa
           </button>
-          <button onClick={generarConNevera} disabled={generando || !perfil}
+          <button onClick={() => setModalAjustesSemana(true)}
+            className="text-sm border rounded-card px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800" title="Ajustes de la semana">
+            ⚙️
+          </button>
+          <button onClick={() => setModalGenerar(true)} disabled={generando || !perfil}
             className="text-sm bg-green-select text-white rounded-card px-3 py-1.5 font-semibold hover:bg-green-600 disabled:opacity-50">
             {generando ? 'Generando...' : 'Generar ✨'}
           </button>
+          <div className="relative">
+            <button
+              onClick={() => setInfoGenerarVisible(v => !v)}
+              className="w-7 h-7 rounded-full border-2 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 text-xs font-bold hover:border-green-select hover:text-green-select transition-colors flex items-center justify-center"
+            >
+              ?
+            </button>
+            {infoGenerarVisible && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setInfoGenerarVisible(false)} />
+                <div className="absolute right-0 top-9 z-50 w-72 bg-white dark:bg-gray-900 rounded-xl shadow-card-lg border border-gray-100 dark:border-gray-800 p-4 text-sm">
+                  <div className="space-y-3">
+                    <div className="flex gap-2.5">
+                      <span className="text-xl shrink-0">✨</span>
+                      <div>
+                        <p className="font-semibold text-gray-800 dark:text-gray-100 mb-0.5">Generar</p>
+                        <p className="text-gray-500 dark:text-gray-400 leading-snug">Te pregunta qué tipo de cocina, dificultad, tiempo y ocasión quieres. También puedes elegir qué ingredientes usar. Más control, resultado más ajustado a ti.</p>
+                      </div>
+                    </div>
+                    <div className="border-t border-gray-100 dark:border-gray-800" />
+                    <div className="flex gap-2.5">
+                      <span className="text-xl shrink-0">🎲</span>
+                      <div>
+                        <p className="font-semibold text-gray-800 dark:text-gray-100 mb-0.5">Sorpresa</p>
+                        <p className="text-gray-500 dark:text-gray-400 leading-snug">La IA elige el menú libremente basándose en tu perfil. Ideal para cuando no tienes nada en mente y quieres dejarte sorprender.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="mb-4">
         <ProgressBar value={totalListos} max={14} label="Recetas generadas" />
       </div>
+
+      {/* Empty state: primera vez o menú vacío */}
+      {menuVacio && (
+        <div className="mb-4 bg-green-50 dark:bg-green-950 border border-green-100 dark:border-green-900 rounded-xl p-5 text-center">
+          <p className="text-3xl mb-3">🥗</p>
+          <h2 className="font-bold text-base mb-1">Tu menú semanal está vacío</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Elige para cuántos días y qué comidas quieres generar, luego pulsa <strong>Generar mi menú ✨</strong>.
+          </p>
+          <button
+            onClick={() => setModalGenerar(true)}
+            disabled={!perfil}
+            className="bg-green-select text-white rounded-card px-6 py-2.5 font-semibold text-sm hover:bg-green-600 disabled:opacity-50"
+          >
+            Generar mi menú ✨
+          </button>
+        </div>
+      )}
+
+      {/* Selector de días y franjas */}
+      {menuVacio && (
+        <div className="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-card p-4 space-y-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">¿Para cuántos días?</p>
+            <div className="flex gap-2">
+              {([
+                { key: 'semana',        label: 'Semana completa' },
+                { key: 'laboral',       label: 'Lun – Vie' },
+                { key: 'personalizado', label: 'Personalizado' },
+              ] as const).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setDiasConfig(key)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {diasConfig === 'personalizado' && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {DIAS.map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setDiasPersonalizados(prev => {
+                      const next = new Set(prev)
+                      next.has(d) ? next.delete(d) : next.add(d)
+                      return next
+                    })}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}
+                  >
+                    {DIAS_LABEL[d].slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">¿Qué comidas?</p>
+            <div className="flex gap-2">
+              {([
+                { key: 'ambas',  label: 'Comida y cena' },
+                { key: 'comida', label: 'Solo comida' },
+                { key: 'cena',   label: 'Solo cena' },
+              ] as const).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setFranjaConfig(key)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Favoritas */}
       {mostrarFavoritas && (
@@ -404,52 +675,131 @@ export default function Menu() {
         </div>
       )}
 
-      {/* Grid semanal */}
-      <div className="space-y-6">
-        {DIAS.map(dia => (
-          <div key={dia}>
-            <div className="flex items-center mb-2">
-              <h2 className="font-semibold text-gray-700 dark:text-gray-300">{DIAS_LABEL[dia]}</h2>
-              <button
-                onClick={() => regenerarDia(dia)}
-                disabled={generando}
-                title={`Regenerar ${DIAS_LABEL[dia]}`}
-                className="text-xs text-gray-400 hover:text-gray-600 ml-2 disabled:opacity-40"
-              >
-                🔄
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {FRANJAS.map(franja => {
-                const clave: ClaveMenu = `${dia}_${franja}`
-                const slot = estados[clave] ?? { estado: 'idle' as EstadoCelda }
-                return (
-                  <div key={franja}>
-                    <p className="text-xs uppercase tracking-wide text-gray-400 mb-1 capitalize">{franja}</p>
-                    <CeldaMenu
-                      dia={dia} franja={franja}
-                      estado={slot.estado} datos={slot.datos}
-                      onReintentar={() => regenerarSlot(dia, franja)}
-                      onEliminar={() => eliminarSlot(clave)}
-                      seleccionada={seleccion[clave] ?? 0}
-                      onSeleccionar={i => setSeleccion(prev => ({ ...prev, [clave]: i }))}
-                      favoritasNombres={favoritasNombres}
-                      onToggleFavorita={toggleFavorita}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Grid semanal — solo visible cuando hay algo generado o generando */}
+      {!menuVacio && (
+        <div className="space-y-6">
+          {DIAS.filter(dia =>
+            FRANJAS.some(f => {
+              const s = estados[`${dia}_${f}` as ClaveMenu]
+              return s && s.estado !== 'idle' && s.estado !== 'vacio'
+            })
+          ).map(dia => {
+            const franjasVisibles = FRANJAS.filter(f => {
+              const s = estados[`${dia}_${f}` as ClaveMenu]
+              return s && s.estado !== 'idle' && s.estado !== 'vacio'
+            })
+            return (
+              <div key={dia}>
+                <div className="flex items-center mb-2">
+                  <h2 className="font-bold text-gray-800 dark:text-gray-200 tracking-tight">{DIAS_LABEL[dia]}</h2>
+                  <button
+                    onClick={() => regenerarDia(dia)}
+                    disabled={generando}
+                    title={`Regenerar ${DIAS_LABEL[dia]}`}
+                    className="text-xs text-gray-400 hover:text-gray-600 ml-2 disabled:opacity-40"
+                  >
+                    🔄
+                  </button>
+                </div>
+                <div className={`grid gap-3 ${franjasVisibles.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {franjasVisibles.map(franja => {
+                    const clave: ClaveMenu = `${dia}_${franja}`
+                    const slot = estados[clave] ?? { estado: 'idle' as EstadoCelda }
+                    return (
+                      <div key={franja}>
+                        <p className="text-xs uppercase tracking-wide text-gray-400 mb-1 capitalize">{franja}</p>
+                        <CeldaMenu
+                          dia={dia} franja={franja}
+                          estado={slot.estado} datos={slot.datos}
+                          onReintentar={() => regenerarSlot(dia, franja)}
+                          onEliminar={() => eliminarSlot(clave)}
+                          seleccionada={seleccion[clave] ?? 0}
+                          onSeleccionar={i => setSeleccion(prev => ({ ...prev, [clave]: i }))}
+                          favoritasNombres={favoritasNombres}
+                          onToggleFavorita={toggleFavorita}
+                          dislikesNombres={dislikes}
+                          onDislike={handleDislike}
+                          onQuitarDislike={handleQuitarDislike}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {totalSeleccionadas > 0 && (
-        <div className="mt-8 sticky bottom-4">
+        <div className="mt-8 sticky bottom-24 flex justify-center">
           <button onClick={irALista}
-            className="w-full bg-orange-accent text-white rounded-card py-4 text-lg font-bold shadow-lg hover:opacity-90">
-            Ver lista de la compra ({totalSeleccionadas} comidas) →
+            className="bg-orange-accent text-white border-2 border-orange-accent/80 rounded-full px-8 py-3 text-base font-bold shadow-lg shadow-orange-accent/30 hover:opacity-90 active:scale-95 transition-all"
+            style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+            🛒 Ver lista ({totalSeleccionadas} comidas)
           </button>
+        </div>
+      )}
+
+      {/* ── MODAL AJUSTES SEMANA ─────────────────────────────────────────── */}
+      {modalAjustesSemana && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setModalAjustesSemana(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-3xl p-6 pb-8 shadow-2xl space-y-5"
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto" />
+            <h2 className="text-lg font-black text-gray-800 dark:text-gray-100">⚙️ Ajustes de la semana</h2>
+
+            {/* Días */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">¿Para cuántos días?</p>
+              <div className="flex gap-2">
+                {([
+                  { key: 'semana',        label: 'Semana completa' },
+                  { key: 'laboral',       label: 'Lun – Vie' },
+                  { key: 'personalizado', label: 'Personalizado' },
+                ] as const).map(({ key, label }) => (
+                  <button key={key} onClick={() => setDiasConfig(key)}
+                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {diasConfig === 'personalizado' && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {DIAS.map(d => (
+                    <button key={d}
+                      onClick={() => setDiasPersonalizados(prev => { const next = new Set(prev); next.has(d) ? next.delete(d) : next.add(d); return next })}
+                      className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
+                      {DIAS_LABEL[d].slice(0, 3)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Comidas */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">¿Qué comidas?</p>
+              <div className="flex gap-2">
+                {([
+                  { key: 'ambas',  label: '🍽️ Comida y cena' },
+                  { key: 'comida', label: '☀️ Solo comida' },
+                  { key: 'cena',   label: '🌙 Solo cena' },
+                ] as const).map(({ key, label }) => (
+                  <button key={key} onClick={() => setFranjaConfig(key)}
+                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => setModalAjustesSemana(false)}
+              className="w-full py-4 rounded-2xl bg-green-select text-white font-black text-lg active:scale-95 transition-transform">
+              Listo
+            </button>
+          </div>
         </div>
       )}
     </div>

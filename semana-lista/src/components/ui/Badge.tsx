@@ -1,19 +1,14 @@
-// src/components/ui/Badge.tsx
 import type { Dificultad } from '../../types'
 
-const DIFICULTAD_STYLES: Record<Dificultad, string> = {
-  'fácil':   'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  'media':   'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  'difícil': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+const STYLES: Record<Dificultad, string> = {
+  'fácil':   'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  'media':   'bg-amber-50  text-amber-700  dark:bg-amber-900/40  dark:text-amber-300',
+  'difícil': 'bg-red-50    text-red-700    dark:bg-red-900/40    dark:text-red-300',
 }
 
-interface Props {
-  dificultad: Dificultad
-}
-
-export function Badge({ dificultad }: Props) {
+export function Badge({ dificultad }: { dificultad: Dificultad }) {
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${DIFICULTAD_STYLES[dificultad]}`}>
+    <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide ${STYLES[dificultad]}`}>
       {dificultad}
     </span>
   )

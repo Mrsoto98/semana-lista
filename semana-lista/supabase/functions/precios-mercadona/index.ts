@@ -12,265 +12,130 @@ const CORS = {
 }
 
 const MERCADONA_BASE = 'https://tienda.mercadona.es/api'
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24h
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
-// ─── Normalization ────────────────────────────────────────────────────────────
-function normalizar(texto: string): string {
-  return texto
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-// ─── Stable interface — only this function touches Mercadona ─────────────────
-interface ProductoMercadona {
-  id: string
-  nombre: string
-  precio: number         // € por envase
-  tamaño: number         // cantidad por envase
-  unidad: string         // unidad del envase (g, ml, ud...)
-  precio_por_unidad: number // € por unidad base
-}
-
-async function buscarProducto(
-  termino: string,
-  codigoPostal: string,
-): Promise<ProductoMercadona | null> {
-  const terminoNorm = normalizar(termino)
-
-  // Layer 1: known mappings in mapa_ingredientes
-  const { data: mapa } = await supabase
-    .from('mapa_ingredientes')
-    .select('mercadona_product_id')
-    .eq('ingrediente_normalizado', terminoNorm)
-    .maybeSingle()
-
-  if (mapa?.mercadona_product_id) {
-    const prod = await fetchProductById(mapa.mercadona_product_id, codigoPostal)
-    if (prod) return prod
-  }
-
-  // Layer 2: catalog cache
-  const { data: cache } = await supabase
-    .from('catalogo_cache')
-    .select('payload, actualizado_en')
-    .eq('termino', terminoNorm)
-    .maybeSingle()
-
-  if (cache) {
-    const age = Date.now() - new Date(cache.actualizado_en).getTime()
-    if (age < CACHE_TTL_MS) {
-      return cache.payload as ProductoMercadona | null
-    }
-  }
-
-  // Layer 3: live Mercadona API
-  const resultado = await buscarEnMercadona(terminoNorm, codigoPostal)
-
-  // Cache the result (even null means "not found")
-  await supabase
-    .from('catalogo_cache')
-    .upsert(
-      { termino: terminoNorm, payload: resultado, actualizado_en: new Date().toISOString() },
-      { onConflict: 'termino' },
-    )
-
-  return resultado
-}
-
-async function fetchProductById(
-  id: string,
-  codigoPostal: string,
-): Promise<ProductoMercadona | null> {
-  try {
-    await fijarAlmacen(codigoPostal)
-    const res = await fetch(`${MERCADONA_BASE}/products/${id}/`, {
-      headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json, text/plain, */*' },
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    return parsearProducto(data)
-  } catch {
-    return null
+function baseHeaders(cookie?: string): Record<string, string> {
+  return {
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'es-ES,es;q=0.9',
+    'Referer': 'https://tienda.mercadona.es/',
+    'Origin': 'https://tienda.mercadona.es',
+    ...(cookie ? { 'Cookie': cookie } : {}),
   }
 }
 
-async function fijarAlmacen(codigoPostal: string): Promise<void> {
-  try {
-    await fetch(`${MERCADONA_BASE}/postal-codes/actions/change-pc/`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0',
-        Accept: 'application/json, text/plain, */*',
-      },
-      body: JSON.stringify({ new_postal_code: codigoPostal }),
-    })
-  } catch { /* non-critical — proceed with default warehouse */ }
-}
-
-async function buscarEnMercadona(
-  terminoNorm: string,
-  codigoPostal: string,
-): Promise<ProductoMercadona | null> {
-  try {
-    await fijarAlmacen(codigoPostal)
-
-    // Fetch all categories
-    const catRes = await fetch(`${MERCADONA_BASE}/categories/`, {
-      headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json, text/plain, */*' },
-    })
-    if (!catRes.ok) return null
-    const catData = await catRes.json()
-
-    const categorias: { id: number }[] = catData.results ?? []
-    const palabras = terminoNorm.split(' ')
-
-    let mejorMatch: ProductoMercadona | null = null
-    let mejorPuntuacion = 0
-
-    // Search through categories looking for matching products
-    for (const cat of categorias) {
-      const subRes = await fetch(`${MERCADONA_BASE}/categories/${cat.id}/`, {
-        headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json, text/plain, */*' },
-      })
-      if (!subRes.ok) continue
-      const subData = await subRes.json()
-
-      const subcategorias = subData.categories ?? []
-      for (const sub of subcategorias) {
-        const productos = sub.products ?? []
-        for (const prod of productos) {
-          const nombreNorm = normalizar(prod.display_name ?? '')
-          const palabrasMatch = palabras.filter((p: string) => nombreNorm.includes(p)).length
-          const puntuacion = palabrasMatch / palabras.length
-
-          if (puntuacion > mejorPuntuacion) {
-            mejorPuntuacion = puntuacion
-            mejorMatch = parsearProducto(prod)
-          }
-        }
-      }
-
-      if (mejorPuntuacion >= 0.8) break // good enough match, stop searching
-    }
-
-    return mejorPuntuacion >= 0.5 ? mejorMatch : null
-  } catch {
-    return null
-  }
-}
-
-function parsearProducto(raw: Record<string, unknown>): ProductoMercadona | null {
+function parsearProducto(raw: Record<string, unknown>): { id: string; nombre: string; precio: number; tamaño: number; unidad: string } | null {
   try {
     const pi = raw.price_instructions as Record<string, unknown> | undefined
     if (!pi) return null
-
     const precio = Number(pi.unit_price ?? pi.bulk_price ?? 0)
-    const skuQty = Number(pi.sku_quantity ?? 1)
-    const approxSize = skuQty > 0 ? skuQty : 1
-
-    // Try to detect unit from product name or reference_format
-    const refFormat = String(raw.format ?? raw.reference_format ?? '')
-    const unidadMatch = refFormat.match(/(\d+)\s*(g|kg|ml|l|ud)/i)
-    const tamaño = unidadMatch ? Number(unidadMatch[1]) : approxSize
-    const unidad = unidadMatch ? unidadMatch[2].toLowerCase() : 'ud'
-
-    const precioPorUnidad = tamaño > 0 ? precio / tamaño : precio
-
-    return {
-      id: String(raw.id ?? ''),
-      nombre: String(raw.display_name ?? ''),
-      precio,
-      tamaño,
-      unidad,
-      precio_por_unidad: precioPorUnidad,
-    }
-  } catch {
-    return null
-  }
+    if (!precio) return null
+    const refFormat = String(raw.format ?? raw.reference_format ?? raw.display_name ?? '')
+    const m = refFormat.match(/([\d,.]+)\s*(g|kg|ml|l|ud|cl)/i)
+    const tamaño = m ? parseFloat(m[1].replace(',', '.')) : Number(pi.sku_quantity ?? 1)
+    const unidad = m ? m[2].toLowerCase() : 'ud'
+    return { id: String(raw.id ?? ''), nombre: String(raw.display_name ?? ''), precio, tamaño, unidad }
+  } catch { return null }
 }
 
-// ─── Unit conversion helpers ──────────────────────────────────────────────────
-// Convert ingredient quantity to same unit as the product for packaging math
-function convertir(cantidad: number, unidadIngrediente: string, unidadProducto: string): number {
-  // Normalize both units
-  const uIng = unidadIngrediente.toLowerCase()
-  const uProd = unidadProducto.toLowerCase()
-
-  if (uIng === uProd) return cantidad
-
-  // g ↔ kg
-  if (uIng === 'g' && uProd === 'kg') return cantidad / 1000
-  if (uIng === 'kg' && uProd === 'g') return cantidad * 1000
-
-  // ml ↔ l
-  if (uIng === 'ml' && uProd === 'l') return cantidad / 1000
-  if (uIng === 'l' && uProd === 'ml') return cantidad * 1000
-
-  // Fallback: assume 1:1
-  return cantidad
+// Fija almacén y devuelve la cookie de sesión
+async function obtenerSesion(codigoPostal: string): Promise<string> {
+  try {
+    const res = await fetch(`${MERCADONA_BASE}/postal-codes/actions/change-pc/`, {
+      method: 'PUT',
+      headers: { ...baseHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_postal_code: codigoPostal }),
+    })
+    // Capturar cookie de sesión para incluirla en peticiones siguientes
+    const setCookie = res.headers.get('set-cookie') ?? ''
+    // Extraer solo el valor de la cookie (sin los atributos)
+    const cookieValue = setCookie.split(';')[0]
+    return cookieValue
+  } catch { return '' }
 }
 
-// ─── Main handler ─────────────────────────────────────────────────────────────
+async function fetchMercadona(url: string, cookie: string): Promise<Record<string, unknown>> {
+  const res = await fetch(url, { headers: baseHeaders(cookie) })
+  if (!res.ok) throw new Error(`Mercadona ${res.status}: ${url}`)
+  return await res.json()
+}
+
+// ─── Handler ─────────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: CORS })
-  }
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405, headers: CORS })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS })
 
   try {
-    const { ingredientes, codigo_postal = '28001' } = await req.json() as {
-      ingredientes: Array<{ nombre: string; cantidad: number; unidad: string }>
-      codigo_postal: string
+    const body = await req.json()
+    const { action, codigo_postal = '28001' } = body
+
+    const session = await obtenerSesion(codigo_postal)
+
+    // Categorías top-level de Mercadona
+    if (action === 'categorias') {
+      const data = await fetchMercadona(`${MERCADONA_BASE}/categories/?lang=es`, session)
+      const categorias = (data.results as Record<string, unknown>[] ?? []).map(c => ({
+        id: c.id,
+        nombre: String(c.name ?? c.slug ?? c.id),
+      }))
+      return new Response(JSON.stringify({ categorias }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
     }
 
-    const resultados = await Promise.all(
-      ingredientes.map(async (ing) => {
-        const producto = await buscarProducto(ing.nombre, codigo_postal)
+    // Productos de una categoría
+    if (action === 'productos') {
+      const { categoria_id } = body as { categoria_id: number }
+      const data = await fetchMercadona(`${MERCADONA_BASE}/categories/${categoria_id}/?lang=es`, session)
+      const productos: ReturnType<typeof parsearProducto>[] = []
+      for (const sub of (data.categories as Record<string, unknown>[] ?? [])) {
+        for (const prod of (sub.products as Record<string, unknown>[] ?? [])) {
+          const p = parsearProducto(prod)
+          if (p) productos.push(p)
+        }
+      }
+      return new Response(
+        JSON.stringify({ productos, nombre: String(data.name ?? categoria_id) }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } },
+      )
+    }
 
-        if (!producto) {
-          return {
-            ingrediente: ing.nombre,
-            cantidad_necesaria: ing.cantidad,
-            unidad: ing.unidad,
-            sin_precio: true,
+    // Precios para lista de ingredientes (modo original)
+    if (!action) {
+      const { ingredientes } = body as { ingredientes: Array<{ nombre: string; cantidad: number; unidad: string }> }
+      if (!ingredientes?.length) return new Response(JSON.stringify({ resultados: [] }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+
+      // Cargar catálogo cacheado o fresco
+      let catalogo: Record<string, { productos: ReturnType<typeof parsearProducto>[] }> = {}
+      try {
+        const { data: cache } = await supabase.from('catalogo_cache').select('payload, actualizado_en').eq('termino', '__catalogo_v2__').maybeSingle()
+        if (cache) {
+          const age = Date.now() - new Date(cache.actualizado_en as string).getTime()
+          if (age < CACHE_TTL_MS) catalogo = cache.payload as typeof catalogo
+        }
+      } catch { /* no cache */ }
+
+      const resultados = await Promise.all(ingredientes.map(async (ing) => {
+        const normIng = ing.nombre.toLowerCase()
+        // Buscar en catálogo cacheado
+        for (const sub of Object.values(catalogo)) {
+          for (const p of sub.productos) {
+            if (p && p.nombre.toLowerCase().includes(normIng)) {
+              return { ingrediente: ing.nombre, producto_mercadona: p.nombre, precio_envase: p.precio, sin_precio: false }
+            }
           }
         }
+        return { ingrediente: ing.nombre, sin_precio: true }
+      }))
+      return new Response(JSON.stringify({ resultados }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
 
-        const cantConvertida = convertir(ing.cantidad, ing.unidad, producto.unidad)
-        const envases = Math.ceil(cantConvertida / producto.tamaño)
-        const costeReal = envases * producto.precio
-        const sobrante = envases * producto.tamaño - cantConvertida
+    return new Response(JSON.stringify({ error: true, mensaje: 'Acción desconocida' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
-        return {
-          ingrediente: ing.nombre,
-          cantidad_necesaria: ing.cantidad,
-          unidad: ing.unidad,
-          producto_mercadona: producto.nombre,
-          precio_envase: producto.precio,
-          tamaño_envase: producto.tamaño,
-          unidad_envase: producto.unidad,
-          envases_a_comprar: envases,
-          coste_real: Math.round(costeReal * 100) / 100,
-          sobrante: Math.round(sobrante * 10) / 10,
-          sin_precio: false,
-        }
-      })
-    )
-
-    return new Response(
-      JSON.stringify({ resultados }),
-      { headers: { ...CORS, 'Content-Type': 'application/json' } },
-    )
   } catch (err: unknown) {
+    const mensaje = err instanceof Error ? err.message : 'Error interno'
+    console.error('precios-mercadona error:', mensaje)
     return new Response(
-      JSON.stringify({ error: true, mensaje: err instanceof Error ? err.message : 'Error interno' }),
+      JSON.stringify({ error: true, mensaje }),
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
     )
   }

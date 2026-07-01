@@ -1,10 +1,21 @@
 // src/pages/Auth.tsx
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 
 type Mode = 'login' | 'registro'
+
+function traducirError(msg: string): string {
+  if (msg.includes('Invalid login credentials')) return 'Email o contraseña incorrectos.'
+  if (msg.includes('Email not confirmed'))       return 'Confirma tu email antes de entrar. Revisa tu bandeja de entrada.'
+  if (msg.includes('User already registered'))   return 'Ya existe una cuenta con ese email. Inicia sesión.'
+  if (msg.includes('Password should be'))        return 'La contraseña debe tener al menos 6 caracteres.'
+  if (msg.includes('Unable to validate'))        return 'Email inválido. Comprueba que está bien escrito.'
+  if (msg.includes('rate limit'))                return 'Demasiados intentos. Espera unos minutos.'
+  if (msg.includes('network'))                   return 'Error de conexión. Comprueba tu red.'
+  return msg
+}
 
 export default function Auth() {
   const { user, loading } = useAuth()
@@ -14,6 +25,7 @@ export default function Auth() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [confirmacionEnviada, setConfirmacionEnviada] = useState(false)
 
   useEffect(() => {
     if (!loading && user) redirectAfterLogin()
@@ -34,14 +46,20 @@ export default function Auth() {
     setEnviando(true)
     try {
       if (mode === 'registro') {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { data, error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
+        // Si session es null significa que necesita confirmar email
+        if (!data.session) {
+          setConfirmacionEnviada(true)
+          return
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      setError(traducirError(msg))
     } finally {
       setEnviando(false)
     }
@@ -56,13 +74,36 @@ export default function Auth() {
 
   if (loading) return null
 
+  // Pantalla de confirmación de email
+  if (confirmacionEnviada) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-sm text-center">
+          <p className="text-5xl mb-4">📬</p>
+          <h1 className="text-xl font-bold mb-2">Revisa tu email</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+            Hemos enviado un enlace de confirmación a <strong>{email}</strong>.
+            Ábrelo y vuelve aquí para entrar.
+          </p>
+          <button
+            onClick={() => { setConfirmacionEnviada(false); setMode('login') }}
+            className="text-green-select font-medium hover:underline text-sm"
+          >
+            Ya lo confirmé → Iniciar sesión
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 page-enter">
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-bold mb-2 text-center">🥗 Semana Lista</h1>
-        <p className="text-center text-gray-500 dark:text-gray-400 mb-8">
-          Tu planificador semanal con IA
-        </p>
+        <div className="text-center mb-8">
+          <p className="text-5xl mb-3">🥗</p>
+          <h1 className="text-3xl font-black tracking-tight mb-1">Semana Lista</h1>
+          <p className="text-gray-400 text-sm">Tu planificador semanal con IA</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -72,6 +113,7 @@ export default function Auth() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
+              autoComplete="email"
               className="w-full border rounded-card px-4 py-2 bg-white dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-select"
             />
           </div>
@@ -83,13 +125,12 @@ export default function Auth() {
               onChange={e => setPassword(e.target.value)}
               required
               minLength={6}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               className="w-full border rounded-card px-4 py-2 bg-white dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-select"
             />
           </div>
 
-          {error && (
-            <p className="text-red-500 text-sm">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <button
             type="submit"
@@ -122,11 +163,16 @@ export default function Auth() {
         <p className="mt-6 text-center text-sm text-gray-500">
           {mode === 'login' ? '¿Sin cuenta?' : '¿Ya tienes cuenta?'}{' '}
           <button
-            onClick={() => setMode(mode === 'login' ? 'registro' : 'login')}
+            onClick={() => { setMode(mode === 'login' ? 'registro' : 'login'); setError(null) }}
             className="text-green-select font-medium hover:underline"
           >
             {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
           </button>
+        </p>
+
+        <p className="mt-8 text-center text-xs text-gray-400">
+          Al continuar aceptas nuestra{' '}
+          <Link to="/privacidad" className="underline hover:text-gray-600">política de privacidad</Link>
         </p>
       </div>
     </div>

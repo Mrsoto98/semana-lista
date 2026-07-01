@@ -3,9 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Semana Lista</title>
+    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#22c55e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Semana Lista" />
+    <title>Semana Lista — Planificador de menús con IA</title>
+    <meta name="description" content="Planifica tu menú semanal con IA, genera la lista de la compra y encuentra los mejores precios en Mercadona." />
+    <meta property="og:title" content="Semana Lista" />
+    <meta property="og:description" content="Planifica tu menú semanal con IA en segundos." />
+    <meta property="og:type" content="website" />
   </head>
+  <script>
+    // Aplica dark mode antes de que React monte, evitando el flash
+    try {
+      const t = localStorage.getItem('semana-lista:theme')
+      if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      }
+    } catch {}
+    // Fuerza actualización del service worker si hay una versión nueva
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.update())
+      })
+    }
+  </script>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

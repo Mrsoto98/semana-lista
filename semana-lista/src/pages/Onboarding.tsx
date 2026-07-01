@@ -5,7 +5,7 @@ import { TagInput } from '../components/ui/TagInput'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { usePerfil } from '../hooks/usePerfil'
 import { guardar, recuperar } from '../lib/storage'
-import type { Objetivo, Perfil } from '../types'
+import type { Objetivo, DificultadPreferida, Perfil } from '../types'
 
 const OBJETIVOS: { value: Objetivo; label: string; emoji: string }[] = [
   { value: 'sin_restriccion', label: 'Sin restricciones', emoji: '🍽️' },
@@ -16,7 +16,14 @@ const OBJETIVOS: { value: Objetivo; label: string; emoji: string }[] = [
   { value: 'sin_gluten',      label: 'Sin gluten',        emoji: '🌾' },
 ]
 
-const TOTAL_PASOS = 7
+const DIFICULTADES: { value: DificultadPreferida; label: string; emoji: string; desc: string }[] = [
+  { value: 'fácil',     label: 'Fácil',     emoji: '😊', desc: 'Simples, ≤30 min' },
+  { value: 'media',     label: 'Media',     emoji: '👨‍🍳', desc: '30–60 min' },
+  { value: 'difícil',   label: 'Difícil',   emoji: '🔥', desc: 'Elaboradas' },
+  { value: 'combinado', label: 'Combinado', emoji: '🎲', desc: 'Variedad máxima' },
+]
+
+const TOTAL_PASOS = 8
 
 type Draft = Omit<Perfil, 'id' | 'usuario_id'>
 
@@ -26,6 +33,7 @@ const DRAFT_INICIAL: Draft = {
   codigo_postal: '',
   supermercado: 'mercadona',
   objetivo: 'sin_restriccion',
+  dificultad_recetas: 'combinado',
   ingredientes_si: [],
   ingredientes_no: [],
   nevera: [],
@@ -60,15 +68,16 @@ export default function Onboarding() {
     'Presupuesto semanal',
     'Código postal',
     'Objetivo nutricional',
+    'Dificultad de las recetas',
     'Ingredientes favoritos',
     'Ingredientes a evitar',
     '¿Qué tienes en la nevera?',
   ][paso - 1]
 
   return (
-    <div className="min-h-screen flex flex-col p-4 max-w-lg mx-auto">
+    <div className="min-h-screen flex flex-col p-4 max-w-lg mx-auto page-enter">
       <div className="mt-8 mb-6">
-        <h1 className="text-2xl font-bold mb-4">Cuéntanos sobre ti</h1>
+        <h1 className="text-2xl font-black tracking-tight mb-4">Cuéntanos sobre ti</h1>
         <ProgressBar value={paso} max={TOTAL_PASOS} label={pasoLabel} />
       </div>
 
@@ -146,6 +155,28 @@ export default function Onboarding() {
         )}
 
         {paso === 5 && (
+          <div className="space-y-3">
+            <p className="text-gray-600 dark:text-gray-400">¿Qué nivel de dificultad prefieres en las recetas?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {DIFICULTADES.map(d => (
+                <button
+                  key={d.value}
+                  onClick={() => set('dificultad_recetas', d.value)}
+                  className={`flex flex-col gap-0.5 px-3 py-3 rounded-card border-2 text-left transition-colors ${
+                    draft.dificultad_recetas === d.value
+                      ? 'border-green-select bg-green-50 dark:bg-green-900'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-green-select'
+                  }`}
+                >
+                  <span className="text-base">{d.emoji} <span className="font-semibold">{d.label}</span></span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{d.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {paso === 6 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">Ingredientes que te gustan o usas frecuentemente</p>
             <TagInput
@@ -156,7 +187,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 6 && (
+        {paso === 7 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">Ingredientes que NO quieres en tus menús</p>
             <TagInput
@@ -167,7 +198,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 7 && (
+        {paso === 8 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">
               ¿Qué tienes en la nevera esta semana? (lo usaremos en los menús)

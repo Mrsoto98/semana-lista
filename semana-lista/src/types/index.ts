@@ -1,4 +1,6 @@
 // src/types/index.ts
+export type DificultadPreferida = 'fácil' | 'media' | 'difícil' | 'combinado'
+
 export type Objetivo =
   | 'sin_restriccion'
   | 'bajar_peso'
@@ -32,7 +34,7 @@ export interface Receta {
   descripcion_corta: string
   calorias_aprox: number
   ingredientes: Ingrediente[]
-  pasos: string[]
+  pasos?: string[]
   tags: string[]
 }
 
@@ -51,6 +53,7 @@ export interface Perfil {
   codigo_postal: string
   supermercado: string
   objetivo: Objetivo
+  dificultad_recetas: DificultadPreferida
   ingredientes_si: string[]
   ingredientes_no: string[]
   nevera: string[]

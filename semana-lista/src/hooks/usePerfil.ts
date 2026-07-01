@@ -24,6 +24,10 @@ export function usePerfil() {
 
   async function guardarPerfil(p: Omit<Perfil, 'id' | 'usuario_id'>) {
     if (!user) return
+    // Ensure usuarios row exists (trigger may not have run for older accounts)
+    await supabase
+      .from('usuarios')
+      .upsert({ id: user.id, email: user.email }, { onConflict: 'id' })
     const { data } = await supabase
       .from('perfiles')
       .upsert({ ...p, usuario_id: user.id }, { onConflict: 'usuario_id' })
