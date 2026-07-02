@@ -163,7 +163,7 @@ export function RecetaCard({
         <div className="flex items-center gap-2 flex-wrap">
           <Badge dificultad={receta.dificultad} />
           <span className="text-xs text-gray-400">⏱ {receta.tiempo_prep} min</span>
-          <span className="text-xs text-gray-400">🔥 {receta.calorias_aprox} kcal</span>
+          <span className="text-xs text-gray-400" title="Estimación por persona">🔥 {receta.calorias_aprox} kcal/p</span>
         </div>
 
         <div className="mt-2.5 flex items-center gap-3">
