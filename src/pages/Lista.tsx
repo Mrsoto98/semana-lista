@@ -239,6 +239,17 @@ export default function Lista() {
   // pidieron distintas recetas) en un solo elemento con un solo botón.
   const gruposMenu = useMemo(() => agruparIngredientes(ingredientesMenu), [ingredientesMenu])
 
+  const infoMapMenu = useMemo(() => {
+    const map = new Map<string, string | null>()
+    if (!MERCADONA?.categorias) return map
+    for (const prods of Object.values(MERCADONA.categorias)) {
+      for (const p of prods) {
+        if (!map.has(p.nombre)) map.set(p.nombre, p.foto ?? null)
+      }
+    }
+    return map
+  }, [MERCADONA])
+
   const menuEnCasa = useMemo(
     () => resolverContraSet(ingredientesMenu, enCasa, MERCADONA?.categorias),
     [ingredientesMenu, enCasa, MERCADONA],
@@ -605,8 +616,23 @@ export default function Lista() {
               {gruposMenu.map(({ key, items, etiqueta }) => {
                 const enC = items.some(i => menuEnComprar.has(i))
                 const enN = items.some(i => menuEnCasa.has(i))
+                const foto = items.map(i => infoMapMenu.get(i)).find(f => f != null) ?? null
                 return (
                   <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                    {foto && (
+                      <button
+                        onClick={() => setFotoAmpliada(foto)}
+                        className="flex items-center pl-1 pr-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700"
+                      >
+                        <img
+                          src={foto}
+                          alt=""
+                          loading="lazy"
+                          className="w-6 h-6 rounded-full object-cover shrink-0 cursor-zoom-in"
+                          onError={e => { e.currentTarget.parentElement!.style.display = 'none' }}
+                        />
+                      </button>
+                    )}
                     <button onClick={() => enC ? quitarGrupoDeComprar(items) : abrirPickerMenu(items, false)}
                       className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
                       {enC ? '✓' : '🛒'} <span className={enN ? 'line-through decoration-2' : ''}>{etiqueta}</span>

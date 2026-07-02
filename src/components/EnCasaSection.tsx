@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 interface Producto { id?: string; nombre: string; precio: number; foto?: string | null; tamaño?: number; unidad?: string }
 
@@ -21,7 +22,8 @@ const CAT_EMOJI: Record<string, string> = {
 }
 
 export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
-  // Mapa nombre → {foto, categoria} usando el catálogo
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
+
   const infoMap = useMemo(() => {
     const map = new Map<string, { foto?: string | null; categoria: string }>()
     if (!catalogo) return map
@@ -33,7 +35,6 @@ export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
     return map
   }, [catalogo])
 
-  // Agrupar items por categoría
   const grupos = useMemo(() => {
     const g = new Map<string, string[]>()
     for (const item of Array.from(enCasa).sort()) {
@@ -41,7 +42,6 @@ export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
       if (!g.has(cat)) g.set(cat, [])
       g.get(cat)!.push(item)
     }
-    // Ordenar: categorías con items primero, Otros al final
     return Array.from(g.entries()).sort(([a], [b]) => {
       if (a === 'Otros') return 1
       if (b === 'Otros') return -1
@@ -50,45 +50,63 @@ export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
   }, [enCasa, infoMap])
 
   return (
-    <div>
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">🏠 En casa</h2>
-      <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
-        {grupos.map(([cat, items]) => (
-          <div key={cat}>
-            {grupos.length > 1 && (
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                {CAT_EMOJI[cat] ?? '📦'} {cat}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              {items.map(item => {
-                const foto = infoMap.get(item)?.foto
-                return (
-                  <button
-                    key={item}
-                    onClick={() => onRemove(item)}
-                    className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-medium pl-0.5 pr-3 py-0.5 rounded-full border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
-                  >
-                    {foto ? (
-                      <img
-                        src={foto}
-                        alt=""
-                        loading="lazy"
-                        className="w-6 h-6 rounded-full object-cover shrink-0 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-700"
-                        onError={e => { e.currentTarget.style.display = 'none' }}
-                      />
-                    ) : (
-                      <span className="w-6 h-6 rounded-full shrink-0 bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px]">🏠</span>
-                    )}
-                    <span className="leading-tight">{item}</span>
-                    <span className="text-blue-300 dark:text-blue-600 text-[10px] leading-none ml-0.5">✕</span>
-                  </button>
-                )
-              })}
+    <>
+      <div>
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">🏠 En casa</h2>
+        <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
+          {grupos.map(([cat, items]) => (
+            <div key={cat}>
+              {grupos.length > 1 && (
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                  {CAT_EMOJI[cat] ?? '📦'} {cat}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {items.map(item => {
+                  const foto = infoMap.get(item)?.foto
+                  return (
+                    <button
+                      key={item}
+                      onClick={() => onRemove(item)}
+                      className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-medium pl-0.5 pr-3 py-0.5 rounded-full border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
+                    >
+                      {foto ? (
+                        <img
+                          src={foto}
+                          alt=""
+                          loading="lazy"
+                          className="w-6 h-6 rounded-full object-cover shrink-0 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 cursor-zoom-in"
+                          onError={e => { e.currentTarget.style.display = 'none' }}
+                          onClick={e => { e.stopPropagation(); setFotoAmpliada(foto) }}
+                        />
+                      ) : (
+                        <span className="w-6 h-6 rounded-full shrink-0 bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px]">🏠</span>
+                      )}
+                      <span className="leading-tight">{item}</span>
+                      <span className="text-blue-300 dark:text-blue-600 text-[10px] leading-none ml-0.5">✕</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+
+      {fotoAmpliada && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setFotoAmpliada(null)}
+        >
+          <img
+            src={fotoAmpliada}
+            alt=""
+            className="max-w-[80vw] max-h-[80vh] rounded-2xl shadow-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
