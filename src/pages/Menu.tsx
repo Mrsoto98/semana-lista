@@ -738,19 +738,22 @@ export default function Menu() {
 
       {/* Widget nutricional — solo cuando hay recetas */}
       {resumenSemanal.numSlots >= 2 && (
-        <div className="flex gap-2 mb-4">
-          <div className="flex-1 bg-orange-50 dark:bg-orange-950/30 rounded-xl p-3 text-center">
-            <p className="text-lg font-black text-orange-500">{resumenSemanal.totalKcal.toLocaleString('es')}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">kcal totales</p>
+        <div className="mb-4">
+          <div className="flex gap-2">
+            <div className="flex-1 bg-orange-50 dark:bg-orange-950/30 rounded-xl p-3 text-center">
+              <p className="text-lg font-black text-orange-500">{resumenSemanal.totalKcal.toLocaleString('es')}</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">kcal semana</p>
+            </div>
+            <div className="flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-xl p-3 text-center">
+              <p className="text-lg font-black text-blue-500">{resumenSemanal.mediaKcal}</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">kcal / plato</p>
+            </div>
+            <div className="flex-1 bg-green-50 dark:bg-green-950/30 rounded-xl p-3 text-center">
+              <p className="text-lg font-black text-green-select">{resumenSemanal.numSlots}</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">platos</p>
+            </div>
           </div>
-          <div className="flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-xl p-3 text-center">
-            <p className="text-lg font-black text-blue-500">{resumenSemanal.mediaKcal}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">kcal / plato</p>
-          </div>
-          <div className="flex-1 bg-green-50 dark:bg-green-950/30 rounded-xl p-3 text-center">
-            <p className="text-lg font-black text-green-select">{resumenSemanal.numSlots}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">platos</p>
-          </div>
+          <p className="text-[10px] text-gray-400 mt-1.5 text-center">⚠️ Estimaciones de la IA por persona · pueden no ser exactas</p>
         </div>
       )}
 
