@@ -175,6 +175,18 @@ export default function Ajustes() {
     return (t === 'dark' || t === 'light') ? t : 'system'
   })
 
+  const [tamano, setTamano] = useState<'normal' | 'mediano' | 'grande'>(() => {
+    const t = localStorage.getItem('semana-lista:tamano')
+    return (t === 'mediano' || t === 'grande') ? t : 'normal'
+  })
+
+  function aplicarTamano(t: 'normal' | 'mediano' | 'grande') {
+    setTamano(t)
+    const sizes = { normal: '100%', mediano: '112.5%', grande: '125%' }
+    document.documentElement.style.fontSize = sizes[t]
+    localStorage.setItem('semana-lista:tamano', t)
+  }
+
   const aplicarTema = useCallback((t: 'light' | 'dark' | 'system') => {
     setTema(t)
     if (t === 'dark') {
@@ -580,6 +592,32 @@ export default function Ajustes() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Tamaño de la app */}
+      <div className="pt-2">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tamaño del texto</p>
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            { value: 'normal',  label: 'Normal',  emoji: 'A',  desc: '100%' },
+            { value: 'mediano', label: 'Mediano', emoji: 'A',  desc: '112%' },
+            { value: 'grande',  label: 'Grande',  emoji: 'A',  desc: '125%' },
+          ] as const).map(({ value, label, emoji, desc }) => (
+            <button
+              key={value}
+              onClick={() => aplicarTamano(value)}
+              className={`flex flex-col items-center gap-1 py-3 rounded-card border-2 text-sm font-medium transition-colors ${
+                tamano === value
+                  ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              <span className={value === 'normal' ? 'text-base' : value === 'mediano' ? 'text-xl' : 'text-3xl'} style={{ fontWeight: 700, lineHeight: 1 }}>{emoji}</span>
+              <span className="text-xs">{label}</span>
+              <span className="text-[10px] text-gray-400">{desc}</span>
+            </button>
+          ))}
         </div>
       </div>
 
