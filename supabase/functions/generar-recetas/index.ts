@@ -50,6 +50,16 @@ function dificultadInstruccion(d?: string): string {
   return 'Mezcla variada de dificultades: fácil, media y difícil.'
 }
 
+const DESCRIPCION_COCINA: Record<string, string> = {
+  'española y mediterránea': 'cocina española y mediterránea (paellas, potajes, gazpacho, tortilla, pescados al horno, sofrito, pisto...)',
+  'italiana': 'cocina italiana (pasta, risotto, pizza, gnocchi, parmigiana, bruschetta, carpaccio...)',
+  'asiática': 'cocina asiática (wok, curry, ramen, gyozas, yakitori, arroz frito, dim sum, teriyaki...)',
+  'americana': 'cocina americana/tex-mex (hamburguesas, costillas BBQ, fajitas, mac and cheese, hot dogs, coleslaw, pulled pork, burritos, nachos, alitas...)',
+  'mexicana': 'cocina mexicana (tacos, enchiladas, quesadillas, guacamole, chile con carne, tamales, burritos...)',
+  'tradicional española': 'cocina tradicional española (cocido, fabada, callos, gazpacho, salmorejo, croquetas, potaje, pisto...)',
+  'saludable y ligera': 'cocina saludable y ligera (ensaladas, salteados de verduras, proteína a la plancha, batidos, smoothie bowls...)',
+}
+
 const DIA_LABEL: Record<string, string> = {
   lunes: 'lunes', martes: 'martes', miercoles: 'miércoles',
   jueves: 'jueves', viernes: 'viernes', sabado: 'sábado', domingo: 'domingo',
@@ -60,12 +70,14 @@ function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[]
     personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string; cocina?: string
   }
 
+  const desc = cocina ? DESCRIPCION_COCINA[cocina] : undefined
   const ctx: string[] = [
     `Eres un chef español. Crea un menú para ${personas} persona${personas > 1 ? 's' : ''} (${claves.length} franja${claves.length > 1 ? 's' : ''} de comida en total), objetivo: ${objetivo}.`,
     `SOLO comidas y cenas principales. NO postres, NO desayunos, NO meriendas, NO bebidas.`,
-    `Variedad: usa una proteína distinta en cada franja cuando sea posible (pollo, pescado, legumbre/huevo, cerdo o ternera, guiso...). Si un mismo día tiene comida y cena, no repitas la misma proteína entre ambas. Técnicas variadas. ${claves.length} nombres de receta distintos en total.`,
+    desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. TODAS las recetas deben pertenecer claramente a este estilo. NO mezcles con otros estilos.` : '',
+    `VARIEDAD DE PROTEÍNAS: NO pongas pollo en más de la mitad de las recetas. Rota entre: pollo, cerdo, ternera/vacuno, huevos, legumbres, pescado/marisco. Si un mismo día tiene comida y cena, usa proteínas distintas. ${claves.length} nombres de receta distintos en total.`,
     dificultadInstruccion(dificultad_recetas),
-  ]
+  ].filter(Boolean)
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
   if (nevera?.length) ctx.push(`Ingredientes a usar: ${nevera.join(', ')}.`)
   if (recetasYaUsadas?.length) ctx.push(`No repetir estas recetas: ${recetasYaUsadas.slice(0, 8).join(', ')}.`)
@@ -86,10 +98,12 @@ function promptSlot(dia: string, franja: string, perfil: Record<string, unknown>
   }
   const franjaLabel = franja === 'comida' ? 'mediodía' : 'noche'
 
+  const desc = cocina ? DESCRIPCION_COCINA[cocina] : undefined
   const ctx: string[] = [
     `Eres un chef español. Crea 1 receta para ${franjaLabel} del ${DIA_LABEL[dia] ?? dia}. ${personas} persona${personas > 1 ? 's' : ''}, objetivo: ${objetivo}. SOLO platos principales, NO postres.`,
+    desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. La receta debe pertenecer claramente a este estilo.` : '',
     dificultadInstruccion(dificultad_recetas),
-  ]
+  ].filter(Boolean)
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
   if (nevera?.length) ctx.push(`En casa: ${nevera.join(', ')}.`)
   if (extra_instrucciones) ctx.push(extra_instrucciones)
@@ -108,11 +122,13 @@ function promptOpcionExtra(dia: string, franja: string, perfil: Record<string, u
   }
   const franjaLabel = franja === 'comida' ? 'mediodía' : 'noche'
 
+  const desc = cocina ? DESCRIPCION_COCINA[cocina] : undefined
   const ctx: string[] = [
     `Eres un chef español. El usuario ya tiene la receta "${recetaExistente}" para ${franjaLabel} del ${DIA_LABEL[dia] ?? dia} y quiere una SEGUNDA opción alternativa distinta para elegir. ${personas} persona${personas > 1 ? 's' : ''}, objetivo: ${objetivo}. SOLO platos principales, NO postres.`,
     `La nueva receta debe ser claramente distinta de "${recetaExistente}" (proteína o técnica diferente).`,
+    desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. La receta debe pertenecer claramente a este estilo.` : '',
     dificultadInstruccion(dificultad_recetas),
-  ]
+  ].filter(Boolean)
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
   if (nevera?.length) ctx.push(`En casa: ${nevera.join(', ')}.`)
   if (extra_instrucciones) ctx.push(extra_instrucciones)
