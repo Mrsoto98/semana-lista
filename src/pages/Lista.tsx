@@ -606,7 +606,13 @@ export default function Lista() {
 
         {/* ── EN CASA TENEMOS ───────────────────────────────────────────────── */}
         {enCasa.size > 0 && (
-          <EnCasaSection enCasa={enCasa} catalogo={MERCADONA?.categorias} onRemove={removeCasa} />
+          <EnCasaSection
+            enCasa={enCasa}
+            catalogo={MERCADONA?.categorias}
+            onRemove={removeCasa}
+            enCarrito={comprar}
+            onAddToCart={nombre => { const c = new Set(comprar); c.add(nombre); saveComprar(c) }}
+          />
         )}
 
         {/* ── DEL MENÚ ESTA SEMANA ──────────────────────────────────────────── */}

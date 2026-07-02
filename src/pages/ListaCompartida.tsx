@@ -511,6 +511,8 @@ export default function ListaCompartida() {
             enCasa={new Set(enCasa.map(i => i.nombre))}
             catalogo={catalogo?.categorias}
             onRemove={nombre => { const it = enCasa.find(i => i.nombre === nombre); if (it) toggleEnCasa(it.id, false) }}
+            enCarrito={new Set(items.filter(i => !i.en_casa).map(i => i.nombre))}
+            onAddToCart={nombre => añadirItem(nombre, { precio: 0, cantidad: 1, unidad: 'ud' })}
           />
         )}
 
