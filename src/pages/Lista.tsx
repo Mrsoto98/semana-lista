@@ -615,17 +615,6 @@ export default function Lista() {
 
       <div className="p-4 space-y-6">
 
-        {/* ── EN CASA TENEMOS ───────────────────────────────────────────────── */}
-        {enCasa.size > 0 && (
-          <EnCasaSection
-            enCasa={enCasa}
-            catalogo={MERCADONA?.categorias}
-            onRemove={removeCasa}
-            enCarrito={comprar}
-            onAddToCart={addCasaToCart}
-          />
-        )}
-
         {/* ── DEL MENÚ ESTA SEMANA ──────────────────────────────────────────── */}
         {ingredientesMenu.length > 0 && (
           <div>
@@ -667,6 +656,17 @@ export default function Lista() {
               })}
             </div>}
           </div>
+        )}
+
+        {/* ── EN CASA TENEMOS ───────────────────────────────────────────────── */}
+        {enCasa.size > 0 && (
+          <EnCasaSection
+            enCasa={enCasa}
+            catalogo={MERCADONA?.categorias}
+            onRemove={removeCasa}
+            enCarrito={comprar}
+            onAddToCart={addCasaToCart}
+          />
         )}
 
         {/* ── CATÁLOGO MERCADONA ────────────────────────────────────────────── */}
