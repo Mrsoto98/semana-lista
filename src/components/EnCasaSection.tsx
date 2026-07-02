@@ -25,15 +25,7 @@ const CAT_EMOJI: Record<string, string> = {
 
 export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
-  const [colapsadas, setColapsadas] = useState<Set<string>>(new Set())
-
-  function toggleCat(cat: string) {
-    setColapsadas(prev => {
-      const next = new Set(prev)
-      next.has(cat) ? next.delete(cat) : next.add(cat)
-      return next
-    })
-  }
+  const [abierto, setAbierto] = useState(true)
 
   const infoMap = useMemo(() => {
     const map = new Map<string, { foto?: string | null; categoria: string }>()
@@ -63,49 +55,51 @@ export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
   return (
     <>
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">🏠 En casa</h2>
-        <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
-          {grupos.map(([cat, items]) => (
-            <div key={cat}>
-              <button
-                onClick={() => toggleCat(cat)}
-                className="flex items-center gap-1 w-full text-left mb-1.5 group"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+        <button
+          onClick={() => setAbierto(v => !v)}
+          className="flex items-center w-full text-left mb-2"
+        >
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">🏠 En casa</h2>
+          <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abierto ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
+        </button>
+        {abierto && (
+          <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
+            {grupos.map(([cat, items]) => (
+              <div key={cat}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
                   {CAT_EMOJI[cat] ?? '📦'} {cat}
                 </p>
-                <span className="text-[9px] text-gray-400 ml-auto transition-transform duration-200" style={{ transform: colapsadas.has(cat) ? 'rotate(-90deg)' : 'rotate(0deg)' }}>▾</span>
-              </button>
-              {!colapsadas.has(cat) && <div className="flex flex-wrap gap-2">
-                {items.map(item => {
-                  const foto = infoMap.get(item)?.foto
-                  return (
-                    <button
-                      key={item}
-                      onClick={() => onRemove(item)}
-                      className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-medium pl-0.5 pr-3 py-0.5 rounded-full border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
-                    >
-                      {foto ? (
-                        <img
-                          src={foto}
-                          alt=""
-                          loading="lazy"
-                          className="w-6 h-6 rounded-full object-cover shrink-0 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 cursor-zoom-in"
-                          onError={e => { e.currentTarget.style.display = 'none' }}
-                          onClick={e => { e.stopPropagation(); setFotoAmpliada(foto) }}
-                        />
-                      ) : (
-                        <span className="w-6 h-6 rounded-full shrink-0 bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px]">🏠</span>
-                      )}
-                      <span className="leading-tight">{item}</span>
-                      <span className="text-blue-300 dark:text-blue-600 text-[10px] leading-none ml-0.5">✕</span>
-                    </button>
-                  )
-                })}
-              </div>}
-            </div>
-          ))}
-        </div>
+                <div className="flex flex-wrap gap-2">
+                  {items.map(item => {
+                    const foto = infoMap.get(item)?.foto
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => onRemove(item)}
+                        className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-medium pl-0.5 pr-3 py-0.5 rounded-full border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
+                      >
+                        {foto ? (
+                          <img
+                            src={foto}
+                            alt=""
+                            loading="lazy"
+                            className="w-6 h-6 rounded-full object-cover shrink-0 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 cursor-zoom-in"
+                            onError={e => { e.currentTarget.style.display = 'none' }}
+                            onClick={e => { e.stopPropagation(); setFotoAmpliada(foto) }}
+                          />
+                        ) : (
+                          <span className="w-6 h-6 rounded-full shrink-0 bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px]">🏠</span>
+                        )}
+                        <span className="leading-tight">{item}</span>
+                        <span className="text-blue-300 dark:text-blue-600 text-[10px] leading-none ml-0.5">✕</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {fotoAmpliada && createPortal(

@@ -55,6 +55,7 @@ export default function ListaCompartida() {
   const [busqueda, setBusqueda] = useState('')
   const [limite, setLimite] = useState(PAGINA)
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
+  const [abiertoMenu, setAbiertoMenu] = useState(true)
 
   // UI
   const [inputCustom, setInputCustom] = useState('')
@@ -462,8 +463,11 @@ export default function ListaCompartida() {
         {/* ── DEL MENÚ ESTA SEMANA ─────────────────────────────────────────── */}
         {ingredientesMenu.length > 0 && (
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">📋 Del menú esta semana</h2>
-            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 flex flex-wrap gap-1.5">
+            <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center w-full text-left mb-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
+              <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abiertoMenu ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
+            </button>
+            {abiertoMenu && <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 flex flex-wrap gap-1.5">
               {gruposMenu.map(({ key, items: grupoItems, etiqueta }) => {
                 const enC = grupoItems.some(i => menuEnComprar.has(i))
                 const enN = grupoItems.some(i => menuEnCasa.has(i))
@@ -497,7 +501,7 @@ export default function ListaCompartida() {
                   </div>
                 )
               })}
-            </div>
+            </div>}
           </div>
         )}
 

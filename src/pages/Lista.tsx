@@ -61,6 +61,7 @@ export default function Lista() {
   const navigate = useNavigate()
   const { listas, crearLista, unirseConCodigo } = useListasCompartidas()
   const [modalCompartida, setModalCompartida] = useState(false)
+  const [abiertoMenu, setAbiertoMenu] = useState(true)
   const [modoModal, setModoModal] = useState<'elegir' | 'crear' | 'unirse'>('elegir')
   const [pickerIngrediente, setPickerIngrediente] = useState<{ nombre: string; enCasa: boolean } | null>(null)
   const [pickerOpciones, setPickerOpciones] = useState<MatchProducto[]>([])
@@ -611,8 +612,11 @@ export default function Lista() {
         {/* ── DEL MENÚ ESTA SEMANA ──────────────────────────────────────────── */}
         {ingredientesMenu.length > 0 && (
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">📋 Del menú esta semana</h2>
-            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 flex flex-wrap gap-1.5">
+            <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center w-full text-left mb-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
+              <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abiertoMenu ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
+            </button>
+            {abiertoMenu && <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 flex flex-wrap gap-1.5">
               {gruposMenu.map(({ key, items, etiqueta }) => {
                 const enC = items.some(i => menuEnComprar.has(i))
                 const enN = items.some(i => menuEnCasa.has(i))
@@ -644,7 +648,7 @@ export default function Lista() {
                   </div>
                 )
               })}
-            </div>
+            </div>}
           </div>
         )}
 
