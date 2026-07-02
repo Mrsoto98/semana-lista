@@ -251,16 +251,34 @@ export default function Lista() {
   // pidieron distintas recetas) en un solo elemento con un solo botón.
   const gruposMenu = useMemo(() => agruparIngredientes(ingredientesMenu), [ingredientesMenu])
 
-  const fotoIngredienteMenu = useMemo(() => {
-    const map = new Map<string, string | null>()
+  const infoIngredienteMenu = useMemo(() => {
+    const map = new Map<string, { foto: string | null; categoria: string }>()
     if (!MERCADONA?.categorias) return map
+    const catMap = new Map<string, string>()
+    for (const [cat, prods] of Object.entries(MERCADONA.categorias)) {
+      for (const p of prods) { if (!catMap.has(p.nombre)) catMap.set(p.nombre, cat) }
+    }
     for (const ing of ingredientesMenu) {
       if (map.has(ing)) continue
       const top = topMatchesMercadona(ing, MERCADONA.categorias, 1)
-      map.set(ing, top[0]?.foto ?? null)
+      const match = top[0]
+      map.set(ing, { foto: match?.foto ?? null, categoria: catMap.get(match?.nombre ?? '') ?? 'Otros' })
     }
     return map
   }, [ingredientesMenu, MERCADONA])
+
+  const gruposMenuPorCategoria = useMemo(() => {
+    const g = new Map<string, typeof gruposMenu>()
+    for (const grupo of gruposMenu) {
+      const cat = grupo.items.map(i => infoIngredienteMenu.get(i)?.categoria).find(c => c && c !== 'Otros') ?? 'Otros'
+      if (!g.has(cat)) g.set(cat, [])
+      g.get(cat)!.push(grupo)
+    }
+    return Array.from(g.entries()).sort(([a], [b]) => {
+      if (a === 'Otros') return 1; if (b === 'Otros') return -1
+      return a.localeCompare(b, 'es')
+    })
+  }, [gruposMenu, infoIngredienteMenu])
 
   const menuEnCasa = useMemo(
     () => resolverContraSet(ingredientesMenu, enCasa, MERCADONA?.categorias),
@@ -622,39 +640,46 @@ export default function Lista() {
               <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
               <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abiertoMenu ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
             </button>
-            {abiertoMenu && <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 flex flex-wrap gap-1.5">
-              {gruposMenu.map(({ key, items, etiqueta }) => {
-                const enC = items.some(i => menuEnComprar.has(i))
-                const enN = items.some(i => menuEnCasa.has(i))
-                const foto = items.map(i => fotoIngredienteMenu.get(i)).find(f => f != null) ?? null
-                return (
-                  <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                    {foto && (
-                      <button
-                        onClick={() => setFotoAmpliada(foto)}
-                        className="flex items-center pl-1 pr-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700"
-                      >
-                        <img
-                          src={foto}
-                          alt=""
-                          loading="lazy"
-                          className="w-6 h-6 rounded-full object-cover shrink-0 cursor-zoom-in"
-                          onError={e => { e.currentTarget.parentElement!.style.display = 'none' }}
-                        />
-                      </button>
-                    )}
-                    <button onClick={() => enC ? quitarGrupoDeComprar(items) : abrirPickerMenu(items, false)}
-                      className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
-                      {enC ? '✓' : '🛒'} <span className={enN ? 'line-through decoration-2' : ''}>{etiqueta}</span>
-                    </button>
-                    <button onClick={() => enN ? quitarGrupoDeCasa(items) : abrirPickerMenu(items, true)}
-                      className={`text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 transition-colors ${enN ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50'}`}>
-                      {enN ? '✓' : '🏠'}
-                    </button>
+            {abiertoMenu && (
+              <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
+                {gruposMenuPorCategoria.map(([cat, grupos]) => (
+                  <div key={cat}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                      {CAT_EMOJI[cat] ?? '📦'} {cat}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {grupos.map(({ key, items, etiqueta }) => {
+                        const enC = items.some(i => menuEnComprar.has(i))
+                        const enN = items.some(i => menuEnCasa.has(i))
+                        const foto = items.map(i => infoIngredienteMenu.get(i)?.foto).find(f => f != null) ?? null
+                        return (
+                          <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                            {foto && (
+                              <button
+                                onClick={() => setFotoAmpliada(foto)}
+                                className="flex items-center pl-1 pr-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700"
+                              >
+                                <img src={foto} alt="" loading="lazy"
+                                  className="w-6 h-6 rounded-full object-cover shrink-0 cursor-zoom-in"
+                                  onError={e => { e.currentTarget.parentElement!.style.display = 'none' }} />
+                              </button>
+                            )}
+                            <button onClick={() => enC ? quitarGrupoDeComprar(items) : abrirPickerMenu(items, false)}
+                              className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
+                              {enC ? '✓' : '🛒'} <span className={enN ? 'line-through decoration-2' : ''}>{etiqueta}</span>
+                            </button>
+                            <button onClick={() => enN ? quitarGrupoDeCasa(items) : abrirPickerMenu(items, true)}
+                              className={`text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 transition-colors ${enN ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50'}`}>
+                              {enN ? '✓' : '🏠'}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                )
-              })}
-            </div>}
+                ))}
+              </div>
+            )}
           </div>
         )}
 
