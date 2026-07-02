@@ -1,6 +1,6 @@
 // Matching de ingredientes genéricos de la IA → productos reales del catálogo Mercadona
 
-interface Producto { nombre: string; precio: number; precio_kg?: number | null; foto?: string | null }
+interface Producto { id?: string; nombre: string; precio: number; precio_kg?: number | null; foto?: string | null; tamaño?: number; unidad?: string }
 
 // Palabras de preparación culinaria que no son el ingrediente en sí
 const PREP = /\b(plancha|cocido|cocida|cocidos|cocidas|frito|frita|fritos|fritas|asado|asada|asados|asadas|hervido|hervida|gratinado|crudo|cruda|troceado|laminado|rallado|molido|picado|relleno|empanado|marinado|adobado|salteado|vapor|horno|guisado|estofado|brasa|barbacoa|rebozado|congelado|fresco|seco|natural|envasado|enlatado|en conserva)\b/gi
@@ -82,23 +82,28 @@ function score(queryTokens: string[], productoNombre: string): { total: number; 
   // ingrediente secundario ("Atún EN aceite de oliva"). Usa includes en vez de
   // igualdad exacta para tolerar singular/plural ("cebolla" ~ "cebollas").
   const primerToken = prodTokens[0] ?? ''
-  const empiezaConQuery = primerToken.length > 0 && queryTokens.some(tok => primerToken.includes(tok) || tok.includes(primerToken))
+  // Solo dar bonus si además coinciden ≥2 tokens, para que palabras genéricas
+  // como "aceite" no eleven productos irrelevantes ("Aceite de Ricino" al buscar "aceite girasol")
+  const empiezaConQuery = coincidencias >= 2 && primerToken.length > 0 && queryTokens.some(tok => primerToken.includes(tok) || tok.includes(primerToken))
   const total = coverage * 0.4 + productCoverage * 0.2 + (empiezaConQuery ? 0.4 : 0)
-  return { total, coverage }
+  return { total, coverage, coincidencias }
 }
 
-export interface MatchProducto { nombre: string; precio: number; foto?: string | null; precio_kg?: number | null }
+export interface MatchProducto { nombre: string; precio: number; foto?: string | null; precio_kg?: number | null; tamaño?: number; unidad?: string }
 
-function buscarConTokens(tokens: string[], catalogo: Record<string, Producto[]>): { prod: Producto; total: number; coverage: number }[] {
+function buscarConTokens(tokens: string[], catalogo: Record<string, Producto[]>): { prod: Producto; total: number; coverage: number; coincidencias: number }[] {
   if (!tokens.length) return []
-  const scored: { prod: Producto; total: number; coverage: number }[] = []
+  const scored: { prod: Producto; total: number; coverage: number; coincidencias: number }[] = []
   const seen = new Set<string>()
   for (const productos of Object.values(catalogo)) {
     for (const prod of productos) {
-      if (seen.has(prod.nombre)) continue
-      seen.add(prod.nombre)
-      const { total, coverage } = score(tokens, prod.nombre)
-      if (total > 0) scored.push({ prod, total, coverage })
+      // Deduplicar por id cuando existe, si no por nombre+precio para conservar variantes de distinto tamaño
+      const key = prod.id ?? `${prod.nombre}__${prod.precio}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      const { total, coverage, coincidencias } = score(tokens, prod.nombre)
+      const minCoincidencias = tokens.length >= 3 ? 2 : 1
+      if (total > 0 && coincidencias >= minCoincidencias) scored.push({ prod, total, coverage, coincidencias })
     }
   }
   return scored.sort((a, b) => b.total - a.total)
@@ -126,7 +131,7 @@ export function topMatchesMercadona(
 
   return scored
     .slice(0, limite)
-    .map(({ prod }) => ({ nombre: prod.nombre, precio: prod.precio, foto: prod.foto, precio_kg: prod.precio_kg }))
+    .map(({ prod }) => ({ nombre: prod.nombre, precio: prod.precio, foto: prod.foto, precio_kg: prod.precio_kg, tamaño: prod.tamaño, unidad: prod.unidad }))
 }
 
 export function matchMercadona(

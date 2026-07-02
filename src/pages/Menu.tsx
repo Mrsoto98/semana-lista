@@ -422,7 +422,8 @@ export default function Menu() {
   function irALista() {
     const menu = construirMenuDesdeSeleccion()
     guardar('menu_semana', menu); guardar('sorpresa_menu', menu)
-    navigate('/lista')
+    const listaDestinoId = recuperar<string | null>('menu_lista_destino') ?? recuperar<string>('lista_compartida_principal')
+    navigate(listaDestinoId ? `/lista-compartida/${listaDestinoId}` : '/lista')
   }
 
   const totalListos = DIAS.flatMap(d => FRANJAS.map(f => `${d}_${f}` as ClaveMenu)).filter(k => estados[k]?.estado === 'listo').length

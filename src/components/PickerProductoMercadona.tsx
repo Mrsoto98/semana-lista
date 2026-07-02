@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { MatchProducto } from '../lib/matchMercadona'
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 
 export function PickerProductoMercadona({ ingrediente, opciones, enCasa, onSeleccionar, onCancelar }: Props) {
   const [customNombre, setCustomNombre] = useState('')
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   function añadirCustom() {
     const nombre = customNombre.trim() || ingrediente
@@ -18,6 +20,13 @@ export function PickerProductoMercadona({ ingrediente, opciones, enCasa, onSelec
   }
 
   return (
+    <>
+    {fotoAmpliada && createPortal(
+      <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6" onClick={() => setFotoAmpliada(null)}>
+        <img src={fotoAmpliada} alt="" className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain" />
+      </div>,
+      document.body
+    )}
     <div className="fixed inset-0 z-[70] flex items-start justify-center px-4 pt-12" onClick={onCancelar}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
@@ -34,9 +43,9 @@ export function PickerProductoMercadona({ ingrediente, opciones, enCasa, onSelec
 
           {opciones.length > 0 && (
             <div className="space-y-2 max-h-48 overflow-y-auto mb-3">
-              {opciones.map(op => (
+              {opciones.map((op, i) => (
                 <button
-                  key={op.nombre}
+                  key={`${op.nombre}_${i}`}
                   onClick={() => onSeleccionar(op)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-green-select/60 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left"
                 >
@@ -45,13 +54,19 @@ export function PickerProductoMercadona({ ingrediente, opciones, enCasa, onSelec
                       src={op.foto}
                       alt=""
                       loading="lazy"
-                      className="w-11 h-11 rounded-lg object-cover shrink-0 bg-gray-100 dark:bg-gray-700"
+                      className="w-11 h-11 rounded-lg object-cover shrink-0 bg-gray-100 dark:bg-gray-700 cursor-zoom-in"
                       onError={e => { e.currentTarget.style.visibility = 'hidden' }}
+                      onClick={e => { e.stopPropagation(); setFotoAmpliada(op.foto!) }}
                     />
                   ) : (
                     <span className="w-11 h-11 rounded-lg shrink-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-300 text-lg">🛒</span>
                   )}
-                  <span className="flex-1 text-sm text-gray-800 dark:text-gray-100 leading-tight">{op.nombre}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm text-gray-800 dark:text-gray-100 leading-tight">{op.nombre}</span>
+                    {op.tamaño && op.unidad && op.unidad !== 'ud' && (
+                      <span className="text-xs text-gray-400">{op.tamaño} {op.unidad}</span>
+                    )}
+                  </span>
                   <span className="text-sm font-bold text-green-select shrink-0">{op.precio.toFixed(2)} €</span>
                 </button>
               ))}
@@ -89,5 +104,6 @@ export function PickerProductoMercadona({ ingrediente, opciones, enCasa, onSelec
         </div>
       </div>
     </div>
+    </>
   )
 }

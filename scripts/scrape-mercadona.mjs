@@ -53,9 +53,17 @@ function parsearProducto(raw) {
       }
     }
 
+    // Añadir formato (Botella, Garrafa, Brik, etc.) al nombre si existe
+    // y no está ya incluido en el display_name, para diferenciar variantes del mismo producto
+    const formato = raw.format ?? null
+    const nombreBase = String(raw.display_name ?? '')
+    const nombreConFormato = (formato && !nombreBase.toLowerCase().includes(formato.toLowerCase()))
+      ? `${nombreBase} (${formato})`
+      : nombreBase
+
     return {
       id: String(raw.id ?? ''),
-      nombre: String(raw.display_name ?? ''),
+      nombre: nombreConFormato,
       precio: Math.round(precio * 100) / 100,
       tamaño,
       unidad,

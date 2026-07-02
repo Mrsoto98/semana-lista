@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useListaCompartida } from '../hooks/useListaCompartida'
 import { useAuth } from '../hooks/useAuth'
@@ -52,6 +53,7 @@ export default function ListaCompartida() {
   const [catActiva, setCatActiva] = useState(TODO_CAT)
   const [busqueda, setBusqueda] = useState('')
   const [limite, setLimite] = useState(PAGINA)
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
 
   // UI
   const [inputCustom, setInputCustom] = useState('')
@@ -210,8 +212,9 @@ export default function ListaCompartida() {
     const opciones: MatchProducto[] = []
     for (const nombre of nombres) {
       for (const op of topMatchesMercadona(nombre, catalogo.categorias, 6)) {
-        if (vistos.has(op.nombre)) continue
-        vistos.add(op.nombre)
+        const key = `${op.nombre}__${op.precio}`
+        if (vistos.has(key)) continue
+        vistos.add(key)
         opciones.push(op)
       }
     }
@@ -290,6 +293,12 @@ export default function ListaCompartida() {
 
   return (
     <div className="min-h-screen max-w-lg mx-auto pb-24 page-enter">
+      {fotoAmpliada && createPortal(
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6" onClick={() => setFotoAmpliada(null)}>
+          <img src={fotoAmpliada} alt="" className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain" />
+        </div>,
+        document.body
+      )}
 
       {/* ── STICKY HEADER ─────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-20 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
@@ -523,7 +532,7 @@ export default function ListaCompartida() {
                   return (
                     <div key={prod.id} className="flex items-center gap-2 px-3 py-2">
                       {prod.foto
-                        ? <img src={prod.foto} alt={prod.nombre} className="w-10 h-10 rounded-lg object-cover shrink-0 bg-gray-100 dark:bg-gray-800" loading="lazy" />
+                        ? <img src={prod.foto} alt={prod.nombre} onClick={() => setFotoAmpliada(prod.foto!)} className="w-10 h-10 rounded-lg object-cover shrink-0 bg-gray-100 dark:bg-gray-800 cursor-zoom-in" loading="lazy" />
                         : <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0 flex items-center justify-center text-lg">🛒</div>
                       }
                       <div className="flex-1 min-w-0">
