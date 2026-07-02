@@ -36,6 +36,7 @@ const SINONIMOS_WORD: Record<string, string> = {
   'vaca': 'vacuno',
   'cerdo': 'cerdo',
   'rape': 'rape',
+  'boniato': 'batata',
 }
 
 function aplicarSinonimos(s: string): string {
