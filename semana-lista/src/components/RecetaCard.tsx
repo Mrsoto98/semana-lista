@@ -13,27 +13,31 @@ interface Props {
   esDislike?: boolean
   onDislike?: (receta: Receta, ingredientes: string[], motivo: string) => void
   onQuitarDislike?: (receta: Receta) => void
+  puedeAnadirExtra?: boolean
+  cargandoExtra?: boolean
+  onAnadirOpcionExtra?: () => void
 }
 
-// Emoji y color de acento por categoría de tag
-function categoriaInfo(tags: string[]): { emoji: string; accent: string } {
-  if (tags.includes('pollo'))     return { emoji: '🍗', accent: 'border-l-orange-400' }
-  if (tags.includes('carne'))     return { emoji: '🥩', accent: 'border-l-red-400' }
-  if (tags.includes('pescado'))   return { emoji: '🐟', accent: 'border-l-cyan-400' }
-  if (tags.includes('pasta'))     return { emoji: '🍝', accent: 'border-l-yellow-400' }
-  if (tags.includes('arroz'))     return { emoji: '🍚', accent: 'border-l-amber-300' }
-  if (tags.includes('ensalada'))  return { emoji: '🥗', accent: 'border-l-lime-400' }
-  if (tags.includes('sopa'))      return { emoji: '🍲', accent: 'border-l-blue-400' }
-  if (tags.includes('legumbres')) return { emoji: '🫘', accent: 'border-l-green-400' }
-  if (tags.includes('huevo'))     return { emoji: '🥚', accent: 'border-l-yellow-300' }
-  if (tags.includes('vegano') || tags.includes('vegetariano')) return { emoji: '🥦', accent: 'border-l-emerald-400' }
-  return { emoji: '🍽️', accent: 'border-l-gray-300' }
+// Emoji, border color y color CSS para el gradiente decorativo
+function categoriaInfo(tags: string[]): { emoji: string; accent: string; color: string } {
+  if (tags.includes('pollo'))     return { emoji: '🍗', accent: 'border-l-orange-400',  color: '#fb923c' }
+  if (tags.includes('carne'))     return { emoji: '🥩', accent: 'border-l-red-400',     color: '#f87171' }
+  if (tags.includes('pescado'))   return { emoji: '🐟', accent: 'border-l-cyan-400',    color: '#22d3ee' }
+  if (tags.includes('pasta'))     return { emoji: '🍝', accent: 'border-l-yellow-400',  color: '#facc15' }
+  if (tags.includes('arroz'))     return { emoji: '🍚', accent: 'border-l-amber-300',   color: '#fcd34d' }
+  if (tags.includes('ensalada'))  return { emoji: '🥗', accent: 'border-l-lime-400',    color: '#a3e635' }
+  if (tags.includes('sopa'))      return { emoji: '🍲', accent: 'border-l-blue-400',    color: '#60a5fa' }
+  if (tags.includes('legumbres')) return { emoji: '🫘', accent: 'border-l-green-400',   color: '#4ade80' }
+  if (tags.includes('huevo'))     return { emoji: '🥚', accent: 'border-l-yellow-300',  color: '#fde047' }
+  if (tags.includes('vegano') || tags.includes('vegetariano')) return { emoji: '🥦', accent: 'border-l-emerald-400', color: '#34d399' }
+  return { emoji: '🍽️', accent: 'border-l-gray-300', color: '#d1d5db' }
 }
 
 export function RecetaCard({
   opciones, seleccionada, onSeleccionar, onEliminar,
   esFavorita = false, onToggleFavorita,
   esDislike = false, onDislike, onQuitarDislike,
+  puedeAnadirExtra = false, cargandoExtra = false, onAnadirOpcionExtra,
 }: Props) {
   const [vista, setVista] = useState(seleccionada)
   // Sync local vista when external seleccionada changes (e.g. after regenerar día)
@@ -44,18 +48,25 @@ export function RecetaCard({
   const [pasos, setPasos] = useState<string[] | null>(null)
   const [cargandoPasos, setCargandoPasos] = useState(false)
   const [modalDislike, setModalDislike] = useState(false)
+
+  React.useEffect(() => {
+    if (!modalAbierto && !modalDislike) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setModalAbierto(false); setModalDislike(false) }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [modalAbierto, modalDislike])
   const [motivoDislike, setMotivoDislike] = useState('')
   const [ingredientesSeleccionados, setIngredientesSeleccionados] = useState<Set<string>>(new Set())
 
   if (!receta) return null
 
-  const { emoji, accent } = categoriaInfo(receta.tags)
+  const { emoji, accent, color } = categoriaInfo(receta.tags)
   const estaSeleccionada = vista === seleccionada
 
-  async function verReceta(e: React.MouseEvent) {
-    e.stopPropagation()
-    setModalAbierto(true)
-    if (pasos) return
+  async function cargarPasos() {
+    if (cargandoPasos) return
     setCargandoPasos(true)
     try {
       const { supabase } = await import('../lib/supabase')
@@ -64,10 +75,17 @@ export function RecetaCard({
       })
       setPasos((data as { pasos: string[] })?.pasos ?? [])
     } catch {
-      setPasos([])
+      setPasos(null)
     } finally {
       setCargandoPasos(false)
     }
+  }
+
+  async function verReceta(e: React.MouseEvent) {
+    e.stopPropagation()
+    setModalAbierto(true)
+    if (pasos && pasos.length > 0) return
+    cargarPasos()
   }
 
   function abrirModalDislike(e: React.MouseEvent) {
@@ -148,13 +166,23 @@ export function RecetaCard({
           <span className="text-xs text-gray-400">🔥 {receta.calorias_aprox} kcal</span>
         </div>
 
-        <div className="mt-2.5">
+        <div className="mt-2.5 flex items-center gap-3">
           <button
             onClick={verReceta}
             className="text-xs text-green-select hover:text-green-700 font-medium transition-colors"
           >
             📖 Ver receta
           </button>
+          {opciones.length === 1 && onAnadirOpcionExtra && (
+            <button
+              onClick={e => { e.stopPropagation(); onAnadirOpcionExtra() }}
+              disabled={!puedeAnadirExtra || cargandoExtra}
+              title={puedeAnadirExtra ? 'Genera una segunda opción para elegir' : 'Límite de días con opción extra alcanzado'}
+              className="text-xs text-gray-400 hover:text-green-select font-medium transition-colors disabled:opacity-30 disabled:hover:text-gray-400"
+            >
+              {cargandoExtra ? '⏳ Generando...' : '➕ Otra opción'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -168,7 +196,7 @@ export function RecetaCard({
             className="bg-white dark:bg-gray-900 rounded-2xl p-5 w-full max-w-md shadow-card-lg max-h-[80svh] overflow-y-auto animate-fade-in"
             onClick={e => e.stopPropagation()}
           >
-            <div className={`w-full h-1 rounded-full mb-4 bg-gradient-to-r from-${accent.replace('border-l-','')} to-transparent opacity-60`} />
+            <div className="w-full h-1 rounded-full mb-4 opacity-60" style={{ background: `linear-gradient(to right, ${color}, transparent)` }} />
             <div className="flex items-start justify-between mb-3">
               <h2 className="font-bold text-base leading-tight pr-2">{emoji} {receta.nombre}</h2>
               <button onClick={() => setModalAbierto(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none shrink-0">✕</button>
@@ -193,12 +221,17 @@ export function RecetaCard({
                 {pasos.map((paso, i) => (
                   <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex gap-3">
                     <span className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                    <span className="leading-relaxed">{paso.replace(/^\d+\.\s*/, '')}</span>
+                    <span className="leading-relaxed">{paso.replace(/^\d+\.?\s*/, '')}</span>
                   </li>
                 ))}
               </ol>
             ) : (
-              <p className="text-sm text-gray-400">No se pudieron cargar los pasos.</p>
+              <button
+                onClick={cargarPasos}
+                className="text-sm text-gray-400 hover:text-green-select transition-colors"
+              >
+                Reintentar ↺
+              </button>
             )}
           </div>
         </div>,

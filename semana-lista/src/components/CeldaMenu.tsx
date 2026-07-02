@@ -16,12 +16,16 @@ interface Props {
   dislikesNombres: Set<string>
   onDislike: (receta: Receta, ingredientes: string[], motivo: string) => void
   onQuitarDislike: (receta: Receta) => void
+  puedeAnadirExtra?: boolean
+  cargandoExtra?: boolean
+  onAnadirOpcionExtra?: () => void
 }
 
 export function CeldaMenu({
   estado, datos, onReintentar, onEliminar, seleccionada, onSeleccionar,
   favoritasNombres, onToggleFavorita,
   dislikesNombres, onDislike, onQuitarDislike,
+  puedeAnadirExtra, cargandoExtra, onAnadirOpcionExtra,
 }: Props) {
   if (estado === 'idle') {
     return (
@@ -67,6 +71,9 @@ export function CeldaMenu({
       esDislike={recetaActual ? dislikesNombres.has(recetaActual.nombre) : false}
       onDislike={onDislike}
       onQuitarDislike={onQuitarDislike}
+      puedeAnadirExtra={puedeAnadirExtra}
+      cargandoExtra={cargandoExtra}
+      onAnadirOpcionExtra={onAnadirOpcionExtra}
     />
   )
 }
