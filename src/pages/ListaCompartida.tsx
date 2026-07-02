@@ -12,6 +12,7 @@ import {
   type MatchProducto,
 } from '../lib/matchMercadona'
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
+import { EnCasaSection } from '../components/EnCasaSection'
 import type { MenuSemanal } from '../types'
 
 interface ProductoMercadona {
@@ -476,17 +477,11 @@ export default function ListaCompartida() {
 
         {/* ── EN CASA ───────────────────────────────────────────────────────── */}
         {enCasa.length > 0 && (
-          <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">🏠 En casa</h2>
-            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 flex flex-wrap gap-2">
-              {enCasa.map(item => (
-                <button key={item.id} onClick={() => toggleEnCasa(item.id, false)}
-                  className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-medium px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-800 hover:bg-blue-100 transition-colors">
-                  {item.nombre} <span className="text-blue-300 text-xs leading-none">✕</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <EnCasaSection
+            enCasa={new Set(enCasa.map(i => i.nombre))}
+            catalogo={catalogo?.categorias}
+            onRemove={nombre => { const it = enCasa.find(i => i.nombre === nombre); if (it) toggleEnCasa(it.id, false) }}
+          />
         )}
 
         {/* ── CATÁLOGO MERCADONA ────────────────────────────────────────────── */}
