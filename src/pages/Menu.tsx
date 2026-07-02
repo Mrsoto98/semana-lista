@@ -1,5 +1,5 @@
 // src/pages/Menu.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CeldaMenu } from '../components/CeldaMenu'
 import { ProgressBar } from '../components/ui/ProgressBar'
@@ -443,6 +443,54 @@ export default function Menu() {
   const totalSeleccionadas = Object.keys(seleccion).filter(k => estados[k as ClaveMenu]?.estado === 'listo').length
   const menuVacio = totalListos === 0 && !generando
 
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('semana-lista:seen-tips-v1'))
+  const [onboardingStep, setOnboardingStep] = useState(0)
+
+  function dismissOnboarding() {
+    localStorage.setItem('semana-lista:seen-tips-v1', '1')
+    setShowOnboarding(false)
+  }
+
+  const ONBOARDING_STEPS = [
+    { emoji: '✨', titulo: 'Genera tu menú semanal', desc: 'Pulsa "Generar" para elegir tipo de cocina, dificultad y más. O "Sorpresa" para dejar que la IA decida por ti.' },
+    { emoji: '🛒', titulo: 'Lista de la compra automática', desc: 'Cuando tengas el menú listo, pulsa "Ver lista" para generar automáticamente la lista de la compra con todos los ingredientes.' },
+    { emoji: '⭐', titulo: 'Guarda tus favoritas', desc: 'Pulsa la estrella en cualquier receta para guardarla. Tus menus también se pueden guardar con 💾 para reutilizarlos.' },
+  ]
+
+  // Calorías totales por día (suma comida + cena)
+  const caloriasDelDia = useMemo(() => {
+    const map: Partial<Record<string, number>> = {}
+    for (const dia of DIAS) {
+      let total = 0
+      for (const franja of FRANJAS) {
+        const clave = `${dia}_${franja}` as ClaveMenu
+        const est = estados[clave]
+        if (est?.estado === 'listo' && est.datos?.opciones) {
+          const idx = seleccion[clave] ?? 0
+          const receta = est.datos.opciones[idx] as { calorias_aprox?: number } | undefined
+          if (receta?.calorias_aprox) total += receta.calorias_aprox
+        }
+      }
+      if (total > 0) map[dia] = total
+    }
+    return map
+  }, [estados, seleccion])
+
+  // Resumen nutricional semanal
+  const resumenSemanal = useMemo(() => {
+    let totalKcal = 0; let numSlots = 0
+    for (const dia of DIAS) for (const franja of FRANJAS) {
+      const clave = `${dia}_${franja}` as ClaveMenu
+      const est = estados[clave]
+      if (est?.estado === 'listo' && est.datos?.opciones) {
+        const idx = seleccion[clave] ?? 0
+        const r = est.datos.opciones[idx] as { calorias_aprox?: number } | undefined
+        if (r?.calorias_aprox) { totalKcal += r.calorias_aprox; numSlots++ }
+      }
+    }
+    return { totalKcal, numSlots, mediaKcal: numSlots > 0 ? Math.round(totalKcal / numSlots) : 0 }
+  }, [estados, seleccion])
+
   if (perfilLoading) return null
 
   return (
@@ -688,6 +736,24 @@ export default function Menu() {
         )}
       </div>
 
+      {/* Widget nutricional — solo cuando hay recetas */}
+      {resumenSemanal.numSlots >= 2 && (
+        <div className="flex gap-2 mb-4">
+          <div className="flex-1 bg-orange-50 dark:bg-orange-950/30 rounded-xl p-3 text-center">
+            <p className="text-lg font-black text-orange-500">{resumenSemanal.totalKcal.toLocaleString('es')}</p>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">kcal totales</p>
+          </div>
+          <div className="flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-xl p-3 text-center">
+            <p className="text-lg font-black text-blue-500">{resumenSemanal.mediaKcal}</p>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">kcal / plato</p>
+          </div>
+          <div className="flex-1 bg-green-50 dark:bg-green-950/30 rounded-xl p-3 text-center">
+            <p className="text-lg font-black text-green-select">{resumenSemanal.numSlots}</p>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">platos</p>
+          </div>
+        </div>
+      )}
+
       {/* Empty state: primera vez o menú vacío */}
       {menuVacio && (
         <div className="mb-4 bg-green-50 dark:bg-green-950 border border-green-100 dark:border-green-900 rounded-xl p-5 text-center">
@@ -834,6 +900,9 @@ export default function Menu() {
               <div key={dia}>
                 <div className="flex items-center mb-2">
                   <h2 className="font-bold text-gray-800 dark:text-gray-200 tracking-tight">{DIAS_LABEL[dia]}</h2>
+                  {caloriasDelDia[dia] && (
+                    <span className="ml-2 text-xs font-semibold text-orange-400">🔥 {caloriasDelDia[dia]} kcal</span>
+                  )}
                   <button
                     onClick={() => regenerarDia(dia)}
                     disabled={generando}
@@ -873,6 +942,41 @@ export default function Menu() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Onboarding — se muestra solo la primera vez */}
+      {showOnboarding && (
+        <div className="fixed inset-x-0 bottom-20 z-40 px-4 pointer-events-none">
+          <div className="max-w-lg mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 pointer-events-auto">
+            <div className="flex items-start gap-3 mb-3">
+              <span className="text-3xl shrink-0">{ONBOARDING_STEPS[onboardingStep].emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm text-gray-800 dark:text-gray-100">{ONBOARDING_STEPS[onboardingStep].titulo}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{ONBOARDING_STEPS[onboardingStep].desc}</p>
+              </div>
+              <button onClick={dismissOnboarding} className="text-gray-300 hover:text-gray-500 text-sm shrink-0">✕</button>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-1.5">
+                {ONBOARDING_STEPS.map((_, i) => (
+                  <button key={i} onClick={() => setOnboardingStep(i)}
+                    className={`w-2 h-2 rounded-full transition-colors ${i === onboardingStep ? 'bg-green-select' : 'bg-gray-200 dark:bg-gray-700'}`} />
+                ))}
+              </div>
+              {onboardingStep < ONBOARDING_STEPS.length - 1 ? (
+                <button onClick={() => setOnboardingStep(s => s + 1)}
+                  className="text-xs font-semibold text-green-select hover:text-green-700">
+                  Siguiente →
+                </button>
+              ) : (
+                <button onClick={dismissOnboarding}
+                  className="text-xs font-semibold bg-green-select text-white px-3 py-1.5 rounded-lg">
+                  ¡Entendido!
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

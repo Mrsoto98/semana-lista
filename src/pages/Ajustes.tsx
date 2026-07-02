@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TagInput } from '../components/ui/TagInput'
 import { FeedbackModal } from '../components/FeedbackModal'
@@ -53,6 +53,26 @@ export default function Ajustes() {
   const [guardandoUsuario, setGuardandoUsuario] = useState(false)
   const [guardadoUsuario, setGuardadoUsuario] = useState(false)
   const [errorUsuario, setErrorUsuario] = useState('')
+
+  // Menús recientes (leídos de localStorage, igual que Menu.tsx)
+  const semanasGuardadas = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('semanas_guardadas') ?? '[]') as Array<{
+      id: string; nombre: string; fecha: string
+      estados: Record<string, { estado: string; datos?: { opciones: Array<{ nombre?: string }> } } | null>
+      seleccion: Record<string, number>
+    }> } catch { return [] }
+  }, [])
+
+  function recetasDeUnaSemana(s: typeof semanasGuardadas[0]): string[] {
+    const names: string[] = []
+    for (const [clave, est] of Object.entries(s.estados)) {
+      if (est?.estado === 'listo' && est.datos?.opciones) {
+        const r = est.datos.opciones[s.seleccion[clave] ?? 0]
+        if (r?.nombre) names.push(r.nombre)
+      }
+    }
+    return names.slice(0, 5)
+  }
 
   // Eliminar cuenta
   const [modalEliminar, setModalEliminar] = useState(false)
@@ -547,6 +567,29 @@ export default function Ajustes() {
         </div>
 
       </section>
+
+      {/* Menús recientes */}
+      {semanasGuardadas.length > 0 && (
+        <div className="pt-2">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">📅 Menús recientes</p>
+          <div className="space-y-2">
+            {semanasGuardadas.slice(0, 3).map(s => {
+              const recetas = recetasDeUnaSemana(s)
+              return (
+                <div key={s.id} className="bg-white dark:bg-gray-900 rounded-card border border-gray-100 dark:border-gray-800 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{s.nombre}</p>
+                    <span className="text-xs text-gray-400 shrink-0 ml-2">{s.fecha}</span>
+                  </div>
+                  {recetas.length > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{recetas.join(' · ')}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Ajustes del menú semanal */}
       <div className="pt-2">

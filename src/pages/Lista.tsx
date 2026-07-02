@@ -111,6 +111,10 @@ export default function Lista() {
   const [inputCustom, setInputCustom] = useState('')
   const [precioInputCustom, setPrecioInputCustom] = useState('')
 
+  // Foto ampliada (sección del menú)
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
+  const [copiado, setCopiado] = useState(false)
+
   // Edición de precio inline
   const [editandoPrecio, setEditandoPrecio] = useState<string | null>(null)
   const [precioEdit, setPrecioEdit] = useState('')
@@ -385,6 +389,47 @@ export default function Lista() {
 
   const sinCatalogo = MERCADONA !== null && CATEGORIAS_MERCADONA.length === 0
 
+  // Precio estimado de los ingredientes del menú (mejor match Mercadona)
+  const precioEstimadoMenu = useMemo(() => {
+    if (!MERCADONA?.categorias || gruposMenu.length === 0) return 0
+    let total = 0
+    for (const { items } of gruposMenu) {
+      const top = topMatchesMercadona(items[0], MERCADONA.categorias, 1)
+      if (top[0]?.precio) total += top[0].precio
+    }
+    return Math.round(total * 100) / 100
+  }, [gruposMenu, MERCADONA])
+
+  function compartirLista() {
+    const lines: string[] = ['🛒 Lista de la compra — Semana Lista\n']
+    if (gruposMenuPorCategoria.length > 0) {
+      lines.push('📋 DEL MENÚ ESTA SEMANA')
+      for (const [cat, grupos] of gruposMenuPorCategoria) {
+        lines.push(`\n${CAT_EMOJI[cat] ?? '📦'} ${cat}`)
+        for (const { etiqueta } of grupos) lines.push(`  • ${etiqueta}`)
+      }
+      lines.push('')
+    }
+    if (enCasa.size > 0) {
+      lines.push('🏠 EN CASA')
+      for (const item of Array.from(enCasa).sort()) lines.push(`  • ${item}`)
+      lines.push('')
+    }
+    if (comprarArray.length > 0) {
+      lines.push('✅ A COMPRAR')
+      for (const item of comprarArray) lines.push(`  • ${item}`)
+    }
+    const text = lines.join('\n')
+    if (navigator.share) {
+      navigator.share({ title: 'Lista de la compra', text }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopiado(true)
+        setTimeout(() => setCopiado(false), 2000)
+      })
+    }
+  }
+
   async function handleCrearLista() {
     setCargandoCompartida(true)
     setErrorCompartida('')
@@ -636,10 +681,21 @@ export default function Lista() {
         {/* ── DEL MENÚ ESTA SEMANA ──────────────────────────────────────────── */}
         {ingredientesMenu.length > 0 && (
           <div>
-            <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center w-full text-left mb-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
-              <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abiertoMenu ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
-            </button>
+            <div className="flex items-center mb-2 gap-2">
+              <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center flex-1 text-left">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
+                {precioEstimadoMenu > 0 && (
+                  <span className="ml-2 text-xs font-bold text-green-select">~{precioEstimadoMenu.toFixed(2)} €</span>
+                )}
+                <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abiertoMenu ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
+              </button>
+              <button
+                onClick={compartirLista}
+                className="text-xs font-semibold text-gray-400 hover:text-green-select px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors shrink-0"
+              >
+                {copiado ? '✓ Copiado' : '↑ Compartir'}
+              </button>
+            </div>
             {abiertoMenu && (
               <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
                 {gruposMenuPorCategoria.map(([cat, grupos]) => (
@@ -795,6 +851,13 @@ export default function Lista() {
             </div>
           </div>
         </div>
+      )}
+
+      {fotoAmpliada && createPortal(
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6" onClick={() => setFotoAmpliada(null)}>
+          <img src={fotoAmpliada} alt="" className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain" />
+        </div>,
+        document.body
       )}
 
       {pickerIngrediente && (

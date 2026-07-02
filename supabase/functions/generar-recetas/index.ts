@@ -218,7 +218,7 @@ Deno.serve(async (req: Request) => {
     const dias: string[] = Array.isArray(diasReq) && diasReq.length ? diasReq : DIAS
     const franjas: string[] = Array.isArray(franjasReq) && franjasReq.length ? franjasReq : FRANJAS
     const claves = dias.flatMap((d: string) => franjas.map((f: string) => `${d}_${f}`))
-    const maxTokens = Math.min(8000, 600 + claves.length * 350)
+    const maxTokens = Math.min(8000, 900 + claves.length * 500)
 
     const prompt = promptSemana(perfil, recetas_ya_usadas, claves)
     const raw = await llamarClaude(prompt, maxTokens)
@@ -247,7 +247,7 @@ Deno.serve(async (req: Request) => {
     console.error('Error en generar-recetas:', mensaje)
     return new Response(
       JSON.stringify({ error: true, mensaje }),
-      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } },
     )
   }
 })
