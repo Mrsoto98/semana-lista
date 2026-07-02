@@ -246,16 +246,16 @@ export default function ListaCompartida() {
 
   const gruposMenu = useMemo(() => agruparIngredientes(ingredientesMenu), [ingredientesMenu])
 
-  const infoMapMenu = useMemo(() => {
+  const fotoIngredienteMenu = useMemo(() => {
     const map = new Map<string, string | null>()
     if (!catalogo?.categorias) return map
-    for (const prods of Object.values(catalogo.categorias)) {
-      for (const p of prods) {
-        if (!map.has(p.nombre)) map.set(p.nombre, p.foto ?? null)
-      }
+    for (const ing of ingredientesMenu) {
+      if (map.has(ing)) continue
+      const top = topMatchesMercadona(ing, catalogo.categorias, 1)
+      map.set(ing, top[0]?.foto ?? null)
     }
     return map
-  }, [catalogo])
+  }, [ingredientesMenu, catalogo])
 
   // Nombres reales tal como están guardados en la lista compartida, separados
   // por si están para comprar o marcados en casa (mismo criterio que Lista.tsx).
@@ -467,7 +467,7 @@ export default function ListaCompartida() {
               {gruposMenu.map(({ key, items: grupoItems, etiqueta }) => {
                 const enC = grupoItems.some(i => menuEnComprar.has(i))
                 const enN = grupoItems.some(i => menuEnCasa.has(i))
-                const foto = grupoItems.map(i => infoMapMenu.get(i)).find(f => f != null) ?? null
+                const foto = grupoItems.map(i => fotoIngredienteMenu.get(i)).find(f => f != null) ?? null
                 return (
                   <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
                     {foto && (

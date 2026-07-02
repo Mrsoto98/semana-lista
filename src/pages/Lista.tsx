@@ -239,16 +239,16 @@ export default function Lista() {
   // pidieron distintas recetas) en un solo elemento con un solo botón.
   const gruposMenu = useMemo(() => agruparIngredientes(ingredientesMenu), [ingredientesMenu])
 
-  const infoMapMenu = useMemo(() => {
+  const fotoIngredienteMenu = useMemo(() => {
     const map = new Map<string, string | null>()
     if (!MERCADONA?.categorias) return map
-    for (const prods of Object.values(MERCADONA.categorias)) {
-      for (const p of prods) {
-        if (!map.has(p.nombre)) map.set(p.nombre, p.foto ?? null)
-      }
+    for (const ing of ingredientesMenu) {
+      if (map.has(ing)) continue
+      const top = topMatchesMercadona(ing, MERCADONA.categorias, 1)
+      map.set(ing, top[0]?.foto ?? null)
     }
     return map
-  }, [MERCADONA])
+  }, [ingredientesMenu, MERCADONA])
 
   const menuEnCasa = useMemo(
     () => resolverContraSet(ingredientesMenu, enCasa, MERCADONA?.categorias),
@@ -616,7 +616,7 @@ export default function Lista() {
               {gruposMenu.map(({ key, items, etiqueta }) => {
                 const enC = items.some(i => menuEnComprar.has(i))
                 const enN = items.some(i => menuEnCasa.has(i))
-                const foto = items.map(i => infoMapMenu.get(i)).find(f => f != null) ?? null
+                const foto = items.map(i => fotoIngredienteMenu.get(i)).find(f => f != null) ?? null
                 return (
                   <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
                     {foto && (
