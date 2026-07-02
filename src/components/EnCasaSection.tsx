@@ -10,11 +10,13 @@ interface Props {
 }
 
 const CAT_EMOJI: Record<string, string> = {
-  'Aceites y vinagres': '🫒', 'Agua y refrescos': '💧', 'Aperitivos': '🍿',
+  'Aceites y vinagres': '🫒', 'Aceite, especias y salsas': '🫒',
+  'Agua y refrescos': '💧', 'Aperitivos': '🍿',
   'Arroz, legumbres y pasta': '🍚', 'Bodega': '🍷', 'Carne': '🥩',
   'Charcutería y quesos': '🧀', 'Congelados': '🧊', 'Conservas y productos en tarro': '🥫',
-  'Droguería': '🧴', 'Fruta': '🍎', 'Huevos, leche y mantequilla': '🥛',
-  'Lacteos': '🥛', 'Limpieza': '🧹', 'Marisco y pescado': '🐟',
+  'Droguería': '🧴', 'Fruta': '🍎', 'Fruta y verdura': '🍎',
+  'Huevos, leche y mantequilla': '🥛', 'Lácteos': '🥛', 'Lacteos': '🥛',
+  'Limpieza': '🧹', 'Marisco y pescado': '🐟',
   'Mascotas': '🐾', 'Pan y bollería': '🍞', 'Panadería y pastelería': '🍞',
   'Postres y yogures': '🍮', 'Verduras y hortalizas': '🥦',
   'Higiene': '🧼', 'Cafés e infusiones': '☕', 'Cereales y galletas': '🥣',
@@ -56,11 +58,9 @@ export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
         <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
           {grupos.map(([cat, items]) => (
             <div key={cat}>
-              {grupos.length > 1 && (
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                  {CAT_EMOJI[cat] ?? '📦'} {cat}
-                </p>
-              )}
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                {CAT_EMOJI[cat] ?? '📦'} {cat}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {items.map(item => {
                   const foto = infoMap.get(item)?.foto
