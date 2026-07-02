@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { recuperar } from '../lib/storage'
 import type { DificultadPreferida } from '../types'
 
 interface ProductoMercadona {
@@ -104,16 +105,14 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
     ocasion: 'semana normal',
     modoIngredientes: 'libre',
     ingredientesPersonalizados: [],
-    listaDestinoId: null,
+    listaDestinoId: recuperar<string | null>('menu_lista_destino') ?? null,
   })
 
   // Lista activa: determina nevera fuente Y destino de la compra
   const [itemsNeveraCompartida, setItemsNeveraCompartida] = useState<string[]>([])
   const [cargandoCompartida, setCargandoCompartida] = useState(false)
 
-  async function seleccionarLista(id: string | null) {
-    set('listaDestinoId', id)
-    if (!id) { setItemsNeveraCompartida([]); return }
+  async function cargarItemsCompartida(id: string) {
     setCargandoCompartida(true)
     const { data } = await supabase
       .from('lista_compartida_items')
@@ -123,6 +122,19 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
     setItemsNeveraCompartida((data ?? []).map((r: { nombre: string }) => r.nombre))
     setCargandoCompartida(false)
   }
+
+  async function seleccionarLista(id: string | null) {
+    set('listaDestinoId', id)
+    if (!id) { setItemsNeveraCompartida([]); return }
+    await cargarItemsCompartida(id)
+  }
+
+  // Si se recuerda una lista compartida de la última vez, cargar sus
+  // ingredientes en casa nada más abrir el modal (sin esperar a un clic).
+  useEffect(() => {
+    if (config.listaDestinoId) cargarItemsCompartida(config.listaDestinoId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const neveraActual = config.listaDestinoId ? itemsNeveraCompartida : ingredientesNevera
 
@@ -187,6 +199,39 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
+
+          {/* Qué lista usar — aplica a las 3 opciones de ingredientes: define de
+              dónde salen los "en casa" y a qué lista va la compra del menú */}
+          {listasCompartidas.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0.5">¿Qué lista quieres usar?</p>
+              <p className="text-xs text-gray-400 mb-2">Ahí es donde irán los ingredientes en casa y la compra del menú</p>
+              <div className="space-y-1.5">
+                <button onClick={() => seleccionarLista(null)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${!config.listaDestinoId ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
+                  <span className="text-lg">👤</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Mi lista personal</p>
+                    <p className="text-xs text-gray-400">{ingredientesNevera.length} ingredientes en casa</p>
+                  </div>
+                  {!config.listaDestinoId && <span className="text-green-select">✓</span>}
+                </button>
+                {listasCompartidas.map(lista => (
+                  <button key={lista.id} onClick={() => seleccionarLista(lista.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${config.listaDestinoId === lista.id ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
+                    <span className="text-lg">👥</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</p>
+                      <p className="text-xs text-gray-400">
+                        {cargandoCompartida && config.listaDestinoId === lista.id ? 'Cargando...' : config.listaDestinoId === lista.id ? `${itemsNeveraCompartida.length} ingredientes en casa` : 'Lista compartida'}
+                      </p>
+                    </div>
+                    {config.listaDestinoId === lista.id && !cargandoCompartida && <span className="text-green-select">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Tipo de cocina */}
           <div>
@@ -259,35 +304,6 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                 </button>
               ))}
             </div>
-
-            {/* Selector de lista — dentro de modo nevera */}
-            {config.modoIngredientes === 'nevera' && listasCompartidas.length > 0 && (
-              <div className="mt-3 space-y-1.5">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">¿De qué lista?</p>
-                <button onClick={() => seleccionarLista(null)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${!config.listaDestinoId ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
-                  <span className="text-lg">👤</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Mi lista personal</p>
-                    <p className="text-xs text-gray-400">{ingredientesNevera.length} ingredientes en casa</p>
-                  </div>
-                  {!config.listaDestinoId && <span className="text-green-select">✓</span>}
-                </button>
-                {listasCompartidas.map(lista => (
-                  <button key={lista.id} onClick={() => seleccionarLista(lista.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${config.listaDestinoId === lista.id ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
-                    <span className="text-lg">👥</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</p>
-                      <p className="text-xs text-gray-400">
-                        {cargandoCompartida && config.listaDestinoId === lista.id ? 'Cargando...' : config.listaDestinoId === lista.id ? `${itemsNeveraCompartida.length} ingredientes en casa` : 'Lista compartida'}
-                      </p>
-                    </div>
-                    {config.listaDestinoId === lista.id && !cargandoCompartida && <span className="text-green-select">✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* Lista personalizada — buscador + chips */}
             {config.modoIngredientes === 'personalizada' && (

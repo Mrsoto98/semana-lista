@@ -1,5 +1,6 @@
 // supabase/functions/generar-recetas/index.ts
 import INGREDIENTES_JSON from './ingredientes.json' with { type: 'json' }
+import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'json' }
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
@@ -9,10 +10,32 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function ingredientesParaPrompt(): string {
+// Mapea el valor de "cocina" que elige el usuario en la UI al código de
+// etiqueta usado en ingredientes-cocinas.json. Los valores sin entrada aquí
+// (combinado, aleatorio, variada e internacional...) no filtran la lista.
+const CODIGO_COCINA: Record<string, string> = {
+  'española y mediterránea': 'E',
+  'italiana': 'I',
+  'asiática': 'AS',
+  'americana': 'AM',
+  'mexicana': 'M',
+  'tradicional española': 'T',
+  'saludable y ligera': 'S',
+}
+
+function ingredientesParaPrompt(cocina?: string): string {
+  const codigo = cocina ? CODIGO_COCINA[cocina] : undefined
+  const tags = INGREDIENTES_COCINAS as Record<string, string[]>
+
   const lineas: string[] = ['PRODUCTOS DISPONIBLES EN MERCADONA (usa SOLO estos nombres exactos para los ingredientes):']
   for (const [cat, nombres] of Object.entries(INGREDIENTES_JSON as Record<string, string[]>)) {
-    lineas.push(`${cat}: ${(nombres as string[]).join(', ')}`)
+    const filtrados = codigo
+      ? (nombres as string[]).filter(n => {
+          const t = tags[n]
+          return !t || t.includes('ALL') || t.includes(codigo)
+        })
+      : (nombres as string[])
+    if (filtrados.length) lineas.push(`${cat}: ${filtrados.join(', ')}`)
   }
   return lineas.join('\n')
 }
@@ -27,15 +50,20 @@ function dificultadInstruccion(d?: string): string {
   return 'Mezcla variada de dificultades: fácil, media y difícil.'
 }
 
-function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[]): string {
-  const { personas, objetivo, ingredientes_no, nevera, extra_instrucciones, dificultad_recetas } = perfil as {
-    personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string
+const DIA_LABEL: Record<string, string> = {
+  lunes: 'lunes', martes: 'martes', miercoles: 'miércoles',
+  jueves: 'jueves', viernes: 'viernes', sabado: 'sábado', domingo: 'domingo',
+}
+
+function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[], claves: string[]): string {
+  const { personas, objetivo, ingredientes_no, nevera, extra_instrucciones, dificultad_recetas, cocina } = perfil as {
+    personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string; cocina?: string
   }
 
   const ctx: string[] = [
-    `Eres un chef español. Crea un menú semanal para ${personas} persona${personas > 1 ? 's' : ''}, objetivo: ${objetivo}.`,
+    `Eres un chef español. Crea un menú para ${personas} persona${personas > 1 ? 's' : ''} (${claves.length} franja${claves.length > 1 ? 's' : ''} de comida en total), objetivo: ${objetivo}.`,
     `SOLO comidas y cenas principales. NO postres, NO desayunos, NO meriendas, NO bebidas.`,
-    `Variedad: proteína distinta cada día (lun=pollo, mar=pescado, mié=legumbre/huevo, jue=cerdo/ternera, vie=pescado2, sáb=libre, dom=guiso). Comida y cena del mismo día sin repetir proteína. Técnicas variadas. 28 nombres distintos.`,
+    `Variedad: usa una proteína distinta en cada franja cuando sea posible (pollo, pescado, legumbre/huevo, cerdo o ternera, guiso...). Si un mismo día tiene comida y cena, no repitas la misma proteína entre ambas. Técnicas variadas. ${claves.length} nombres de receta distintos en total.`,
     dificultadInstruccion(dificultad_recetas),
   ]
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
@@ -43,9 +71,9 @@ function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[]
   if (recetasYaUsadas?.length) ctx.push(`No repetir estas recetas: ${recetasYaUsadas.slice(0, 8).join(', ')}.`)
   if (extra_instrucciones) ctx.push(extra_instrucciones)
 
-  ctx.push(ingredientesParaPrompt())
-  ctx.push(`Responde SOLO JSON válido sin texto extra. 14 claves (lunes_comida, lunes_cena, martes_comida, martes_cena, miercoles_comida, miercoles_cena, jueves_comida, jueves_cena, viernes_comida, viernes_cena, sabado_comida, sabado_cena, domingo_comida, domingo_cena), cada una con array de 2 recetas:
-[{"nombre":"X","tiempo_prep":30,"dificultad":"fácil","descripcion_corta":"desc","calorias_aprox":400,"ingredientes":[{"nombre":"a","cantidad":200,"unidad":"g"}],"tags":["t"]},{"nombre":"Y",...}]
+  ctx.push(ingredientesParaPrompt(cocina))
+  ctx.push(`Responde SOLO JSON válido sin texto extra. ${claves.length} clave${claves.length > 1 ? 's' : ''} (${claves.join(', ')}), cada una con UNA sola receta (no un array):
+{"lunes_comida":{"nombre":"X","tiempo_prep":30,"dificultad":"fácil","descripcion_corta":"desc","calorias_aprox":400,"ingredientes":[{"nombre":"a","cantidad":200,"unidad":"g"}],"tags":["t"]}, "lunes_cena":{...}, ...}
 CRÍTICO: "ingredientes" debe incluir TODOS los ingredientes necesarios. Mínimo 4 ingredientes por receta. Usa EXACTAMENTE los nombres del catálogo Mercadona de arriba.
 Dificultad: fácil/media/difícil. Unidades: g,kg,ml,l,ud,cucharada,pizca.`)
 
@@ -53,25 +81,44 @@ Dificultad: fácil/media/difícil. Unidades: g,kg,ml,l,ud,cucharada,pizca.`)
 }
 
 function promptSlot(dia: string, franja: string, perfil: Record<string, unknown>): string {
-  const { personas, objetivo, ingredientes_no, nevera, extra_instrucciones, dificultad_recetas } = perfil as {
-    personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string
+  const { personas, objetivo, ingredientes_no, nevera, extra_instrucciones, dificultad_recetas, cocina } = perfil as {
+    personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string; cocina?: string
   }
   const franjaLabel = franja === 'comida' ? 'mediodía' : 'noche'
-  const diaLabel: Record<string, string> = {
-    lunes:'lunes',martes:'martes',miercoles:'miércoles',
-    jueves:'jueves',viernes:'viernes',sabado:'sábado',domingo:'domingo',
-  }
 
   const ctx: string[] = [
-    `Eres un chef español. Crea 2 recetas alternativas para ${franjaLabel} del ${diaLabel[dia] ?? dia}. ${personas} persona${personas > 1 ? 's' : ''}, objetivo: ${objetivo}. SOLO platos principales, NO postres.`,
+    `Eres un chef español. Crea 1 receta para ${franjaLabel} del ${DIA_LABEL[dia] ?? dia}. ${personas} persona${personas > 1 ? 's' : ''}, objetivo: ${objetivo}. SOLO platos principales, NO postres.`,
     dificultadInstruccion(dificultad_recetas),
   ]
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
   if (nevera?.length) ctx.push(`En casa: ${nevera.join(', ')}.`)
   if (extra_instrucciones) ctx.push(extra_instrucciones)
-  ctx.push(ingredientesParaPrompt())
-  ctx.push(`JSON sin texto extra, array de 2 recetas:
-[{"nombre":"A","tiempo_prep":30,"dificultad":"fácil","descripcion_corta":"desc","calorias_aprox":400,"ingredientes":[{"nombre":"x","cantidad":200,"unidad":"g"}],"tags":["t"]},{"nombre":"B","tiempo_prep":20,"dificultad":"media","descripcion_corta":"desc2","calorias_aprox":350,"ingredientes":[{"nombre":"y","cantidad":150,"unidad":"g"}],"tags":["t2"]}]
+  ctx.push(ingredientesParaPrompt(cocina))
+  ctx.push(`JSON sin texto extra, UNA sola receta (no un array):
+{"nombre":"A","tiempo_prep":30,"dificultad":"fácil","descripcion_corta":"desc","calorias_aprox":400,"ingredientes":[{"nombre":"x","cantidad":200,"unidad":"g"}],"tags":["t"]}
+CRÍTICO: "ingredientes" debe incluir TODOS los ingredientes necesarios. Mínimo 4 ingredientes. Usa EXACTAMENTE los nombres del catálogo Mercadona de arriba.
+Dificultad: "fácil","media" o "difícil". Unidades: g,kg,ml,l,ud,cucharada,pizca.`)
+
+  return ctx.join('\n')
+}
+
+function promptOpcionExtra(dia: string, franja: string, perfil: Record<string, unknown>, recetaExistente: string): string {
+  const { personas, objetivo, ingredientes_no, nevera, extra_instrucciones, dificultad_recetas, cocina } = perfil as {
+    personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string; cocina?: string
+  }
+  const franjaLabel = franja === 'comida' ? 'mediodía' : 'noche'
+
+  const ctx: string[] = [
+    `Eres un chef español. El usuario ya tiene la receta "${recetaExistente}" para ${franjaLabel} del ${DIA_LABEL[dia] ?? dia} y quiere una SEGUNDA opción alternativa distinta para elegir. ${personas} persona${personas > 1 ? 's' : ''}, objetivo: ${objetivo}. SOLO platos principales, NO postres.`,
+    `La nueva receta debe ser claramente distinta de "${recetaExistente}" (proteína o técnica diferente).`,
+    dificultadInstruccion(dificultad_recetas),
+  ]
+  if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
+  if (nevera?.length) ctx.push(`En casa: ${nevera.join(', ')}.`)
+  if (extra_instrucciones) ctx.push(extra_instrucciones)
+  ctx.push(ingredientesParaPrompt(cocina))
+  ctx.push(`JSON sin texto extra, UNA sola receta (no un array):
+{"nombre":"A","tiempo_prep":30,"dificultad":"fácil","descripcion_corta":"desc","calorias_aprox":400,"ingredientes":[{"nombre":"x","cantidad":200,"unidad":"g"}],"tags":["t"]}
 CRÍTICO: "ingredientes" debe incluir TODOS los ingredientes necesarios. Mínimo 4 ingredientes. Usa EXACTAMENTE los nombres del catálogo Mercadona de arriba.
 Dificultad: "fácil","media" o "difícil". Unidades: g,kg,ml,l,ud,cucharada,pizca.`)
 
@@ -107,7 +154,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { perfil, recetas_ya_usadas = [], dia, franja } = body
+    const { perfil, recetas_ya_usadas = [], dia, franja, accion, receta_existente, dias: diasReq, franjas: franjasReq } = body
 
     // Modo pasos: generar pasos de cocina para una receta
     if (body.action === 'pasos') {
@@ -126,21 +173,36 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Modo slot único: regenerar una celda concreta
-    if (dia && franja) {
-      const prompt = promptSlot(dia, franja, perfil)
-      const raw = await llamarClaude(prompt, 1000)
-      const opciones = JSON.parse(raw)
-      const arr = Array.isArray(opciones) ? opciones : [opciones]
+    // Modo opción extra: añadir una segunda receta alternativa a una celda ya generada
+    if (dia && franja && accion === 'opcion_extra') {
+      const prompt = promptOpcionExtra(dia, franja, perfil, receta_existente ?? '')
+      const raw = await llamarClaude(prompt, 900)
+      const receta = JSON.parse(raw)
       return new Response(
-        JSON.stringify({ dia, franja, opciones: arr }),
+        JSON.stringify({ dia, franja, receta }),
         { headers: { ...CORS, 'Content-Type': 'application/json' } },
       )
     }
 
-    // Modo semana completa
-    const prompt = promptSemana(perfil, recetas_ya_usadas)
-    const raw = await llamarClaude(prompt, 8000)
+    // Modo slot único: regenerar una celda concreta (1 receta fresca)
+    if (dia && franja) {
+      const prompt = promptSlot(dia, franja, perfil)
+      const raw = await llamarClaude(prompt, 900)
+      const receta = JSON.parse(raw)
+      return new Response(
+        JSON.stringify({ dia, franja, opciones: [receta] }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Modo semana (completa o parcial, según lo que pidió el usuario) — 1 receta por franja
+    const dias: string[] = Array.isArray(diasReq) && diasReq.length ? diasReq : DIAS
+    const franjas: string[] = Array.isArray(franjasReq) && franjasReq.length ? franjasReq : FRANJAS
+    const claves = dias.flatMap((d: string) => franjas.map((f: string) => `${d}_${f}`))
+    const maxTokens = Math.min(8000, 600 + claves.length * 350)
+
+    const prompt = promptSemana(perfil, recetas_ya_usadas, claves)
+    const raw = await llamarClaude(prompt, maxTokens)
     let semana: Record<string, unknown>
     try {
       semana = JSON.parse(raw)
@@ -149,14 +211,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const resultado: Record<string, { opciones: unknown[] }> = {}
-    for (const d of DIAS) {
-      for (const f of FRANJAS) {
-        const clave = `${d}_${f}`
-        const val = semana[clave]
-        if (val) {
-          const arr = Array.isArray(val) ? val : [val]
-          resultado[clave] = { opciones: arr }
-        }
+    for (const clave of claves) {
+      const val = semana[clave]
+      if (val) {
+        const arr = Array.isArray(val) ? val : [val]
+        resultado[clave] = { opciones: arr }
       }
     }
 

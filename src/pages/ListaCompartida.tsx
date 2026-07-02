@@ -6,7 +6,10 @@ import { useAmigos } from '../hooks/useAmigos'
 import { Avatar } from '../components/Avatar'
 import { supabase } from '../lib/supabase'
 import { recuperar } from '../lib/storage'
-import { topMatchesMercadona, type MatchProducto } from '../lib/matchMercadona'
+import {
+  topMatchesMercadona, agruparIngredientes, resolverContraSet, etiquetaGrupo, nombreGuardadoComo as nombreGuardadoComoLib,
+  type MatchProducto,
+} from '../lib/matchMercadona'
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
 import type { MenuSemanal } from '../types'
 
@@ -113,6 +116,17 @@ export default function ListaCompartida() {
     return map
   }, [items])
 
+  // Precio/kg de un producto por nombre exacto, buscando en el catálogo aunque
+  // el item se haya añadido desde el picker (no desde el navegador de catálogo).
+  function precioKgDe(nombre: string): number | undefined {
+    if (!catalogo) return undefined
+    for (const prods of Object.values(catalogo.categorias)) {
+      const p = prods.find(p => p.nombre === nombre)
+      if (p?.precio_kg) return p.precio_kg
+    }
+    return undefined
+  }
+
   // ── Acciones ──────────────────────────────────────────────────────────────
   async function añadir(nombre: string, precio?: number, unidad?: string) {
     const n = nombre.trim(); if (!n) return
@@ -188,10 +202,21 @@ export default function ListaCompartida() {
   const enCasa     = items.filter(i => i.en_casa)
 
   // ── Picker de producto Mercadona ──────────────────────────────────────────
-  function abrirPicker(nombre: string, enCasa: boolean) {
-    const opciones = catalogo ? topMatchesMercadona(nombre, catalogo.categorias, 6) : []
+  function abrirPicker(nombreOGrupo: string | string[], enCasa: boolean) {
+    const nombres = Array.isArray(nombreOGrupo) ? nombreOGrupo : [nombreOGrupo]
+    const etiqueta = nombres.length > 1 ? etiquetaGrupo(nombres) : nombres[0]
+    if (!catalogo) { setPickerOpciones([]); setPickerIngrediente({ nombre: etiqueta, enCasa }); return }
+    const vistos = new Set<string>()
+    const opciones: MatchProducto[] = []
+    for (const nombre of nombres) {
+      for (const op of topMatchesMercadona(nombre, catalogo.categorias, 6)) {
+        if (vistos.has(op.nombre)) continue
+        vistos.add(op.nombre)
+        opciones.push(op)
+      }
+    }
     setPickerOpciones(opciones)
-    setPickerIngrediente({ nombre, enCasa })
+    setPickerIngrediente({ nombre: etiqueta, enCasa })
   }
 
   function confirmarPicker(producto: MatchProducto) {
@@ -214,6 +239,40 @@ export default function ListaCompartida() {
     }
     return Array.from(nombres).sort()
   }, [id])
+
+  const gruposMenu = useMemo(() => agruparIngredientes(ingredientesMenu), [ingredientesMenu])
+
+  // Nombres reales tal como están guardados en la lista compartida, separados
+  // por si están para comprar o marcados en casa (mismo criterio que Lista.tsx).
+  const comprarNombres = useMemo(() => new Set(items.filter(i => !i.en_casa).map(i => i.nombre)), [items])
+  const enCasaNombres = useMemo(() => new Set(items.filter(i => i.en_casa).map(i => i.nombre)), [items])
+
+  const menuEnComprar = useMemo(
+    () => resolverContraSet(ingredientesMenu, comprarNombres, catalogo?.categorias),
+    [ingredientesMenu, comprarNombres, catalogo],
+  )
+  const menuEnCasa = useMemo(
+    () => resolverContraSet(ingredientesMenu, enCasaNombres, catalogo?.categorias),
+    [ingredientesMenu, enCasaNombres, catalogo],
+  )
+
+  // Quita de golpe todos los productos resueltos para un grupo de variantes
+  // (ej. al desmarcar el botón fusionado "Aceite de oliva").
+  function quitarGrupoDeComprar(nombresGrupo: string[]) {
+    for (const generico of nombresGrupo) {
+      const real = nombreGuardadoComoLib(generico, comprarNombres, catalogo?.categorias)
+      const encontrado = items.find(i => i.nombre === real && !i.en_casa)
+      if (encontrado) eliminarItem(encontrado.id)
+    }
+  }
+  function quitarGrupoDeCasa(nombresGrupo: string[]) {
+    for (const generico of nombresGrupo) {
+      const real = nombreGuardadoComoLib(generico, enCasaNombres, catalogo?.categorias)
+      const encontrado = items.find(i => i.nombre === real && i.en_casa)
+      if (encontrado) toggleEnCasa(encontrado.id, false)
+    }
+  }
+
   const totalEst   = items.filter(i => !i.en_casa && !i.comprado).reduce((s, i) => {
     const precio = i.precio ?? 0
     const cant = i.cantidad ?? 1
@@ -287,42 +346,73 @@ export default function ListaCompartida() {
 
           {/* Lista a comprar */}
           {(porComprar.length > 0 || comprados.length > 0) && (
-            <div className="max-h-48 overflow-y-auto space-y-1 mb-2">
-              {[...porComprar, ...comprados].map(item => (
-                <div key={item.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-colors ${item.comprado ? 'bg-gray-50 dark:bg-gray-900' : 'bg-green-50 dark:bg-green-950/50'}`}>
-                  <input type="checkbox" checked={item.comprado}
-                    onChange={() => toggleComprado(item.id, !item.comprado)}
-                    className="shrink-0 accent-green-select w-4 h-4" />
-                  <span className={`flex-1 text-sm font-medium truncate ${item.comprado ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
-                    {item.nombre}
-                    {item.unidad === 'kg'
-                      ? <span className="ml-1.5 text-xs font-bold text-green-select">{item.cantidad ?? DEFECTO_KG} kg</span>
-                      : (item.cantidad ?? 1) > 1 && <span className="ml-1.5 text-xs font-bold text-green-select">×{item.cantidad}</span>
-                    }
-                  </span>
-                  {!item.added_by || item.added_by === user?.id ? null : (
-                    <Avatar url={perfilesMiembros[item.added_by]?.avatar_url}
-                      emoji={perfilesMiembros[item.added_by]?.avatar_emoji} size="sm" className="opacity-60 shrink-0" />
-                  )}
-                  {editandoPrecio === item.id ? (
-                    <form onSubmit={e => { e.preventDefault(); guardarPrecio(item.id) }} className="flex gap-1 items-center shrink-0">
-                      <input autoFocus type="number" step="0.01" min="0" value={precioDraft}
-                        onChange={e => setPrecioDraft(e.target.value)}
-                        className="w-20 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-800" placeholder="0.00" />
-                      <button type="submit" className="text-xs text-green-select font-bold">✓</button>
-                      <button type="button" onClick={() => setEditandoPrecio(null)} className="text-xs text-gray-400">✕</button>
-                    </form>
-                  ) : (
-                    <button onClick={() => { setEditandoPrecio(item.id); setPrecioDraft(item.precio?.toString() ?? '') }}
-                      className="text-xs font-semibold text-gray-500 hover:text-green-select shrink-0 min-w-[52px] text-right transition-colors">
-                      {item.precio ? `${(item.precio * (item.cantidad ?? 1)).toFixed(2)} €` : <span className="text-gray-300 font-normal">+ precio</span>}
-                    </button>
-                  )}
-                  <button onClick={() => toggleEnCasa(item.id, !item.en_casa)} title="Tengo esto en casa"
-                    className="text-base shrink-0 opacity-50 hover:opacity-100 transition-opacity">🏠</button>
-                  <button onClick={() => eliminarItem(item.id)} className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">✕</button>
+            <div className="max-h-64 overflow-y-auto space-y-1 mb-2">
+              {[...porComprar, ...comprados].map(item => {
+                const enKg = item.unidad === 'kg'
+                const precioKg = precioKgDe(item.nombre)
+                return (
+                <div key={item.id} className={`rounded-xl px-3 py-2 transition-colors ${item.comprado ? 'bg-gray-50 dark:bg-gray-900' : 'bg-green-50 dark:bg-green-950/50'}`}>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" checked={item.comprado}
+                      onChange={() => toggleComprado(item.id, !item.comprado)}
+                      className="shrink-0 accent-green-select w-4 h-4" />
+                    <span className={`flex-1 text-sm font-medium truncate ${item.comprado ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                      {item.nombre}
+                    </span>
+                    {!item.added_by || item.added_by === user?.id ? null : (
+                      <Avatar url={perfilesMiembros[item.added_by]?.avatar_url}
+                        emoji={perfilesMiembros[item.added_by]?.avatar_emoji} size="sm" className="opacity-60 shrink-0" />
+                    )}
+                    {editandoPrecio === item.id ? (
+                      <form onSubmit={e => { e.preventDefault(); guardarPrecio(item.id) }} className="flex gap-1 items-center shrink-0">
+                        <input autoFocus type="number" step="0.01" min="0" value={precioDraft}
+                          onChange={e => setPrecioDraft(e.target.value)}
+                          className="w-20 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-800" placeholder="0.00" />
+                        <button type="submit" className="text-xs text-green-select font-bold">✓</button>
+                        <button type="button" onClick={() => setEditandoPrecio(null)} className="text-xs text-gray-400">✕</button>
+                      </form>
+                    ) : (
+                      <button onClick={() => { setEditandoPrecio(item.id); setPrecioDraft(item.precio?.toString() ?? '') }}
+                        className="text-xs font-semibold text-gray-500 hover:text-green-select shrink-0 min-w-[52px] text-right transition-colors">
+                        {item.precio ? `${(item.precio * (item.cantidad ?? 1)).toFixed(2)} €` : <span className="text-gray-300 font-normal">+ precio</span>}
+                      </button>
+                    )}
+                    <button onClick={() => toggleEnCasa(item.id, !item.en_casa)} title="Tengo esto en casa"
+                      className="text-base shrink-0 opacity-50 hover:opacity-100 transition-opacity">🏠</button>
+                    <button onClick={() => eliminarItem(item.id)} className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">✕</button>
+                  </div>
+
+                  {/* Cantidad / kg */}
+                  <div className="flex items-center gap-2 mt-1.5 ml-6">
+                    {precioKg != null && (
+                      <div className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 text-[10px] font-bold">
+                        <button onClick={() => enKg && toggleModoKg(item, precioKg, item.precio ?? 0)}
+                          className={`px-2 py-0.5 transition-colors ${!enKg ? 'bg-green-select text-white' : 'text-gray-400 hover:text-gray-600'}`}>
+                          ud
+                        </button>
+                        <button onClick={() => !enKg && toggleModoKg(item, precioKg, item.precio ?? 0)}
+                          className={`px-2 py-0.5 transition-colors ${enKg ? 'bg-green-select text-white' : 'text-gray-400 hover:text-gray-600'}`}>
+                          kg
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => decrementar(item)}
+                        className="w-5 h-5 rounded-full border border-green-select text-green-select font-bold text-xs flex items-center justify-center leading-none hover:bg-green-100 dark:hover:bg-green-900 transition-colors">
+                        −
+                      </button>
+                      <span className="text-xs font-bold text-green-select min-w-[2.5rem] text-center">
+                        {enKg ? `${item.cantidad ?? DEFECTO_KG} kg` : `×${item.cantidad ?? 1}`}
+                      </span>
+                      <button onClick={() => incrementar(item, precioKg)}
+                        className="w-5 h-5 rounded-full border border-green-select text-green-select font-bold text-xs flex items-center justify-center leading-none hover:bg-green-100 dark:hover:bg-green-900 transition-colors">
+                        +
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
@@ -353,19 +443,20 @@ export default function ListaCompartida() {
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">📋 Del menú esta semana</h2>
             <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 flex flex-wrap gap-1.5">
-              {ingredientesMenu.map(nombre => {
-                const yaEsta = !!itemPorNombre[nombre] || items.some(i => i.nombre === nombre)
+              {gruposMenu.map(({ key, items: grupoItems, etiqueta }) => {
+                const enC = grupoItems.some(i => menuEnComprar.has(i))
+                const enN = grupoItems.some(i => menuEnCasa.has(i))
                 return (
-                  <div key={nombre} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
                     <button
-                      onClick={() => { if (!yaEsta) abrirPicker(nombre, false) }}
-                      className={`text-xs px-3 py-1.5 font-medium transition-colors ${yaEsta ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
-                      {yaEsta ? '✓' : '🛒'} {nombre}
+                      onClick={() => enC ? quitarGrupoDeComprar(grupoItems) : abrirPicker(grupoItems, false)}
+                      className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
+                      {enC ? '✓' : '🛒'} <span className={enN ? 'line-through decoration-2' : ''}>{etiqueta}</span>
                     </button>
                     <button
-                      onClick={() => abrirPicker(nombre, true)}
-                      className="text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50 transition-colors">
-                      🏠
+                      onClick={() => enN ? quitarGrupoDeCasa(grupoItems) : abrirPicker(grupoItems, true)}
+                      className={`text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 transition-colors ${enN ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50'}`}>
+                      {enN ? '✓' : '🏠'}
                     </button>
                   </div>
                 )

@@ -38,9 +38,20 @@ export function PickerProductoMercadona({ ingrediente, opciones, enCasa, onSelec
                 <button
                   key={op.nombre}
                   onClick={() => onSeleccionar(op)}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-green-select/60 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-green-select/60 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left"
                 >
-                  <span className="text-sm text-gray-800 dark:text-gray-100 leading-tight">{op.nombre}</span>
+                  {op.foto ? (
+                    <img
+                      src={op.foto}
+                      alt=""
+                      loading="lazy"
+                      className="w-11 h-11 rounded-lg object-cover shrink-0 bg-gray-100 dark:bg-gray-700"
+                      onError={e => { e.currentTarget.style.visibility = 'hidden' }}
+                    />
+                  ) : (
+                    <span className="w-11 h-11 rounded-lg shrink-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-300 text-lg">🛒</span>
+                  )}
+                  <span className="flex-1 text-sm text-gray-800 dark:text-gray-100 leading-tight">{op.nombre}</span>
                   <span className="text-sm font-bold text-green-select shrink-0">{op.precio.toFixed(2)} €</span>
                 </button>
               ))}

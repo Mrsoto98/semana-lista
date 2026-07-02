@@ -24,15 +24,17 @@ interface SemanaGuardada {
 
 interface Cuestionario {
   cocina: string; tiempo: string; dificultad: string; ocasion: string; extra: string; no_quiero: string
+  listaDestinoId: string | null
 }
 
 const CUESTIONARIO_INICIAL: Cuestionario = {
   cocina: 'combinado', tiempo: 'combinado',
   dificultad: 'combinado', ocasion: 'semana normal', extra: '', no_quiero: '',
+  listaDestinoId: null,
 }
 
 
-function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvitar: string[] = []): object {
+function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvitar: string[] = [], cocina?: string): object {
   const p = perfil as { nevera?: string[]; ingredientes_no?: string[] }
   return {
     ...perfil,
@@ -45,6 +47,7 @@ function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvita
       ...ingredientesEvitar,
     ].filter((v, i, a) => a.indexOf(v) === i),
     ...(extraPrompt ? { extra_instrucciones: extraPrompt } : {}),
+    ...(cocina ? { cocina } : {}),
   }
 }
 
@@ -62,7 +65,10 @@ export default function Menu() {
   const [modalSorpresa, setModalSorpresa] = useState(false)
   const [infoGenerarVisible, setInfoGenerarVisible] = useState(false)
   const [modalAjustesSemana, setModalAjustesSemana] = useState(false)
-  const [cuestionario, setCuestionario] = useState<Cuestionario>(CUESTIONARIO_INICIAL)
+  const [cuestionario, setCuestionario] = useState<Cuestionario>(() => ({
+    ...CUESTIONARIO_INICIAL,
+    listaDestinoId: recuperar<string | null>('menu_lista_destino') ?? null,
+  }))
 
   function abrirModalSorpresa() {
     setCuestionario(prev => ({
@@ -71,6 +77,11 @@ export default function Menu() {
     }))
     setModalSorpresa(true)
   }
+  // Opción extra por comida: máximo 4 días distintos pueden desbloquear una segunda opción
+  const LIMITE_DIAS_EXTRA = 4
+  const [diasExtra, setDiasExtra] = useState<Set<Dia>>(() => new Set(recuperar<Dia[]>('menu_dias_extra') ?? []))
+  const [cargandoExtra, setCargandoExtra] = useState<Set<ClaveMenu>>(new Set())
+
   const [semanasGuardadas, setSemanasGuardadas] = useState<SemanaGuardada[]>(() => recuperar<SemanaGuardada[]>('semanas_guardadas') ?? [])
   const [modalGuardar, setModalGuardar] = useState(false)
   const [nombreGuardar, setNombreGuardar] = useState('')
@@ -127,9 +138,11 @@ export default function Menu() {
   useEffect(() => { guardar('menu_seleccion', seleccion) }, [seleccion])
 
   // Pone todos los slots en cargando, luego hace una sola llamada a la API
-  async function generarSemanaCompleta(extraPrompt?: string) {
+  async function generarSemanaCompleta(extraPrompt?: string, cocina?: string) {
     if (!perfil || generando) return
     setGenerando(true)
+    setDiasExtra(new Set())
+    guardar('menu_dias_extra', [])
 
     // Marcar solo las celdas seleccionadas como cargando, el resto vacío
     const activeDias = diasActivos()
@@ -154,7 +167,7 @@ export default function Menu() {
       const { supabase } = await import('../lib/supabase')
       const { data, error: fnError } = await supabase.functions.invoke('generar-recetas', {
         body: {
-          perfil: perfilConNevera(perfil, extraPrompt, ingredientesEvitar),
+          perfil: perfilConNevera(perfil, extraPrompt, ingredientesEvitar, cocina),
           recetas_ya_usadas: recetasYaUsadas,
           dias: activeDias,
           franjas: activeFranjas,
@@ -224,6 +237,46 @@ export default function Menu() {
     }
   }
 
+  // Añade una segunda opción a una celda que ya tiene 1 receta. Limitado a
+  // LIMITE_DIAS_EXTRA días distintos por semana (comida+cena del mismo día
+  // cuentan como un solo "día" de cuota).
+  async function añadirOpcionExtra(dia: Dia, franja: Franja) {
+    if (!perfil) return
+    const clave: ClaveMenu = `${dia}_${franja}`
+    const recetaActual = estados[clave]?.datos?.opciones[0]
+    if (!recetaActual) return
+    if (!diasExtra.has(dia) && diasExtra.size >= LIMITE_DIAS_EXTRA) return
+
+    setCargandoExtra(prev => new Set(prev).add(clave))
+    try {
+      const { supabase } = await import('../lib/supabase')
+      const { data, error: fnError } = await supabase.functions.invoke('generar-recetas', {
+        body: {
+          dia, franja, accion: 'opcion_extra', receta_existente: recetaActual.nombre,
+          perfil: perfilConNevera(perfil, undefined, ingredientesEvitar),
+        },
+      })
+      if (fnError) throw new Error(fnError.message)
+      if (data?.error) throw new Error(data.mensaje)
+      const nuevaReceta = data.receta as Receta
+      setEstados(prev => {
+        const actual = prev[clave]
+        if (!actual?.datos) return prev
+        return { ...prev, [clave]: { ...actual, datos: { ...actual.datos, opciones: [...actual.datos.opciones, nuevaReceta] } } }
+      })
+      setDiasExtra(prev => {
+        if (prev.has(dia)) return prev
+        const next = new Set(prev).add(dia)
+        guardar('menu_dias_extra', Array.from(next))
+        return next
+      })
+    } catch {
+      // silencioso: la celda se queda con su única opción si falla
+    } finally {
+      setCargandoExtra(prev => { const n = new Set(prev); n.delete(clave); return n })
+    }
+  }
+
   async function regenerarDia(dia: Dia) {
     await Promise.all([regenerarSlot(dia, 'comida'), regenerarSlot(dia, 'cena')])
   }
@@ -231,6 +284,7 @@ export default function Menu() {
   async function generarSorpresa() {
     if (!perfil || generando) return
     setModalSorpresa(false)
+    guardar('menu_lista_destino', cuestionario.listaDestinoId)
     track('menu_sorpresa', { cocina: cuestionario.cocina })
 
     const estilosSorpresa: Record<string, string> = {
@@ -273,7 +327,7 @@ export default function Menu() {
       cuestionario.no_quiero ? `Excluir: ${cuestionario.no_quiero}.` : '',
     ].filter(Boolean).join(' ')
 
-    await generarSemanaCompleta(partes)
+    await generarSemanaCompleta(partes, esCombinado || esAleatorio ? undefined : cuestionario.cocina)
   }
 
   const ESTILOS_COCINA: Record<string, string> = {
@@ -321,7 +375,7 @@ export default function Menu() {
       partes.push(`USA ESTOS INGREDIENTES: Diseña las recetas usando principalmente estos ingredientes: ${config.ingredientesPersonalizados.join(', ')}. Adapta las combinaciones a lo disponible.`)
     }
 
-    await generarSemanaCompleta(partes.join(' '))
+    await generarSemanaCompleta(partes.join(' '), config.cocina)
   }
 
 
@@ -386,6 +440,28 @@ export default function Menu() {
           <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4">🎲 ¿Qué te apetece esta semana?</h2>
             <div className="space-y-4">
+              {listasCompartidas.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-0.5">¿Qué lista quieres usar?</label>
+                  <p className="text-xs text-gray-400 mb-1.5">Ahí es donde irán los ingredientes en casa y la compra del menú</p>
+                  <div className="space-y-1.5">
+                    <button onClick={() => setCuestionario(p => ({ ...p, listaDestinoId: null }))}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${!cuestionario.listaDestinoId ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
+                      <span className="text-lg">👤</span>
+                      <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100">Mi lista personal</span>
+                      {!cuestionario.listaDestinoId && <span className="text-green-select">✓</span>}
+                    </button>
+                    {listasCompartidas.map(lista => (
+                      <button key={lista.id} onClick={() => setCuestionario(p => ({ ...p, listaDestinoId: lista.id }))}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${cuestionario.listaDestinoId === lista.id ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
+                        <span className="text-lg">👥</span>
+                        <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</span>
+                        {cuestionario.listaDestinoId === lista.id && <span className="text-green-select">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Tipo de cocina</label>
                 <select value={cuestionario.cocina} onChange={e => setCuestionario(p => ({ ...p, cocina: e.target.value }))}
@@ -544,6 +620,11 @@ export default function Menu() {
 
       <div className="mb-4">
         <ProgressBar value={totalListos} max={14} label="Recetas generadas" />
+        {totalListos > 0 && (
+          <p className="text-xs text-gray-400 mt-1">
+            Opciones extra: {diasExtra.size}/{LIMITE_DIAS_EXTRA} días usados
+          </p>
+        )}
       </div>
 
       {/* Empty state: primera vez o menú vacío */}
@@ -720,6 +801,9 @@ export default function Menu() {
                           dislikesNombres={dislikes}
                           onDislike={handleDislike}
                           onQuitarDislike={handleQuitarDislike}
+                          puedeAnadirExtra={diasExtra.has(dia) || diasExtra.size < LIMITE_DIAS_EXTRA}
+                          cargandoExtra={cargandoExtra.has(clave)}
+                          onAnadirOpcionExtra={() => añadirOpcionExtra(dia, franja)}
                         />
                       </div>
                     )

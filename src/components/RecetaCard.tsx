@@ -13,6 +13,9 @@ interface Props {
   esDislike?: boolean
   onDislike?: (receta: Receta, ingredientes: string[], motivo: string) => void
   onQuitarDislike?: (receta: Receta) => void
+  puedeAnadirExtra?: boolean
+  cargandoExtra?: boolean
+  onAnadirOpcionExtra?: () => void
 }
 
 // Emoji y color de acento por categoría de tag
@@ -34,6 +37,7 @@ export function RecetaCard({
   opciones, seleccionada, onSeleccionar, onEliminar,
   esFavorita = false, onToggleFavorita,
   esDislike = false, onDislike, onQuitarDislike,
+  puedeAnadirExtra = false, cargandoExtra = false, onAnadirOpcionExtra,
 }: Props) {
   const [vista, setVista] = useState(seleccionada)
   // Sync local vista when external seleccionada changes (e.g. after regenerar día)
@@ -148,13 +152,23 @@ export function RecetaCard({
           <span className="text-xs text-gray-400">🔥 {receta.calorias_aprox} kcal</span>
         </div>
 
-        <div className="mt-2.5">
+        <div className="mt-2.5 flex items-center gap-3">
           <button
             onClick={verReceta}
             className="text-xs text-green-select hover:text-green-700 font-medium transition-colors"
           >
             📖 Ver receta
           </button>
+          {opciones.length === 1 && onAnadirOpcionExtra && (
+            <button
+              onClick={e => { e.stopPropagation(); onAnadirOpcionExtra() }}
+              disabled={!puedeAnadirExtra || cargandoExtra}
+              title={puedeAnadirExtra ? 'Genera una segunda opción para elegir' : 'Límite de días con opción extra alcanzado'}
+              className="text-xs text-gray-400 hover:text-green-select font-medium transition-colors disabled:opacity-30 disabled:hover:text-gray-400"
+            >
+              {cargandoExtra ? '⏳ Generando...' : '➕ Otra opción'}
+            </button>
+          )}
         </div>
       </div>
 

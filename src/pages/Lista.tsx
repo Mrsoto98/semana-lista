@@ -4,7 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { usePerfil } from '../hooks/usePerfil'
 import { useListasCompartidas } from '../hooks/useListaCompartida'
 import { recuperar, guardar } from '../lib/storage'
-import { topMatchesMercadona, type MatchProducto } from '../lib/matchMercadona'
+import {
+  topMatchesMercadona, agruparIngredientes, resolverContraSet, etiquetaGrupo,
+  nombreGuardadoComo as nombreGuardadoComoLib, type MatchProducto,
+} from '../lib/matchMercadona'
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
 import type { MenuSemanal } from '../types'
 
@@ -230,6 +233,39 @@ export default function Lista() {
     return Array.from(set).sort()
   }, [])
 
+  // Agrupa variantes del mismo ingrediente base (distintos grados/tipos que
+  // pidieron distintas recetas) en un solo elemento con un solo botón.
+  const gruposMenu = useMemo(() => agruparIngredientes(ingredientesMenu), [ingredientesMenu])
+
+  const menuEnCasa = useMemo(
+    () => resolverContraSet(ingredientesMenu, enCasa, MERCADONA?.categorias),
+    [ingredientesMenu, enCasa, MERCADONA],
+  )
+  const menuEnComprar = useMemo(
+    () => resolverContraSet(ingredientesMenu, comprar, MERCADONA?.categorias),
+    [ingredientesMenu, comprar, MERCADONA],
+  )
+
+  function nombreGuardadoComo(item: string, set: Set<string>): string {
+    return nombreGuardadoComoLib(item, set, MERCADONA?.categorias)
+  }
+
+  // Quita de golpe todos los productos resueltos para un grupo de variantes
+  // (ej. al desmarcar el botón fusionado "Aceite de oliva").
+  function quitarGrupoDeComprar(items: string[]) {
+    const nombresReales = items.map(item => nombreGuardadoComo(item, comprar))
+    const c = new Set(comprar); nombresReales.forEach(n => c.delete(n))
+    saveComprar(c)
+    const q = { ...cantidades }; const u = { ...unidades }
+    nombresReales.forEach(n => { delete q[n]; delete u[n] })
+    saveCantidades(q); saveUnidades(u)
+  }
+  function quitarGrupoDeCasa(items: string[]) {
+    const nombresReales = items.map(item => nombreGuardadoComo(item, enCasa))
+    const n = new Set(enCasa); nombresReales.forEach(x => n.delete(x))
+    saveCasa(n)
+  }
+
   // ── Productos visibles: categoría activa filtrada por búsqueda ───────────
   const productosVisibles = useMemo(() => {
     if (!MERCADONA) return []
@@ -274,10 +310,23 @@ export default function Lista() {
     return undefined
   }
 
-  function abrirPickerMenu(nombre: string, enCasa: boolean) {
-    const opciones = MERCADONA ? topMatchesMercadona(nombre, MERCADONA.categorias, 6) : []
+  function abrirPickerMenu(nombreOGrupo: string | string[], enCasa: boolean) {
+    const nombres = Array.isArray(nombreOGrupo) ? nombreOGrupo : [nombreOGrupo]
+    const etiqueta = nombres.length > 1 ? etiquetaGrupo(nombres) : nombres[0]
+    if (!MERCADONA) { setPickerOpciones([]); setPickerIngrediente({ nombre: etiqueta, enCasa }); return }
+    // Fusiona las coincidencias de cada variante del grupo (ej. "aceite de oliva 0"
+    // y "aceite de oliva virgen") en una sola lista de opciones, sin duplicados.
+    const vistos = new Set<string>()
+    const opciones: MatchProducto[] = []
+    for (const nombre of nombres) {
+      for (const op of topMatchesMercadona(nombre, MERCADONA.categorias, 6)) {
+        if (vistos.has(op.nombre)) continue
+        vistos.add(op.nombre)
+        opciones.push(op)
+      }
+    }
     setPickerOpciones(opciones)
-    setPickerIngrediente({ nombre, enCasa })
+    setPickerIngrediente({ nombre: etiqueta, enCasa })
   }
 
   function confirmarPicker(producto: MatchProducto) {
@@ -285,7 +334,7 @@ export default function Lista() {
     if (pickerIngrediente.enCasa) {
       addToCasa(producto.nombre)
     } else {
-      addToComprar(producto.nombre, producto.precio)
+      addToComprar(producto.nombre, producto.precio, undefined, producto.precio_kg ?? undefined)
     }
     setPickerIngrediente(null)
   }
@@ -431,51 +480,80 @@ export default function Lista() {
             ? <p className="text-sm text-gray-400 mb-3">Añade productos desde el catálogo o escribe uno abajo</p>
             : (
               <>
-                <div className="max-h-48 overflow-y-auto space-y-1 mb-2">
-                  {comprarArray.map(item => (
-                    <div key={item} className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-colors ${
+                <div className="max-h-64 overflow-y-auto space-y-1 mb-2">
+                  {comprarArray.map(item => {
+                    const { modo, precioKg } = getModoInfo(item)
+                    const enKg = modo === 'kg'
+                    return (
+                    <div key={item} className={`rounded-xl px-3 py-2 transition-colors ${
                       comprado.has(item) ? 'bg-gray-50 dark:bg-gray-900' : 'bg-green-50 dark:bg-green-950/50'
                     }`}>
-                      <input
-                        type="checkbox"
-                        checked={comprado.has(item)}
-                        onChange={() => {
-                          const cp = new Set(comprado)
-                          if (cp.has(item)) cp.delete(item); else cp.add(item)
-                          saveComprado(cp)
-                        }}
-                        className="shrink-0 accent-green-select w-4 h-4"
-                      />
-                      <span className={`flex-1 text-sm font-medium truncate ${comprado.has(item) ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
-                        {item}
-                        {(() => {
-                          const { modo } = getModoInfo(item)
-                          return modo === 'kg'
-                            ? <span className="ml-1.5 text-xs font-bold text-green-select">{cantidades[item] ?? DEFECTO_KG} kg</span>
-                            : (cantidades[item] ?? 1) > 1 && <span className="ml-1.5 text-xs font-bold text-green-select">×{cantidades[item]}</span>
-                        })()}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={comprado.has(item)}
+                          onChange={() => {
+                            const cp = new Set(comprado)
+                            if (cp.has(item)) cp.delete(item); else cp.add(item)
+                            saveComprado(cp)
+                          }}
+                          className="shrink-0 accent-green-select w-4 h-4"
+                        />
+                        <span className={`flex-1 text-sm font-medium truncate ${comprado.has(item) ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                          {item}
+                        </span>
 
-                      {editandoPrecio === item ? (
-                        <form onSubmit={e => { e.preventDefault(); guardarPrecio(item) }} className="flex gap-1 items-center shrink-0">
-                          <input autoFocus type="number" step="0.01" min="0" value={precioEdit}
-                            onChange={e => setPrecioEdit(e.target.value)}
-                            className="w-20 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-800" placeholder="0.00" />
-                          <button type="submit" className="text-xs text-green-select font-bold">✓</button>
-                          <button type="button" onClick={() => setEditandoPrecio(null)} className="text-xs text-gray-400">✕</button>
-                        </form>
-                      ) : (
-                        <button
-                          onClick={() => { setEditandoPrecio(item); setPrecioEdit(precios[item]?.toString() ?? precioSugerido(item)?.toString() ?? '') }}
-                          className="text-xs font-semibold text-gray-500 hover:text-green-select shrink-0 min-w-[52px] text-right transition-colors">
-                          {precios[item] ? `${precios[item].toFixed(2)} €` : <span className="text-gray-300 font-normal">+ precio</span>}
-                        </button>
-                      )}
+                        {editandoPrecio === item ? (
+                          <form onSubmit={e => { e.preventDefault(); guardarPrecio(item) }} className="flex gap-1 items-center shrink-0">
+                            <input autoFocus type="number" step="0.01" min="0" value={precioEdit}
+                              onChange={e => setPrecioEdit(e.target.value)}
+                              className="w-20 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-800" placeholder="0.00" />
+                            <button type="submit" className="text-xs text-green-select font-bold">✓</button>
+                            <button type="button" onClick={() => setEditandoPrecio(null)} className="text-xs text-gray-400">✕</button>
+                          </form>
+                        ) : (
+                          <button
+                            onClick={() => { setEditandoPrecio(item); setPrecioEdit(precios[item]?.toString() ?? precioSugerido(item)?.toString() ?? '') }}
+                            className="text-xs font-semibold text-gray-500 hover:text-green-select shrink-0 min-w-[52px] text-right transition-colors">
+                            {precios[item] ? `${precios[item].toFixed(2)} €` : <span className="text-gray-300 font-normal">+ precio</span>}
+                          </button>
+                        )}
 
-                      <button onClick={() => addToCasa(item)} title="Tengo esto en casa" className="text-base shrink-0 opacity-50 hover:opacity-100 transition-opacity">🏠</button>
-                      <button onClick={() => removeComprar(item)} className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">✕</button>
+                        <button onClick={() => addToCasa(item)} title="Tengo esto en casa" className="text-base shrink-0 opacity-50 hover:opacity-100 transition-opacity">🏠</button>
+                        <button onClick={() => removeComprar(item)} className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">✕</button>
+                      </div>
+
+                      {/* Cantidad / kg — se puede tocar aunque el precio del producto sea por unidad */}
+                      <div className="flex items-center gap-2 mt-1.5 ml-6">
+                        {precioKg != null && (
+                          <div className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 text-[10px] font-bold">
+                            <button onClick={() => modo !== 'ud' && toggleModoKg(item)}
+                              className={`px-2 py-0.5 transition-colors ${modo === 'ud' ? 'bg-green-select text-white' : 'text-gray-400 hover:text-gray-600'}`}>
+                              ud
+                            </button>
+                            <button onClick={() => modo !== 'kg' && toggleModoKg(item)}
+                              className={`px-2 py-0.5 transition-colors ${modo === 'kg' ? 'bg-green-select text-white' : 'text-gray-400 hover:text-gray-600'}`}>
+                              kg
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => decrementarCantidad(item)}
+                            className="w-5 h-5 rounded-full border border-green-select text-green-select font-bold text-xs flex items-center justify-center leading-none hover:bg-green-100 dark:hover:bg-green-900 transition-colors">
+                            −
+                          </button>
+                          <span className="text-xs font-bold text-green-select min-w-[2.5rem] text-center">
+                            {enKg ? `${cantidades[item] ?? DEFECTO_KG} kg` : `×${cantidades[item] ?? 1}`}
+                          </span>
+                          <button onClick={() => incrementarCantidad(item)}
+                            className="w-5 h-5 rounded-full border border-green-select text-green-select font-bold text-xs flex items-center justify-center leading-none hover:bg-green-100 dark:hover:bg-green-900 transition-colors">
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 {comprado.size > 0 && (
                   <button
@@ -531,15 +609,16 @@ export default function Lista() {
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">📋 Del menú esta semana</h2>
             <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 flex flex-wrap gap-1.5">
-              {ingredientesMenu.map(item => {
-                const enC = comprar.has(item); const enN = enCasa.has(item)
+              {gruposMenu.map(({ key, items, etiqueta }) => {
+                const enC = items.some(i => menuEnComprar.has(i))
+                const enN = items.some(i => menuEnCasa.has(i))
                 return (
-                  <div key={item} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                    <button onClick={() => enC ? removeComprar(item) : abrirPickerMenu(item, false)}
+                  <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <button onClick={() => enC ? quitarGrupoDeComprar(items) : abrirPickerMenu(items, false)}
                       className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
-                      {enC ? '✓' : '🛒'} {item}
+                      {enC ? '✓' : '🛒'} <span className={enN ? 'line-through decoration-2' : ''}>{etiqueta}</span>
                     </button>
-                    <button onClick={() => enN ? removeCasa(item) : abrirPickerMenu(item, true)}
+                    <button onClick={() => enN ? quitarGrupoDeCasa(items) : abrirPickerMenu(items, true)}
                       className={`text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 transition-colors ${enN ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50'}`}>
                       {enN ? '✓' : '🏠'}
                     </button>

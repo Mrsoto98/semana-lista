@@ -21,7 +21,40 @@ const CAT_COCINA = [
   'Panadería y pastelería',
   'Postres y yogures',
   'Zumos',
+  'Aperitivos',
 ]
+
+// Productos de nicho (típicos de una cocina concreta) que el recorte de
+// PER_CATEGORIA podría dejar fuera por simple orden de aparición. Se
+// garantiza su inclusión buscándolos por palabra clave en toda la categoría,
+// sin importar la posición en la que aparezcan.
+const FORZAR_INCLUIR = [
+  // Mexicana / Tex-Mex
+  /tortilla/i, /\bwrap/i, /jalape[ñn]o/i,
+  /frijol/i, /nacho/i, /taquer/i, /tex-?mex/i, /burrito/i, /fajita/i,
+  // Asiática
+  /salsa de soja/i, /sriracha/i, /\bcurry\b/i, /fideo/i, /wonton/i,
+  /jengibre/i, /wok/i, /teriyaki/i, /gyoza/i, /sushi/i, /nori/i,
+  // Italiana
+  /mozzarella/i, /parmesano/i, /\bpesto\b/i, /espagueti/i, /lasa[ñn]a/i,
+  // Americana
+  /barbacoa|bbq/i, /cheddar/i, /sirope/i,
+]
+
+function forzarInclusion(catNombre, productosOriginales, yaIncluidos) {
+  const extra = []
+  for (const p of productosOriginales) {
+    const limpio = limpiar(p.nombre)
+    if (limpio.length < 3) continue
+    const key = limpio.toLowerCase()
+    if (yaIncluidos.has(key)) continue
+    if (FORZAR_INCLUIR.some(re => re.test(limpio))) {
+      yaIncluidos.add(key)
+      extra.push(limpio)
+    }
+  }
+  return extra
+}
 
 function limpiar(nombre) {
   return nombre
@@ -54,8 +87,11 @@ for (const [catNombre, productos] of Object.entries(cat.categorias)) {
   }
   
   if (nombres.length > 0) {
-    resultado[catNombre] = nombres.slice(0, 60) // max 60 por categoría
-    totalProd += nombres.length
+    const recortados = nombres.slice(0, 120) // max 120 por categoría
+    const incluidos = new Set(recortados.map(n => n.toLowerCase()))
+    const rescatados = forzarInclusion(catNombre, productos, incluidos)
+    resultado[catNombre] = [...recortados, ...rescatados]
+    totalProd += resultado[catNombre].length
   }
 }
 
