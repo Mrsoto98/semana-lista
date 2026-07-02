@@ -311,20 +311,20 @@ export default function Menu() {
       'combinado': '',
     }
     const tiempoExtra: Record<string, string> = {
-      'rápido (menos de 30 min)':  'TIEMPO MÁX: todas las recetas en menos de 30 minutos.',
-      'normal (30-60 min)':        '',
-      'sin prisa (más de 1 hora)': 'Recetas de cocción lenta, guisos y elaboradas de más de 1 hora.',
+      'rápido (menos de 30 min)':  'TIEMPO: todas las recetas en menos de 30 minutos desde que empiezas hasta que sirves.',
+      'normal (30-60 min)':        'TIEMPO: recetas de 30 a 60 minutos de preparación.',
+      'sin prisa (más de 1 hora)': 'TIEMPO: recetas de cocción lenta, guisos y elaboradas de más de 1 hora. Prioriza sabores profundos.',
       'combinado':                 '',
     }
 
     const partes = [
-      esCombinado ? 'Mezcla varios estilos de cocina a lo largo de la semana: española, italiana, asiática, etc.' :
+      esCombinado ? 'COCINA: varía el estilo cada día (española, italiana, asiática, americana...). Que cada jornada tenga sabores distintos.' :
       esAleatorio ? 'Elige tú libremente el estilo de cada día, sorpréndeme con variedad total.' :
-      `OBLIGATORIO: TODAS las recetas de la semana deben ser de cocina ${estiloDesc}. Nada fuera de este estilo.`,
+      `COCINA OBLIGATORIA: TODAS las recetas deben ser de ${estiloDesc}. Nada fuera de este estilo.`,
       dificultadExtra[cuestionario.dificultad] ?? '',
       tiempoExtra[cuestionario.tiempo] ?? '',
-      cuestionario.extra ? `También quiero: ${cuestionario.extra}.` : '',
-      cuestionario.no_quiero ? `Excluir: ${cuestionario.no_quiero}.` : '',
+      cuestionario.extra ? `EL USUARIO QUIERE: ${cuestionario.extra}.` : '',
+      cuestionario.no_quiero ? `EXCLUIR COMPLETAMENTE: ${cuestionario.no_quiero}.` : '',
     ].filter(Boolean).join(' ')
 
     await generarSemanaCompleta(partes, esCombinado || esAleatorio ? undefined : cuestionario.cocina)
@@ -341,15 +341,24 @@ export default function Menu() {
     'tradicional española': 'tradicional española de cuchara: cocido, fabada, lentejas con chorizo, potaje, puchero, estofado de ternera, arroz con leche de postre',
   }
   const DIFICULTAD_PROMPT: Record<string, string> = {
-    'fácil':     'Todas las recetas deben ser fáciles (≤30 min, técnicas simples, pocos pasos).',
-    'media':     'Recetas de dificultad media (30-60 min, técnicas habituales).',
-    'difícil':   'Recetas elaboradas y de alta dificultad (+45 min, técnicas avanzadas).',
+    'fácil':     'DIFICULTAD: todas las recetas fáciles (≤30 min, técnicas simples, pocos pasos, apta para cocineros sin experiencia).',
+    'media':     'DIFICULTAD: recetas de nivel medio (30-60 min, técnicas habituales de cocina).',
+    'difícil':   'DIFICULTAD: recetas elaboradas y de alta dificultad (más de 45 min, técnicas avanzadas, presentación cuidada).',
     'combinado': '',
   }
   const TIEMPO_PROMPT: Record<string, string> = {
-    'rápido (menos de 30 min)':  'TIEMPO MÁX: todas las recetas en menos de 30 minutos.',
-    'sin prisa (más de 1 hora)': 'Recetas de cocción lenta, guisos y elaboradas de más de 1 hora.',
-    'normal (30-60 min)': '', 'combinado': '',
+    'rápido (menos de 30 min)':    'TIEMPO: todas las recetas en menos de 30 minutos desde que empiezas hasta que sirves.',
+    'normal (30-60 min)':          'TIEMPO: recetas de 30 a 60 minutos de preparación.',
+    'sin prisa (más de 1 hora)':   'TIEMPO: recetas de cocción lenta, guisos y elaboradas de más de 1 hora. Prioriza sabores profundos.',
+    'combinado': '',
+  }
+  const OCASION_PROMPT: Record<string, string> = {
+    'semana normal': '',
+    'visita de amigos o familia': 'OCASIÓN — VISITA DE FAMILIA/AMIGOS: platos para compartir en grupo, vistosos y que impresionen. Raciones generosas, comida para reunión, algún plato especial que quedar bien.',
+    'cena romántica': 'OCASIÓN — CENA ROMÁNTICA: platos elegantes para dos personas, sugerentes y especiales. Sin alimentos difíciles de comer con elegancia. Al menos un plato que resulte sofisticado y memorable.',
+    'comida con niños': 'OCASIÓN — COMIDA CON NIÑOS: recetas suaves sin picante ni sabores fuertes, fáciles de comer y reconocibles para los más pequeños. Platos divertidos y nutritivos que los niños acepten bien. Sin ingredientes raros ni presentaciones intimidantes.',
+    'semana de dieta': 'OCASIÓN — SEMANA DE DIETA: recetas bajas en calorías (máximo 500 kcal por ración). Prioriza verduras, proteína magra (pollo a la plancha, pescado, legumbres), sin fritos ni salsas grasas. Porciones saciantes pero ligeras.',
+    'semana de caprichos': 'OCASIÓN — SEMANA DE CAPRICHOS: platos indulgentes y especiales que normalmente no te preparas en el día a día. Comfort food, platos ricos y satisfactorios, ingredientes premium. No te preocupes por las calorías.',
   }
 
   async function generarDesdeModal(config: ConfigGeneracion) {
@@ -358,24 +367,29 @@ export default function Menu() {
     guardar('menu_lista_destino', config.listaDestinoId)
     track('menu_generado', { via: 'modal', cocina: config.cocina, dificultad: config.dificultad })
 
+    const esVariada = config.cocina === 'variada e internacional'
     const estiloDesc = ESTILOS_COCINA[config.cocina] ?? `cocina ${config.cocina}`
     const partes: string[] = [
-      `OBLIGATORIO: TODAS las recetas de la semana deben ser de cocina ${estiloDesc}.`,
+      esVariada
+        ? 'COCINA: varía el estilo cada día (española, italiana, asiática, americana, mediterránea...). Que cada jornada tenga sabores distintos.'
+        : `COCINA OBLIGATORIA: TODAS las recetas deben ser de ${estiloDesc}. Nada fuera de este estilo.`,
       DIFICULTAD_PROMPT[config.dificultad] ?? '',
       TIEMPO_PROMPT[config.tiempo] ?? '',
-      config.ocasion !== 'semana normal' ? `Ocasión: ${config.ocasion}.` : '',
+      OCASION_PROMPT[config.ocasion] ?? '',
+      config.extra ? `EL USUARIO QUIERE: ${config.extra}.` : '',
+      config.no_quiero ? `EXCLUIR COMPLETAMENTE: ${config.no_quiero}.` : '',
     ].filter(Boolean)
 
     if (config.modoIngredientes === 'nevera') {
       const nevera = config.neveraItems && config.neveraItems.length > 0
         ? config.neveraItems
         : [...((perfil as { nevera?: string[] }).nevera ?? []), ...(recuperar<string[]>('lista_nevera') ?? [])].filter((v, i, a) => a.indexOf(v) === i)
-      partes.push(`MODO NEVERA: Crea recetas usando principalmente estos ingredientes disponibles en casa: ${nevera.join(', ')}. Puedes asumir sal, aceite, ajo y especias básicas.`)
+      partes.push(`MODO NEVERA: crea recetas usando principalmente estos ingredientes disponibles en casa: ${nevera.join(', ')}. Puedes asumir sal, aceite, ajo y especias básicas.`)
     } else if (config.modoIngredientes === 'personalizada' && config.ingredientesPersonalizados.length > 0) {
-      partes.push(`USA ESTOS INGREDIENTES: Diseña las recetas usando principalmente estos ingredientes: ${config.ingredientesPersonalizados.join(', ')}. Adapta las combinaciones a lo disponible.`)
+      partes.push(`USA ESTOS INGREDIENTES: diseña las recetas usando principalmente: ${config.ingredientesPersonalizados.join(', ')}. Adapta las combinaciones a lo disponible.`)
     }
 
-    await generarSemanaCompleta(partes.join(' '), config.cocina)
+    await generarSemanaCompleta(partes.join(' '), esVariada ? undefined : config.cocina)
   }
 
 

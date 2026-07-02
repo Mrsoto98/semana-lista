@@ -15,6 +15,8 @@ export interface ConfigGeneracion {
   dificultad: string
   tiempo: string
   ocasion: string
+  extra: string
+  no_quiero: string
   modoIngredientes: 'libre' | 'nevera' | 'personalizada'
   ingredientesPersonalizados: string[]
   neveraItems?: string[]
@@ -103,6 +105,8 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
     dificultad: dificultadPerfil,
     tiempo: 'combinado',
     ocasion: 'semana normal',
+    extra: '',
+    no_quiero: '',
     modoIngredientes: 'libre',
     ingredientesPersonalizados: [],
     listaDestinoId: recuperar<string | null>('menu_lista_destino') ?? null,
@@ -276,6 +280,30 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
           <div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ocasión de la semana</p>
             <PillSelector opciones={OPCIONES_OCASION} value={config.ocasion} onChange={v => set('ocasion', v)} />
+          </div>
+
+          {/* Preferencias libres */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">¿Algo que quieras comer? <span className="font-normal text-gray-400">(opcional)</span></p>
+              <input
+                type="text"
+                value={config.extra}
+                onChange={e => set('extra', e.target.value)}
+                placeholder="Ej: quiero pasta, algo con salmón, una buena hamburguesa..."
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-select"
+              />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">¿Algo que NO quieras? <span className="font-normal text-gray-400">(opcional)</span></p>
+              <input
+                type="text"
+                value={config.no_quiero}
+                onChange={e => set('no_quiero', e.target.value)}
+                placeholder="Ej: nada de pasta esta semana, sin marisco, sin picante..."
+                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-select"
+              />
+            </div>
           </div>
 
           {/* Ingredientes */}
