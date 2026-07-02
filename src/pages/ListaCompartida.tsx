@@ -512,7 +512,16 @@ export default function ListaCompartida() {
             catalogo={catalogo?.categorias}
             onRemove={nombre => { const it = enCasa.find(i => i.nombre === nombre); if (it) toggleEnCasa(it.id, false) }}
             enCarrito={new Set(items.filter(i => !i.en_casa).map(i => i.nombre))}
-            onAddToCart={nombre => añadirItem(nombre, { precio: 0, cantidad: 1, unidad: 'ud' })}
+            onAddToCart={nombre => {
+              let precio = 0
+              if (catalogo?.categorias) {
+                for (const prods of Object.values(catalogo.categorias)) {
+                  const p = prods.find(p => p.nombre === nombre)
+                  if (p?.precio) { precio = p.precio; break }
+                }
+              }
+              añadirItem(nombre, { precio, cantidad: 1, unidad: 'ud' })
+            }}
           />
         )}
 

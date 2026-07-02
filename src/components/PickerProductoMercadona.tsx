@@ -21,6 +21,11 @@ export function PickerProductoMercadona({ ingrediente, opciones, enCasa, catalog
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { inputRef.current?.focus() }, [])
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancelar() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onCancelar])
 
   const resultadosBusqueda = useMemo<MatchProducto[]>(() => {
     const q = busqueda.trim()

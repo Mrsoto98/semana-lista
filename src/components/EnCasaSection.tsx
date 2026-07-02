@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 interface Producto { id?: string; nombre: string; precio: number; foto?: string | null; tamaño?: number; unidad?: string }
@@ -28,6 +28,13 @@ const CAT_EMOJI: Record<string, string> = {
 export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarrito }: Props) {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
   const [abierto, setAbierto] = useState(true)
+
+  React.useEffect(() => {
+    if (!fotoAmpliada) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setFotoAmpliada(null) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [fotoAmpliada])
 
   const infoMap = useMemo(() => {
     const map = new Map<string, { foto?: string | null; categoria: string }>()

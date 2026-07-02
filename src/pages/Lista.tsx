@@ -206,6 +206,17 @@ export default function Lista() {
     const u = { ...unidades }; delete u[nombre]; saveUnidades(u)
   }
   function removeCasa(nombre: string) { const n = new Set(enCasa); n.delete(nombre); saveCasa(n) }
+  function addCasaToCart(nombre: string) {
+    const c = new Set(comprar); c.add(nombre); saveComprar(c)
+    saveCantidades({ ...cantidades, [nombre]: (cantidades[nombre] ?? 0) + 1 })
+    // Intentar recuperar precio del catálogo
+    if (MERCADONA?.categorias) {
+      for (const prods of Object.values(MERCADONA.categorias)) {
+        const p = prods.find(p => p.nombre === nombre)
+        if (p?.precio) { savePrecios({ ...precios, [nombre]: p.precio }); break }
+      }
+    }
+  }
 
   function guardarPrecio(nombre: string) {
     const val = parseFloat(precioEdit)
@@ -611,7 +622,7 @@ export default function Lista() {
             catalogo={MERCADONA?.categorias}
             onRemove={removeCasa}
             enCarrito={comprar}
-            onAddToCart={nombre => { const c = new Set(comprar); c.add(nombre); saveComprar(c) }}
+            onAddToCart={addCasaToCart}
           />
         )}
 
