@@ -670,6 +670,7 @@ export default function ListaCompartida() {
           ingrediente={pickerIngrediente.nombre}
           opciones={pickerOpciones}
           enCasa={pickerIngrediente.enCasa}
+          catalogo={catalogo?.categorias}
           onSeleccionar={confirmarPicker}
           onCancelar={() => setPickerIngrediente(null)}
         />

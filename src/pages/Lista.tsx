@@ -739,6 +739,7 @@ export default function Lista() {
           ingrediente={pickerIngrediente.nombre}
           opciones={pickerOpciones}
           enCasa={pickerIngrediente.enCasa}
+          catalogo={MERCADONA?.categorias}
           onSeleccionar={confirmarPicker}
           onCancelar={() => setPickerIngrediente(null)}
         />
