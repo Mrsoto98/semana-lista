@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { recuperar } from '../lib/storage'
-import type { DificultadPreferida } from '../types'
+import type { DificultadPreferida, Dia } from '../types'
+import { DIAS, DIAS_LABEL } from '../types'
 
 interface ProductoMercadona {
   id: string; nombre: string; precio: number; tamaño: number; unidad: string
@@ -28,10 +29,19 @@ export interface ListaFuenteNevera {
   nombre: string
 }
 
+type DiasConfig = 'semana' | 'laboral' | 'personalizado'
+type FranjaConfig = 'ambas' | 'comida' | 'cena'
+
 interface Props {
   dificultadPerfil: DificultadPreferida
   ingredientesNevera: string[]
   listasCompartidas?: ListaFuenteNevera[]
+  diasConfig: DiasConfig
+  diasPersonalizados: Set<Dia>
+  franjaConfig: FranjaConfig
+  onDiasConfigChange: (v: DiasConfig) => void
+  onDiasPersonalizadosChange: (fn: (prev: Set<Dia>) => Set<Dia>) => void
+  onFranjaConfigChange: (v: FranjaConfig) => void
   onConfirmar: (config: ConfigGeneracion) => void
   onCancelar: () => void
 }
@@ -99,7 +109,7 @@ function PillSelector({
   )
 }
 
-export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasCompartidas = [], onConfirmar, onCancelar }: Props) {
+export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
   const [config, setConfig] = useState<ConfigGeneracion>({
     cocina: 'variada e internacional',
     dificultad: dificultadPerfil,
@@ -203,6 +213,53 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
+
+          {/* Días y franjas */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">¿Para cuántos días?</p>
+              <div className="flex gap-2">
+                {([
+                  { key: 'semana',        label: 'Semana completa' },
+                  { key: 'laboral',       label: 'Lun – Vie' },
+                  { key: 'personalizado', label: 'Personalizado' },
+                ] as const).map(({ key, label }) => (
+                  <button key={key} onClick={() => onDiasConfigChange(key)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {diasConfig === 'personalizado' && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {DIAS.map(d => (
+                    <button key={d}
+                      onClick={() => onDiasPersonalizadosChange(prev => { const next = new Set(prev); next.has(d) ? next.delete(d) : next.add(d); return next })}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
+                      {DIAS_LABEL[d].slice(0, 3)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">¿Qué comidas?</p>
+              <div className="flex gap-2">
+                {([
+                  { key: 'ambas',  label: '🍽️ Comida y cena' },
+                  { key: 'comida', label: '☀️ Solo comida' },
+                  { key: 'cena',   label: '🌙 Solo cena' },
+                ] as const).map(({ key, label }) => (
+                  <button key={key} onClick={() => onFranjaConfigChange(key)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 dark:border-gray-800" />
 
           {/* Qué lista usar — aplica a las 3 opciones de ingredientes: define de
               dónde salen los "en casa" y a qué lista va la compra del menú */}
