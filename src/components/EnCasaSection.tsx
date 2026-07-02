@@ -25,6 +25,15 @@ const CAT_EMOJI: Record<string, string> = {
 
 export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
+  const [colapsadas, setColapsadas] = useState<Set<string>>(new Set())
+
+  function toggleCat(cat: string) {
+    setColapsadas(prev => {
+      const next = new Set(prev)
+      next.has(cat) ? next.delete(cat) : next.add(cat)
+      return next
+    })
+  }
 
   const infoMap = useMemo(() => {
     const map = new Map<string, { foto?: string | null; categoria: string }>()
@@ -58,10 +67,16 @@ export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
         <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
           {grupos.map(([cat, items]) => (
             <div key={cat}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                {CAT_EMOJI[cat] ?? '📦'} {cat}
-              </p>
-              <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => toggleCat(cat)}
+                className="flex items-center gap-1 w-full text-left mb-1.5 group"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                  {CAT_EMOJI[cat] ?? '📦'} {cat}
+                </p>
+                <span className="text-[9px] text-gray-400 ml-auto transition-transform duration-200" style={{ transform: colapsadas.has(cat) ? 'rotate(-90deg)' : 'rotate(0deg)' }}>▾</span>
+              </button>
+              {!colapsadas.has(cat) && <div className="flex flex-wrap gap-2">
                 {items.map(item => {
                   const foto = infoMap.get(item)?.foto
                   return (
@@ -87,7 +102,7 @@ export function EnCasaSection({ enCasa, catalogo, onRemove }: Props) {
                     </button>
                   )
                 })}
-              </div>
+              </div>}
             </div>
           ))}
         </div>
