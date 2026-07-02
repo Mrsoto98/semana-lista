@@ -191,8 +191,10 @@ export function resolverContraSet(
   for (const item of items) {
     if (set.has(item)) { resueltos.add(item); continue }
     if (catalogo) {
-      const mejor = matchMercadona(item, catalogo).nombre
-      if (set.has(mejor)) resueltos.add(item)
+      // Comprobar top 6 matches para cubrir todas las variantes del mismo producto
+      // (Botella, Garrafa, etc.) independientemente de cuál añadió el usuario
+      const tops = topMatchesMercadona(item, catalogo, 6)
+      if (tops.some(m => set.has(m.nombre))) resueltos.add(item)
     }
   }
   return resueltos
@@ -206,5 +208,12 @@ export function nombreGuardadoComo(
   catalogo: Record<string, Producto[]> | undefined
 ): string {
   if (set.has(item)) return item
-  return catalogo ? matchMercadona(item, catalogo).nombre : item
+  if (catalogo) {
+    // Buscar entre top 6 el que esté en el set (puede ser cualquier variante)
+    const tops = topMatchesMercadona(item, catalogo, 6)
+    const enSet = tops.find(m => set.has(m.nombre))
+    if (enSet) return enSet.nombre
+    return tops[0]?.nombre ?? item
+  }
+  return item
 }
