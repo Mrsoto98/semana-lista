@@ -202,7 +202,7 @@ export default function ListaCompartida() {
   const [abiertoMenu, setAbiertoMenu] = useState(false)
 
   // UI
-  const [inputCustom, setInputCustom] = useState('')
+  const [, setInputCustom] = useState('')
   const [editandoNombre, setEditandoNombre] = useState(false)
   const [nombreDraft, setNombreDraft] = useState('')
   const [editandoPrecio, setEditandoPrecio] = useState<string | null>(null)

@@ -24,8 +24,11 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Solo cachea JS/CSS/assets con hash — nunca HTML para que las actualizaciones sean instantáneas
+        // Solo cachea JS/CSS/assets con hash — NUNCA HTML.
+        // El HTML lo sirve siempre Vercel (no-cache), así el SW viejo
+        // nunca puede bloquear una actualización.
         globPatterns: ['**/*.{js,css,svg,woff2,png,ico}'],
+        navigateFallback: null as unknown as string,
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
