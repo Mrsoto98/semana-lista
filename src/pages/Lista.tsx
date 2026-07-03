@@ -208,6 +208,9 @@ export default function Lista() {
   const [editandoPresupuesto, setEditandoPresupuesto] = useState(false)
   const [presupuestoDraft, setPresupuestoDraft] = useState('')
 
+  // Lista colapsable
+  const [listaColapsada, setListaColapsada] = useState(false)
+
   // ── Persistencia ──────────────────────────────────────────────────────────
   function saveComprar(next: Set<string>) { setComprar(next); guardar('lista_comprar_v3', Array.from(next)) }
   function saveCantidades(next: Record<string, number>) { setCantidades(next); guardar('lista_cantidades', next) }
@@ -634,6 +637,22 @@ export default function Lista() {
             ? <p className="text-sm text-gray-400 mb-3">Añade productos desde el catálogo o escribe uno abajo</p>
             : (
               <>
+                <button
+                  onClick={() => setListaColapsada(v => !v)}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mb-2 transition-colors"
+                >
+                  <span className={`inline-block transition-transform duration-200 ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
+                  {listaColapsada ? `${comprarArray.length} artículos` : 'Plegar lista'}
+                </button>
+                {listaColapsada ? (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {comprarArray.map(item => (
+                      <span key={item} className={`text-xs px-2.5 py-1 rounded-full border ${comprado.has(item) ? 'text-gray-300 dark:text-gray-600 border-gray-200 dark:border-gray-800 line-through' : 'text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
                 <div className="max-h-64 overflow-y-auto space-y-1 mb-2">
                   {comprarArray.map(item => {
                     const { modo, precioKg } = getModoInfo(item)
@@ -710,7 +729,8 @@ export default function Lista() {
                     )
                   })}
                 </div>
-                {comprado.size > 0 && (
+                )}
+                {!listaColapsada && comprado.size > 0 && (
                   <button
                     onClick={() => {
                       const cp = new Set(comprado); const c = new Set(comprar)

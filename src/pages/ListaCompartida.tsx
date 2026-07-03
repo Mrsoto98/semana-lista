@@ -200,6 +200,7 @@ export default function ListaCompartida() {
   }, [busqueda])
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
   const [abiertoMenu, setAbiertoMenu] = useState(false)
+  const [listaColapsada, setListaColapsada] = useState(false)
 
   // UI
   const [, setInputCustom] = useState('')
@@ -571,6 +572,23 @@ export default function ListaCompartida() {
 
           {/* Lista a comprar */}
           {(porComprar.length > 0 || comprados.length > 0) && (
+            <>
+            <button
+              onClick={() => setListaColapsada(v => !v)}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mb-2 transition-colors"
+            >
+              <span className={`inline-block transition-transform duration-200 ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
+              {listaColapsada ? `${porComprar.length + comprados.length} artículos` : 'Plegar lista'}
+            </button>
+            {listaColapsada ? (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {[...porComprar, ...comprados].map(item => (
+                  <span key={item.id} className={`text-xs px-2.5 py-1 rounded-full border ${item.comprado ? 'text-gray-300 dark:text-gray-600 border-gray-200 dark:border-gray-800 line-through' : 'text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
+                    {item.nombre}
+                  </span>
+                ))}
+              </div>
+            ) : (
             <div className="max-h-64 overflow-y-auto space-y-1 mb-2">
               {[...porComprar, ...comprados].map(item => {
                 const enKg = item.unidad === 'kg'
@@ -639,13 +657,14 @@ export default function ListaCompartida() {
                 )
               })}
             </div>
-          )}
-
-          {comprados.length > 0 && (
-            <button onClick={async () => { try { await Promise.all(comprados.map(i => eliminarItem(i.id))) } catch { /* item may already be deleted */ } }}
-              className="w-full text-xs text-red-400 hover:text-red-600 py-1.5 mb-1 border border-red-100 dark:border-red-900 rounded-xl transition-colors">
-              Limpiar comprados ({comprados.length})
-            </button>
+            )}
+            {!listaColapsada && comprados.length > 0 && (
+              <button onClick={async () => { try { await Promise.all(comprados.map(i => eliminarItem(i.id))) } catch { /* item may already be deleted */ } }}
+                className="w-full text-xs text-red-400 hover:text-red-600 py-1.5 mb-1 border border-red-100 dark:border-red-900 rounded-xl transition-colors">
+                Limpiar comprados ({comprados.length})
+              </button>
+            )}
+            </>
           )}
 
           {/* Input personalizado colapsable */}
