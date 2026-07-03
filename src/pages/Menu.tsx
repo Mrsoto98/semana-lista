@@ -1033,10 +1033,10 @@ export default function Menu() {
 
       {/* Modal selección destino de la lista */}
       {modalDestinoLista && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setModalDestinoLista(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setModalDestinoLista(false)}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <div
-            className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-t-3xl p-6 pb-10 shadow-2xl"
+            className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-5" />
