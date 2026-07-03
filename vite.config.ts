@@ -26,9 +26,6 @@ export default defineConfig({
       workbox: {
         // Solo cachea JS/CSS/assets con hash — nunca HTML para que las actualizaciones sean instantáneas
         globPatterns: ['**/*.{js,css,svg,woff2,png,ico}'],
-        // Desactivar navigateFallback evita que el SW sirva index.html cacheado
-        // — sin esto el móvil nunca ve la versión nueva hasta reinstalar la PWA
-        navigateFallback: null,
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
