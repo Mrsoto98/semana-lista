@@ -88,6 +88,7 @@ export default function Menu() {
   const [generacionesMes, setGeneracionesMes] = useState<number>(0)
   const LIMITE_GENERACIONES = 15
   const [modalDestinoLista, setModalDestinoLista] = useState(false)
+  const [btnRect, setBtnRect] = useState<{ top: number; left: number; right: number } | null>(null)
 
   // Configuración de días y franjas a generar (persistida en localStorage)
   type DiasConfig = 'semana' | 'laboral' | 'personalizado'
@@ -503,8 +504,10 @@ export default function Menu() {
     return menu
   }
 
-  function irALista() {
+  function irALista(e: React.MouseEvent<HTMLButtonElement>) {
     if (listasCompartidas.length > 0) {
+      const rect = e.currentTarget.getBoundingClientRect()
+      setBtnRect({ top: rect.top, left: rect.left, right: rect.right })
       setModalDestinoLista(true)
     } else {
       navegarALista(null)
@@ -1032,14 +1035,18 @@ export default function Menu() {
       )}
 
       {/* Modal selección destino de la lista */}
-      {modalDestinoLista && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setModalDestinoLista(false)}>
+      {modalDestinoLista && btnRect && (
+        <div className="fixed inset-0 z-50" onClick={() => setModalDestinoLista(false)}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <div
-            className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-2xl"
+            className="absolute bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-2xl w-72"
+            style={{
+              bottom: window.innerHeight - btnRect.top + 10,
+              left: Math.min(Math.max(btnRect.left + (btnRect.right - btnRect.left) / 2 - 144, 12), window.innerWidth - 300),
+            }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-5" />
+            <div className="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-4" />
             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">¿Dónde ver los ingredientes?</h3>
             <p className="text-xs text-gray-400 mb-5">Elige la lista a la que se añadirán las comidas seleccionadas</p>
 
