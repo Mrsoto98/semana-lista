@@ -7,7 +7,7 @@ import { useListasCompartidas } from '../hooks/useListaCompartida'
 import { recuperar, guardar } from '../lib/storage'
 import {
   topMatchesMercadona, agruparIngredientes, resolverContraSet, etiquetaGrupo,
-  nombreGuardadoComo as nombreGuardadoComoLib, type MatchProducto,
+  nombreGuardadoComo as nombreGuardadoComoLib, expandirCatalogo, type MatchProducto,
 } from '../lib/matchMercadona'
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
 import { EnCasaSection } from '../components/EnCasaSection'
@@ -29,6 +29,9 @@ const DEFECTO_KG = 1
 
 const CAT_EMOJI: Record<string, string> = {
   'Aceite, especias y salsas':      '🫒',
+  'Aceites y vinagres':             '🫒',
+  'Especias y condimentos':         '🧂',
+  'Salsas y aderezos':              '🥫',
   'Agua y refrescos':               '💧',
   'Aperitivos':                     '🍿',
   'Arroz, legumbres y pasta':       '🍝',
@@ -153,7 +156,10 @@ export default function Lista() {
   // Catálogo Mercadona — carga lazy
   const [MERCADONA, setMERCADONA] = useState<CatalogoMercadonaData | null>(null)
   useEffect(() => {
-    import('../data/mercadona.json').then(m => setMERCADONA(m.default as CatalogoMercadonaData))
+    import('../data/mercadona.json').then(m => {
+      const raw = m.default as CatalogoMercadonaData
+      setMERCADONA({ ...raw, categorias: expandirCatalogo(raw.categorias) as typeof raw.categorias })
+    })
   }, [])
   const CATEGORIAS_MERCADONA = useMemo(() => MERCADONA ? Object.keys(MERCADONA.categorias) : [], [MERCADONA])
   const TODOS_LOS_PRODUCTOS = useMemo<ProductoMercadona[]>(() => {

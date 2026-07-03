@@ -218,3 +218,28 @@ export function nombreGuardadoComo(
   }
   return item
 }
+
+// Expande "Aceite, especias y salsas" en tres subcategorías independientes
+const ACEITE_RE = /\baceite\b/i
+const ESPECIA_RE = /\b(especia|pimienta|canela|orégano|oregano|tomillo|romero|curry|comino|pimentón|pimenton|cúrcuma|curcuma|azafrán|azafran|laurel|nuez moscada|ajo en polvo|cebolla en polvo|albahaca|perejil|cilantro|jengibre|cardamomo|anís|anis|clavo|hierbas)\b/i
+const VINAGRE_RE = /\bvinagre\b/i
+
+export function expandirCatalogo(catalogo: Record<string, Producto[]>): Record<string, Producto[]> {
+  const CAT_ORIGEN = 'Aceite, especias y salsas'
+  if (!catalogo[CAT_ORIGEN]) return catalogo
+  const prods = catalogo[CAT_ORIGEN]
+  const aceites: Producto[] = []
+  const especias: Producto[] = []
+  const salsas: Producto[] = []
+  for (const p of prods) {
+    if (ACEITE_RE.test(p.nombre)) aceites.push(p)
+    else if (ESPECIA_RE.test(p.nombre)) especias.push(p)
+    else salsas.push(p)
+  }
+  const result = { ...catalogo }
+  delete result[CAT_ORIGEN]
+  if (aceites.length) result['Aceites y vinagres'] = [...aceites, ...prods.filter(p => VINAGRE_RE.test(p.nombre))]
+  if (especias.length) result['Especias y condimentos'] = especias
+  if (salsas.length) result['Salsas y aderezos'] = salsas.filter(p => !VINAGRE_RE.test(p.nombre))
+  return result
+}

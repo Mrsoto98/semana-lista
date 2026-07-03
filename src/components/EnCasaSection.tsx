@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { expandirCatalogo } from '../lib/matchMercadona'
 
 interface Producto { id?: string; nombre: string; precio: number; foto?: string | null; tamaño?: number; unidad?: string }
 
@@ -13,6 +14,7 @@ interface Props {
 
 const CAT_EMOJI: Record<string, string> = {
   'Aceites y vinagres': '🫒', 'Aceite, especias y salsas': '🫒',
+  'Especias y condimentos': '🧂', 'Salsas y aderezos': '🥫',
   'Agua y refrescos': '💧', 'Aperitivos': '🍿',
   'Arroz, legumbres y pasta': '🍚', 'Bodega': '🍷', 'Carne': '🥩',
   'Charcutería y quesos': '🧀', 'Congelados': '🧊', 'Conservas y productos en tarro': '🥫',
@@ -36,16 +38,18 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     return () => window.removeEventListener('keydown', handler)
   }, [fotoAmpliada])
 
+  const catalogoExpandido = useMemo(() => catalogo ? expandirCatalogo(catalogo) : catalogo, [catalogo])
+
   const infoMap = useMemo(() => {
     const map = new Map<string, { foto?: string | null; categoria: string }>()
-    if (!catalogo) return map
-    for (const [cat, prods] of Object.entries(catalogo)) {
+    if (!catalogoExpandido) return map
+    for (const [cat, prods] of Object.entries(catalogoExpandido)) {
       for (const p of prods) {
         if (!map.has(p.nombre)) map.set(p.nombre, { foto: p.foto, categoria: cat })
       }
     }
     return map
-  }, [catalogo])
+  }, [catalogoExpandido])
 
   const grupos = useMemo(() => {
     const g = new Map<string, string[]>()
