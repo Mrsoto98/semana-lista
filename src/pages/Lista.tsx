@@ -56,6 +56,51 @@ const CAT_EMOJI: Record<string, string> = {
   'Zumos':                          '🍊',
 }
 
+function CategoriasSelector({ categorias, catActiva, onSelect }: {
+  categorias: string[]; catActiva: string; onSelect: (cat: string) => void
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const esActiva = catActiva !== TODO_CAT
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => { onSelect(TODO_CAT); setAbierto(false) }}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+            !esActiva ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+          }`}
+        >🛒 Todo</button>
+        <button
+          onClick={() => setAbierto(v => !v)}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1 ${
+            esActiva ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+          }`}
+        >
+          {esActiva ? `${CAT_EMOJI[catActiva] ?? ''} ${catActiva}` : 'Categoría'}
+          <span className={`transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`}>▾</span>
+        </button>
+      </div>
+      {abierto && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {categorias.map(cat => (
+            <button
+              key={cat}
+              onClick={() => { onSelect(cat); setAbierto(false) }}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                catActiva === cat
+                  ? 'bg-green-select text-white shadow-sm'
+                  : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'
+              }`}
+            >
+              {CAT_EMOJI[cat] ?? ''} {cat}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AnadirProducto({ inputCustom, setInputCustom, precioInputCustom, setPrecioInputCustom, onAdd }: {
   inputCustom: string; setInputCustom: (v: string) => void
   precioInputCustom: string; setPrecioInputCustom: (v: string) => void
@@ -783,20 +828,11 @@ export default function Lista() {
               />
 
               {/* Pills de categorías */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {[TODO_CAT, ...CATEGORIAS_MERCADONA].map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => { setCatActiva(cat); setBusqueda('') }}
-                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
-                      catActiva === cat
-                        ? 'bg-green-select text-white shadow-sm'
-                        : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'
-                    }`}>
-                    {cat === TODO_CAT ? '🛒 Todo' : `${CAT_EMOJI[cat] ?? ''} ${cat}`}
-                  </button>
-                ))}
-              </div>
+              <CategoriasSelector
+                categorias={CATEGORIAS_MERCADONA}
+                catActiva={catActiva}
+                onSelect={cat => { setCatActiva(cat); setBusqueda('') }}
+              />
 
               {/* Lista de productos — key fuerza remount al cambiar categoría */}
               <ListaProductos
