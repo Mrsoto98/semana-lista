@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TagInput } from '../components/ui/TagInput'
 import { FeedbackModal } from '../components/FeedbackModal'
 import { Avatar } from '../components/Avatar'
 import { usePerfil } from '../hooks/usePerfil'
 import { useUsuario } from '../hooks/useUsuario'
-import { useAmigos } from '../hooks/useAmigos'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { guardar, recuperar } from '../lib/storage'
+import { usePushNotifications, DIAS_SEMANA, HORAS_DISPONIBLES } from '../hooks/usePushNotifications'
 import type { Objetivo, DificultadPreferida, Perfil, Dia } from '../types'
 import { DIAS, DIAS_LABEL } from '../types'
 
@@ -37,22 +37,41 @@ export default function Ajustes() {
   const { user } = useAuth()
   const { perfil, guardarPerfil } = usePerfil()
   const { usuario, guardarUsuario, recargar: recargarUsuario } = useUsuario()
-  const { amigos, pendientesRecibidas, totalPendientes, loading: cargandoAmigos, buscarUsuario, enviarSolicitud, aceptarSolicitud, rechazarOEliminar } = useAmigos()
   const [draft, setDraft] = useState<Draft | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [guardado, setGuardado] = useState(false)
   const [modalFeedback, setModalFeedback] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { estado: estadoNotif, activar: activarNotif, desactivar: desactivarNotif, actualizarHorario, notifDia, notifHora } = usePushNotifications()
 
   // Perfil de usuario
   const [nombreDisplay, setNombreDisplay] = useState('')
-  const [username, setUsername] = useState('')
   const [avatarEmoji, setAvatarEmoji] = useState('🧑')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [subiendoFoto, setSubiendoFoto] = useState(false)
   const [guardandoUsuario, setGuardandoUsuario] = useState(false)
   const [guardadoUsuario, setGuardadoUsuario] = useState(false)
   const [errorUsuario, setErrorUsuario] = useState('')
+
+  // Menús recientes (leídos de localStorage, igual que Menu.tsx)
+  const semanasGuardadas = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('semanas_guardadas') ?? '[]') as Array<{
+      id: string; nombre: string; fecha: string
+      estados: Record<string, { estado: string; datos?: { opciones: Array<{ nombre?: string }> } } | null>
+      seleccion: Record<string, number>
+    }> } catch { return [] }
+  }, [])
+
+  function recetasDeUnaSemana(s: typeof semanasGuardadas[0]): string[] {
+    const names: string[] = []
+    for (const [clave, est] of Object.entries(s.estados)) {
+      if (est?.estado === 'listo' && est.datos?.opciones) {
+        const r = est.datos.opciones[s.seleccion[clave] ?? 0]
+        if (r?.nombre) names.push(r.nombre)
+      }
+    }
+    return names.slice(0, 5)
+  }
 
   // Eliminar cuenta
   const [modalEliminar, setModalEliminar] = useState(false)
@@ -73,21 +92,14 @@ export default function Ajustes() {
     navigate('/', { replace: true })
   }
 
-  // Amigos
-  const [busquedaAmigo, setBusquedaAmigo] = useState('')
-  const [resultadosBusqueda, setResultadosBusqueda] = useState<Awaited<ReturnType<typeof buscarUsuario>>>([])
-  const [buscando, setBuscando] = useState(false)
-  const [enviandoSolicitud, setEnviandoSolicitud] = useState<string | null>(null)
-  const [errorAmigo, setErrorAmigo] = useState('')
-
   useEffect(() => {
     if (usuario) {
-      setNombreDisplay(usuario.nombre_display ?? '')
-      setUsername(usuario.username ?? '')
+      const nombreGoogle = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ''
+      setNombreDisplay(usuario.nombre_display || nombreGoogle)
       setAvatarEmoji(usuario.avatar_emoji ?? '🧑')
       setAvatarUrl(usuario.avatar_url ?? null)
     }
-  }, [usuario])
+  }, [usuario, user])
 
   async function comprimirImagen(archivo: File): Promise<Blob> {
     return new Promise((resolve) => {
@@ -104,7 +116,7 @@ export default function Ajustes() {
         canvas.width = width; canvas.height = height
         canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
         URL.revokeObjectURL(url)
-        canvas.toBlob(b => resolve(b!), 'image/jpeg', 0.85)
+        canvas.toBlob(b => { if (b) resolve(b); else resolve(archivo) }, 'image/jpeg', 0.85)
       }
       img.src = url
     })
@@ -133,7 +145,6 @@ export default function Ajustes() {
     setErrorUsuario('')
     const { error } = await guardarUsuario({
       nombre_display: nombreDisplay || undefined,
-      username: username || undefined,
       avatar_emoji: avatarEmoji,
     })
     setGuardandoUsuario(false)
@@ -141,23 +152,6 @@ export default function Ajustes() {
     else { setGuardadoUsuario(true); setTimeout(() => setGuardadoUsuario(false), 2000) }
   }
 
-  async function handleBuscarAmigo(q: string) {
-    setBusquedaAmigo(q)
-    if (q.length < 2) { setResultadosBusqueda([]); return }
-    setBuscando(true)
-    const res = await buscarUsuario(q)
-    setResultadosBusqueda(res)
-    setBuscando(false)
-  }
-
-  async function handleEnviarSolicitud(receptorId: string) {
-    setEnviandoSolicitud(receptorId)
-    setErrorAmigo('')
-    const { error } = await enviarSolicitud(receptorId)
-    setEnviandoSolicitud(null)
-    if (error) setErrorAmigo(error)
-    else { setBusquedaAmigo(''); setResultadosBusqueda([]) }
-  }
   // Ajustes del menú semanal (comparte localStorage con Menu.tsx)
   type DiasConfig = 'semana' | 'laboral' | 'personalizado'
   type FranjaConfig = 'ambas' | 'comida' | 'cena'
@@ -174,6 +168,18 @@ export default function Ajustes() {
     const t = localStorage.getItem('semana-lista:theme')
     return (t === 'dark' || t === 'light') ? t : 'system'
   })
+
+  const [tamano, setTamano] = useState<'normal' | 'mediano' | 'grande'>(() => {
+    const t = localStorage.getItem('semana-lista:tamano')
+    return (t === 'mediano' || t === 'grande') ? t : 'normal'
+  })
+
+  function aplicarTamano(t: 'normal' | 'mediano' | 'grande') {
+    setTamano(t)
+    const sizes = { normal: '100%', mediano: '112.5%', grande: '125%' }
+    document.documentElement.style.fontSize = sizes[t]
+    localStorage.setItem('semana-lista:tamano', t)
+  }
 
   const aplicarTema = useCallback((t: 'light' | 'dark' | 'system') => {
     setTema(t)
@@ -213,7 +219,7 @@ export default function Ajustes() {
     setDraft(d => d ? { ...d, [key]: val } : d)
   }
 
-  async function guardar() {
+  async function guardarCambios() {
     if (!draft) return
     setGuardando(true)
     await guardarPerfil(draft)
@@ -298,21 +304,15 @@ export default function Ajustes() {
           />
         </div>
 
-        {/* Username */}
+        {/* Email de registro (solo lectura) */}
         <div>
-          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Nombre de usuario <span className="text-gray-400">(único, para compartir listas)</span></label>
-          <div className="flex items-center border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-green-select bg-white dark:bg-gray-900">
-            <span className="px-3 text-gray-400 text-sm select-none">@</span>
-            <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase())}
-              placeholder="tu_usuario"
-              maxLength={20}
-              className="flex-1 py-2 pr-3 text-sm bg-transparent focus:outline-none"
-            />
-          </div>
-          <p className="text-xs text-gray-400 mt-1">Letras, números y _ · 3–20 caracteres</p>
+          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Correo de registro</label>
+          <input
+            type="text"
+            value={user?.email ?? ''}
+            readOnly
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+          />
         </div>
 
         {errorUsuario && <p className="text-sm text-red-500">{errorUsuario}</p>}
@@ -324,108 +324,6 @@ export default function Ajustes() {
         >
           {guardadoUsuario ? '✓ Guardado' : guardandoUsuario ? 'Guardando...' : 'Guardar perfil'}
         </button>
-      </div>
-
-      {/* ── Amigos ───────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-800 rounded-card shadow-card p-4 mb-6 space-y-4">
-        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-          Amigos {totalPendientes > 0 && <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">{totalPendientes}</span>}
-        </p>
-
-        {/* Buscar usuario */}
-        <div>
-          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">Buscar por @usuario o nombre</label>
-          <input
-            type="text"
-            value={busquedaAmigo}
-            onChange={e => handleBuscarAmigo(e.target.value)}
-            placeholder="@usuario o nombre..."
-            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select"
-          />
-          {buscando && <p className="text-xs text-gray-400 mt-1">Buscando...</p>}
-          {errorAmigo && <p className="text-xs text-red-500 mt-1">{errorAmigo}</p>}
-          {resultadosBusqueda.length > 0 && (
-            <div className="mt-2 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
-              {resultadosBusqueda.map(u => {
-                const yaAmigo = amigos.some(a => a.otro?.id === u.id)
-                return (
-                  <div key={u.id} className="flex items-center gap-3 px-3 py-2.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                    <Avatar url={u.avatar_url} emoji={u.avatar_emoji} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{u.nombre_display || u.username || 'Usuario'}</p>
-                      {u.username && <p className="text-xs text-gray-400">@{u.username}</p>}
-                    </div>
-                    {yaAmigo ? (
-                      <span className="text-xs text-green-select font-medium">✓ Amigo</span>
-                    ) : (
-                      <button
-                        onClick={() => handleEnviarSolicitud(u.id)}
-                        disabled={enviandoSolicitud === u.id}
-                        className="text-xs bg-green-select text-white px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
-                      >
-                        {enviandoSolicitud === u.id ? '...' : 'Añadir'}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Solicitudes recibidas */}
-        {pendientesRecibidas.length > 0 && (
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Solicitudes recibidas</p>
-            <div className="space-y-2">
-              {pendientesRecibidas.map(a => (
-                <div key={a.id} className="flex items-center gap-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl px-3 py-2.5">
-                  <Avatar url={a.otro?.avatar_url} emoji={a.otro?.avatar_emoji} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{a.otro?.nombre_display || a.otro?.username || 'Usuario'}</p>
-                    {a.otro?.username && <p className="text-xs text-gray-400">@{a.otro.username}</p>}
-                  </div>
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => aceptarSolicitud(a.id)}
-                      className="text-xs bg-green-select text-white px-2.5 py-1.5 rounded-lg font-medium"
-                    >✓</button>
-                    <button
-                      onClick={() => rechazarOEliminar(a.id)}
-                      className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2.5 py-1.5 rounded-lg font-medium"
-                    >✕</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Lista de amigos */}
-        {!cargandoAmigos && amigos.length === 0 && pendientesRecibidas.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-2">Busca a tus amigos por su @usuario para añadirlos</p>
-        )}
-        {amigos.length > 0 && (
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Tus amigos ({amigos.length})</p>
-            <div className="space-y-2">
-              {amigos.map(a => (
-                <div key={a.id} className="flex items-center gap-3">
-                  <Avatar url={a.otro?.avatar_url} emoji={a.otro?.avatar_emoji} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{a.otro?.nombre_display || a.otro?.username || 'Usuario'}</p>
-                    {a.otro?.username && <p className="text-xs text-gray-400">@{a.otro.username}</p>}
-                  </div>
-                  <button
-                    onClick={() => rechazarOEliminar(a.id)}
-                    className="text-xs text-gray-400 hover:text-red-500 px-2 py-1"
-                    title="Eliminar amigo"
-                  >✕</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <section className="space-y-5">
@@ -536,6 +434,29 @@ export default function Ajustes() {
 
       </section>
 
+      {/* Menús recientes */}
+      {semanasGuardadas.length > 0 && (
+        <div className="pt-2">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">📅 Menús recientes</p>
+          <div className="space-y-2">
+            {semanasGuardadas.slice(0, 3).map(s => {
+              const recetas = recetasDeUnaSemana(s)
+              return (
+                <div key={s.id} className="bg-white dark:bg-gray-900 rounded-card border border-gray-100 dark:border-gray-800 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{s.nombre}</p>
+                    <span className="text-xs text-gray-400 shrink-0 ml-2">{s.fecha}</span>
+                  </div>
+                  {recetas.length > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{recetas.join(' · ')}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Ajustes del menú semanal */}
       <div className="pt-2">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">⚙️ Ajustes del menú semanal</p>
@@ -583,6 +504,32 @@ export default function Ajustes() {
         </div>
       </div>
 
+      {/* Tamaño de la app */}
+      <div className="pt-2">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tamaño del texto</p>
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            { value: 'normal',  label: 'Normal',  emoji: 'A',  desc: '100%' },
+            { value: 'mediano', label: 'Mediano', emoji: 'A',  desc: '112%' },
+            { value: 'grande',  label: 'Grande',  emoji: 'A',  desc: '125%' },
+          ] as const).map(({ value, label, emoji, desc }) => (
+            <button
+              key={value}
+              onClick={() => aplicarTamano(value)}
+              className={`flex flex-col items-center gap-1 py-3 rounded-card border-2 text-sm font-medium transition-colors ${
+                tamano === value
+                  ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              <span className={value === 'normal' ? 'text-base' : value === 'mediano' ? 'text-xl' : 'text-3xl'} style={{ fontWeight: 700, lineHeight: 1 }}>{emoji}</span>
+              <span className="text-xs">{label}</span>
+              <span className="text-[10px] text-gray-400">{desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Apariencia */}
       <div className="pt-2">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Apariencia</p>
@@ -611,7 +558,7 @@ export default function Ajustes() {
       {/* Guardar */}
       <div className="mt-8">
         <button
-          onClick={guardar}
+          onClick={guardarCambios}
           disabled={guardando}
           className="w-full bg-green-select text-white rounded-card py-3 font-semibold hover:bg-green-600 disabled:opacity-50 transition-colors"
         >
@@ -621,6 +568,56 @@ export default function Ajustes() {
 
       {/* Feedback + Privacidad + cerrar sesión */}
       <div className="mt-6 space-y-3">
+        {estadoNotif !== 'no-soportado' && (
+          <div className="w-full border border-gray-200 dark:border-gray-700 rounded-card px-4 py-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔔</span>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Recordatorio semanal</p>
+                  <p className="text-xs text-gray-400">
+                    {estadoNotif === 'concedido'
+                      ? `${DIAS_SEMANA.find(d => d.value === notifDia)?.label} a las ${notifHora}`
+                      : 'Elige cuándo planificar tu semana'}
+                  </p>
+                </div>
+              </div>
+              {estadoNotif === 'denegado' ? (
+                <span className="text-xs text-gray-400">Bloqueado</span>
+              ) : (
+                <button
+                  onClick={estadoNotif === 'concedido' ? desactivarNotif : () => activarNotif()}
+                  disabled={estadoNotif === 'cargando'}
+                  className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none ${estadoNotif === 'concedido' ? 'bg-green-select' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${estadoNotif === 'concedido' ? 'translate-x-5' : ''}`} />
+                </button>
+              )}
+            </div>
+            {estadoNotif === 'concedido' && (
+              <div className="flex gap-2 pt-1">
+                <select
+                  value={notifDia}
+                  onChange={e => actualizarHorario(Number(e.target.value), notifHora)}
+                  className="flex-1 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select"
+                >
+                  {DIAS_SEMANA.map(d => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={notifHora}
+                  onChange={e => actualizarHorario(notifDia, e.target.value)}
+                  className="flex-1 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select"
+                >
+                  {HORAS_DISPONIBLES.map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
         <button
           onClick={() => setModalFeedback(true)}
           className="w-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-card py-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
