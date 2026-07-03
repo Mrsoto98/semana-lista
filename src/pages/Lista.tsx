@@ -405,36 +405,6 @@ export default function Lista() {
     return Math.round(total * 100) / 100
   }, [gruposMenu, menuEnCasa, MERCADONA])
 
-  function _compartirLista() {
-    const lines: string[] = ['🛒 Lista de la compra — Semana Lista\n']
-    if (gruposMenuPorCategoria.length > 0) {
-      lines.push('📋 DEL MENÚ ESTA SEMANA')
-      for (const [cat, grupos] of gruposMenuPorCategoria) {
-        lines.push(`\n${CAT_EMOJI[cat] ?? '📦'} ${cat}`)
-        for (const { etiqueta } of grupos) lines.push(`  • ${etiqueta}`)
-      }
-      lines.push('')
-    }
-    if (enCasa.size > 0) {
-      lines.push('🏠 EN CASA')
-      for (const item of Array.from(enCasa).sort()) lines.push(`  • ${item}`)
-      lines.push('')
-    }
-    if (comprarArray.length > 0) {
-      lines.push('✅ A COMPRAR')
-      for (const item of comprarArray) lines.push(`  • ${item}`)
-    }
-    const text = lines.join('\n')
-    if (navigator.share) {
-      navigator.share({ title: 'Lista de la compra', text }).catch(() => {})
-    } else {
-      navigator.clipboard.writeText(text).then(() => {
-        setCopiado(true)
-        setTimeout(() => setCopiado(false), 2000)
-      })
-    }
-  }
-
   async function handleCrearLista() {
     setCargandoCompartida(true)
     setErrorCompartida('')

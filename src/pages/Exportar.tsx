@@ -191,7 +191,7 @@ export default function Exportar() {
 
   // Construir menú igual que Menu.tsx: desde estados + seleccion
   const estados = recuperar<Record<ClaveMenu, { estado: string; datos?: { opciones: Receta[] } }>>('menu_estados') ?? ({} as Record<ClaveMenu, { estado: string; datos?: { opciones: Receta[] } }>)
-  const seleccion = recuperar<Record<ClaveMenu, number>>('menu_seleccion') ?? {}
+  const seleccion = recuperar<Record<ClaveMenu, number>>('menu_seleccion') ?? ({} as Record<ClaveMenu, number>)
   const menu: MenuSemanal = (() => {
     const m: MenuSemanal = {}
     for (const dia of DIAS) {

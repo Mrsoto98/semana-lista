@@ -65,14 +65,14 @@ function tokenizar(nombre: string, stripPrep = true): string[] {
 
 // coverage = fracción de tokens de la query encontrados en el producto (1.0 = todos)
 function score(queryTokens: string[], productoNombre: string): { total: number; coverage: number; coincidencias: number } {
-  if (!queryTokens.length) return { total: 0, coverage: 0 }
+  if (!queryTokens.length) return { total: 0, coverage: 0, coincidencias: 0 }
   const pn = quitarAcentos(productoNombre.toLowerCase())
   const prodTokens = pn.split(/\s+/).filter(w => w.length > 2 && !STOPWORDS.has(w))
   let coincidencias = 0
   for (const tok of queryTokens) {
     if (pn.includes(tok)) coincidencias++
   }
-  if (coincidencias === 0) return { total: 0, coverage: 0 }
+  if (coincidencias === 0) return { total: 0, coverage: 0, coincidencias: 0 }
   // Ratio de query cubierta
   const coverage = coincidencias / queryTokens.length
   // Penalizar si la query es pequeña fracción del producto

@@ -72,13 +72,6 @@ export default function Menu() {
     listaDestinoId: recuperar<string | null>('menu_lista_destino') ?? null,
   }))
 
-  function _abrirModalSorpresa() {
-    setCuestionario(prev => ({
-      ...prev,
-      dificultad: (perfil as { dificultad_recetas?: string })?.dificultad_recetas ?? 'combinado',
-    }))
-    setModalSorpresa(true)
-  }
   // Opción extra por comida: máximo 4 días distintos pueden desbloquear una segunda opción
   const LIMITE_DIAS_EXTRA = 4
   const [diasExtra, setDiasExtra] = useState<Set<Dia>>(() => new Set(recuperar<Dia[]>('menu_dias_extra') ?? []))
