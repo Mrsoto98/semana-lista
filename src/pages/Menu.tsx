@@ -85,6 +85,8 @@ export default function Menu() {
   const [favoritas, setFavoritas] = useState<Receta[]>(() => recuperar<Receta[]>('recetas_favoritas') ?? [])
   const [datosSupabaseCargados, setDatosSupabaseCargados] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [generacionesMes, setGeneracionesMes] = useState<number>(0)
+  const LIMITE_GENERACIONES = 10
 
   // Configuración de días y franjas a generar (persistida en localStorage)
   type DiasConfig = 'semana' | 'laboral' | 'personalizado'
@@ -114,7 +116,7 @@ export default function Menu() {
   // Cargar favoritas y semanas guardadas desde Supabase al iniciar sesión
   useEffect(() => {
     if (!user || datosSupabaseCargados) return
-    supabase.from('perfiles').select('recetas_favoritas, semanas_guardadas').eq('usuario_id', user.id).maybeSingle().then(({ data }) => {
+    supabase.from('perfiles').select('recetas_favoritas, semanas_guardadas, generaciones_mes, generaciones_reset').eq('usuario_id', user.id).maybeSingle().then(({ data }) => {
       if (!data) return
       const favs = (data as { recetas_favoritas?: Receta[] }).recetas_favoritas
       const sems = (data as { semanas_guardadas?: SemanaGuardada[] }).semanas_guardadas
@@ -125,6 +127,16 @@ export default function Menu() {
       if (Array.isArray(sems) && sems.length > 0) {
         setSemanasGuardadas(sems)
         guardar('semanas_guardadas', sems)
+      }
+      // Contador de generaciones: resetear si es un mes nuevo
+      const reset = (data as { generaciones_reset?: string }).generaciones_reset
+      const gens = (data as { generaciones_mes?: number }).generaciones_mes ?? 0
+      const esNuevoMes = !reset || new Date(reset).getMonth() !== new Date().getMonth() || new Date(reset).getFullYear() !== new Date().getFullYear()
+      if (esNuevoMes) {
+        supabase.from('perfiles').update({ generaciones_mes: 0, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
+        setGeneracionesMes(0)
+      } else {
+        setGeneracionesMes(gens)
       }
       setDatosSupabaseCargados(true)
     })
@@ -176,6 +188,10 @@ export default function Menu() {
   // Pone todos los slots en cargando, luego hace una sola llamada a la API
   async function generarSemanaCompleta(extraPrompt?: string, cocina?: string) {
     if (!perfil || generando) return
+    if (generacionesMes >= LIMITE_GENERACIONES) {
+      setErrorMsg(`Has alcanzado el límite de ${LIMITE_GENERACIONES} generaciones este mes. El contador se reinicia el 1 del mes que viene.`)
+      return
+    }
     setGenerando(true)
     setDiasExtra(new Set())
     guardar('menu_dias_extra', [])
@@ -238,6 +254,10 @@ export default function Menu() {
         .flatMap(e => (e as { datos?: OpcionesSlot }).datos?.opciones ?? []) as Receta[]
       if (todasRecetas.length) guardarRecetasEnCache(todasRecetas)
       track('menu_generado', { slots: Object.keys(nuevosEstados).filter(k => nuevosEstados[k as ClaveMenu]?.estado === 'listo').length })
+      // Incrementar contador de generaciones
+      const nuevasGens = generacionesMes + 1
+      setGeneracionesMes(nuevasGens)
+      if (user) supabase.from('perfiles').update({ generaciones_mes: nuevasGens, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Error desconocido'
       const msg = raw.includes('429') || raw.includes('rate') || raw.includes('TPM')
@@ -723,18 +743,23 @@ export default function Menu() {
             >
               ?
             </button>
-            <button
-              data-tutorial="generar-btn"
-              onClick={() => setModalGenerar(true)}
-              disabled={generando || !perfil}
-              className="flex items-center gap-1.5 bg-green-select text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors shadow-sm"
-            >
-              {generando ? (
-                <span className="animate-pulse">Generando…</span>
-              ) : (
-                <>Generar <span className="text-base">✨</span></>
-              )}
-            </button>
+            <div className="flex flex-col items-end gap-0.5">
+              <button
+                data-tutorial="generar-btn"
+                onClick={() => setModalGenerar(true)}
+                disabled={generando || !perfil || generacionesMes >= LIMITE_GENERACIONES}
+                className="flex items-center gap-1.5 bg-green-select text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors shadow-sm"
+              >
+                {generando ? (
+                  <span className="animate-pulse">Generando…</span>
+                ) : (
+                  <>Generar <span className="text-base">✨</span></>
+                )}
+              </button>
+              <span className={`text-[10px] font-medium ${generacionesMes >= LIMITE_GENERACIONES ? 'text-red-400' : generacionesMes >= 8 ? 'text-orange-400' : 'text-gray-400'}`}>
+                {LIMITE_GENERACIONES - generacionesMes} gen. restantes
+              </span>
+            </div>
           </div>
         </div>
 
