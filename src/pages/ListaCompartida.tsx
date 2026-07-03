@@ -528,6 +528,23 @@ export default function ListaCompartida() {
             })()}
           </div>
 
+          {/* Buscador catálogo + selector de categoría */}
+          {catalogo && (
+            <div className="mb-3">
+              <div className="flex gap-2 items-center">
+                <input type="text" placeholder={`Buscar${catActiva === TODO_CAT ? '' : ` en ${catActiva}`}...`}
+                  value={busqueda}
+                  onChange={e => { setBusqueda(e.target.value); setLimite(PAGINA) }}
+                  className="flex-1 min-w-0 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
+              </div>
+              <CategoriasSelector
+                categorias={categorias}
+                catActiva={catActiva}
+                onSelect={cat => { setCatActiva(cat); setBusqueda(''); setLimite(PAGINA) }}
+              />
+            </div>
+          )}
+
           {/* Lista a comprar */}
           {(porComprar.length > 0 || comprados.length > 0) && (
             <div className="max-h-64 overflow-y-auto space-y-1 mb-2">
@@ -712,17 +729,6 @@ export default function ListaCompartida() {
             </div>
           ) : (
             <>
-              <input type="text" placeholder={`Buscar${catActiva === TODO_CAT ? '' : ` en ${catActiva}`}...`}
-                value={busqueda}
-                onChange={e => { setBusqueda(e.target.value); setLimite(PAGINA) }}
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm mb-3 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
-
-              {/* Selector categorías colapsable */}
-              <CategoriasSelector
-                categorias={categorias}
-                catActiva={catActiva}
-                onSelect={cat => { setCatActiva(cat); setBusqueda(''); setLimite(PAGINA) }}
-              />
 
               {/* Lista de productos */}
               <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
