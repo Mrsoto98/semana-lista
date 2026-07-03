@@ -114,7 +114,6 @@ export default function Lista() {
 
   // Foto ampliada (sección del menú)
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
-  const [, setCopiado] = useState(false)
 
   // Edición de precio inline
   const [editandoPrecio, setEditandoPrecio] = useState<string | null>(null)
