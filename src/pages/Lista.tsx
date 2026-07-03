@@ -602,7 +602,7 @@ export default function Lista() {
       )}
 
       {/* ── LISTA DE COMPRA sticky ────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 border-b border-white/40 dark:border-white/5" style={{background:'rgba(255,255,255,0.82)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
+      <div className="sticky top-0 z-10 glass-header border-b border-white/40 dark:border-white/10">
         <div className="p-4 pb-3">
           {/* Cabecera */}
           <div data-tutorial="lista-cabecera" className="flex items-center justify-between mb-3">
