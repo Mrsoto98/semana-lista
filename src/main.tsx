@@ -5,8 +5,8 @@ import App from './App'
 
 // Aplicar tamaño de fuente guardado antes de renderizar
 ;(function aplicarTamanoFuente() {
-  const t = localStorage.getItem('semana-lista:tamano') as 'normal' | 'mediano' | 'grande' | null
-  const sizes = { normal: '100%', mediano: '112.5%', grande: '125%' }
+  const t = localStorage.getItem('semana-lista:tamano') as 'pequeno' | 'normal' | 'grande' | null
+  const sizes = { pequeno: '87.5%', normal: '100%', grande: '125%' }
   document.documentElement.style.fontSize = sizes[t ?? 'normal']
 })()
 

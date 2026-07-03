@@ -169,14 +169,14 @@ export default function Ajustes() {
     return (t === 'dark' || t === 'light') ? t : 'system'
   })
 
-  const [tamano, setTamano] = useState<'normal' | 'mediano' | 'grande'>(() => {
+  const [tamano, setTamano] = useState<'pequeno' | 'normal' | 'grande'>(() => {
     const t = localStorage.getItem('semana-lista:tamano')
-    return (t === 'mediano' || t === 'grande') ? t : 'normal'
+    return (t === 'pequeno' || t === 'grande') ? t : 'normal'
   })
 
-  function aplicarTamano(t: 'normal' | 'mediano' | 'grande') {
+  function aplicarTamano(t: 'pequeno' | 'normal' | 'grande') {
     setTamano(t)
-    const sizes = { normal: '100%', mediano: '112.5%', grande: '125%' }
+    const sizes = { pequeno: '87.5%', normal: '100%', grande: '125%' }
     document.documentElement.style.fontSize = sizes[t]
     localStorage.setItem('semana-lista:tamano', t)
   }
@@ -509,10 +509,10 @@ export default function Ajustes() {
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tamaño del texto</p>
         <div className="grid grid-cols-3 gap-2">
           {([
-            { value: 'normal',  label: 'Normal',  emoji: 'A',  desc: '100%' },
-            { value: 'mediano', label: 'Mediano', emoji: 'A',  desc: '112%' },
-            { value: 'grande',  label: 'Grande',  emoji: 'A',  desc: '125%' },
-          ] as const).map(({ value, label, emoji, desc }) => (
+            { value: 'pequeno', label: 'Pequeño', desc: '88%' },
+            { value: 'normal',  label: 'Normal',  desc: '100%' },
+            { value: 'grande',  label: 'Grande',  desc: '125%' },
+          ] as const).map(({ value, label, desc }) => (
             <button
               key={value}
               onClick={() => aplicarTamano(value)}
@@ -522,7 +522,7 @@ export default function Ajustes() {
                   : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
               }`}
             >
-              <span className={value === 'normal' ? 'text-base' : value === 'mediano' ? 'text-xl' : 'text-3xl'} style={{ fontWeight: 700, lineHeight: 1 }}>{emoji}</span>
+              <span className={value === 'pequeno' ? 'text-sm' : value === 'normal' ? 'text-xl' : 'text-3xl'} style={{ fontWeight: 700, lineHeight: 1 }}>A</span>
               <span className="text-xs">{label}</span>
               <span className="text-[10px] text-gray-400">{desc}</span>
             </button>
