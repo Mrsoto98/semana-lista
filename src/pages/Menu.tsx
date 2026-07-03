@@ -94,7 +94,7 @@ export default function Menu() {
   type DiasConfig = 'semana' | 'laboral' | 'personalizado'
   type FranjaConfig = 'ambas' | 'comida' | 'cena'
   const DIAS_LABORALES: Dia[] = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
-  const [diasConfig, setDiasConfigRaw] = useState<DiasConfig>(() => recuperar<DiasConfig>('menu_dias_config') ?? 'semana')
+  const [diasConfig, setDiasConfigRaw] = useState<DiasConfig>(() => recuperar<DiasConfig>('menu_dias_config') ?? 'laboral')
   const [diasPersonalizados, setDiasPersonalizadosRaw] = useState<Set<Dia>>(() => new Set(recuperar<Dia[]>('menu_dias_personalizados') ?? DIAS))
   const [franjaConfig, setFranjaConfigRaw] = useState<FranjaConfig>(() => recuperar<FranjaConfig>('menu_franja_config') ?? 'ambas')
 
