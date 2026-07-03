@@ -46,7 +46,6 @@ export default function Ajustes() {
 
   // Perfil de usuario
   const [nombreDisplay, setNombreDisplay] = useState('')
-  const [username, setUsername] = useState('')
   const [avatarEmoji, setAvatarEmoji] = useState('🧑')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [subiendoFoto, setSubiendoFoto] = useState(false)
@@ -220,7 +219,7 @@ export default function Ajustes() {
     setDraft(d => d ? { ...d, [key]: val } : d)
   }
 
-  async function guardar() {
+  async function guardarCambios() {
     if (!draft) return
     setGuardando(true)
     await guardarPerfil(draft)
@@ -559,7 +558,7 @@ export default function Ajustes() {
       {/* Guardar */}
       <div className="mt-8">
         <button
-          onClick={guardar}
+          onClick={guardarCambios}
           disabled={guardando}
           className="w-full bg-green-select text-white rounded-card py-3 font-semibold hover:bg-green-600 disabled:opacity-50 transition-colors"
         >

@@ -45,8 +45,8 @@ export async function guardarRecetasEnCache(recetas: Receta[]): Promise<void> {
     nombre: r.nombre,
     descripcion_corta: r.descripcion_corta,
     tags: r.tags,
-    kcal: r.kcal_por_persona,
-    tiempo_min: r.tiempo_min,
+    kcal: r.calorias_aprox,
+    tiempo_min: r.tiempo_prep,
     dificultad: r.dificultad,
     ingredientes: r.ingredientes,
     imagen_url: memoriaImagenes[r.nombre] ?? fotoUrlPollinations(r.nombre),
@@ -62,7 +62,7 @@ export async function guardarRecetasEnCache(recetas: Receta[]): Promise<void> {
   else {
     // Incrementar contador de veces_generada
     await Promise.all(recetas.map(r =>
-      supabase.rpc('incrementar_veces_generada', { p_nombre: r.nombre }).catch(() => {})
+      supabase.rpc('incrementar_veces_generada', { p_nombre: r.nombre }).then(() => {}, () => {})
     ))
   }
 }

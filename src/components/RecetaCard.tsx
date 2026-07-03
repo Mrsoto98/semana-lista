@@ -103,7 +103,7 @@ export function RecetaCard({
 
   if (!receta) return null
 
-  const { emoji, accent, color } = categoriaInfo(receta.tags)
+  const { emoji, accent } = categoriaInfo(receta.tags)
   const estaSeleccionada = vista === seleccionada
 
   async function cargarPasos() {

@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { recuperar } from '../lib/storage'
-import { usePerfil } from '../hooks/usePerfil'
-import { useAuth } from '../hooks/useAuth'
 import { useListasCompartidas } from '../hooks/useListaCompartida'
 import type { MenuSemanal, Receta } from '../types'
 import { DIAS, DIAS_LABEL, FRANJAS, type ClaveMenu } from '../types'
@@ -189,12 +187,10 @@ function ActionBtn({
 // ── página principal ───────────────────────────────────────────────────────────
 
 export default function Exportar() {
-  const { user } = useAuth()
-  const { perfil } = usePerfil()
   const { listas } = useListasCompartidas()
 
   // Construir menú igual que Menu.tsx: desde estados + seleccion
-  const estados = recuperar<Record<ClaveMenu, { estado: string; datos?: { opciones: Receta[] } }>>('menu_estados') ?? {}
+  const estados = recuperar<Record<ClaveMenu, { estado: string; datos?: { opciones: Receta[] } }>>('menu_estados') ?? ({} as Record<ClaveMenu, { estado: string; datos?: { opciones: Receta[] } }>)
   const seleccion = recuperar<Record<ClaveMenu, number>>('menu_seleccion') ?? {}
   const menu: MenuSemanal = (() => {
     const m: MenuSemanal = {}
@@ -238,8 +234,6 @@ export default function Exportar() {
   const [copiadoMenu, setCopiadoMenu] = useState(false)
   const [copiadoLista, setCopiadoLista] = useState(false)
   const [copiadoCompartida, setCopiadoCompartida] = useState<Record<string, boolean>>({})
-  const [guardando, setGuardando] = useState(false)
-  const [enlacePublico, setEnlacePublico] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [listaCompartidaItems, setListaCompartidaItems] = useState<Record<string, ItemLista[]>>({})
 
@@ -253,26 +247,6 @@ export default function Exportar() {
     listas.forEach(l => cargarItemsCompartida(l.id))
   }, [listas, cargarItemsCompartida])
 
-  async function guardarYCompartir() {
-    if (!user || !perfil) return
-    setGuardando(true)
-    setErrorMsg('')
-    try {
-      const fechaInicio = new Date()
-      fechaInicio.setDate(fechaInicio.getDate() - fechaInicio.getDay() + 1)
-      const { data: semana } = await supabase
-        .from('semanas')
-        .insert({ usuario_id: user.id, fecha_inicio: fechaInicio.toISOString().split('T')[0], recetas_elegidas: menu, lista_compra: [], es_publica: true })
-        .select().single()
-      const recetas = Object.values(menu).filter(Boolean).map(r => ({ usuario_id: user.id, nombre_receta: r!.nombre, fecha_uso: fechaInicio.toISOString().split('T')[0] }))
-      if (recetas.length) await supabase.from('historial_recetas').insert(recetas)
-      if (semana?.id) setEnlacePublico(`${window.location.origin}/menu/${semana.id}`)
-    } catch {
-      setErrorMsg('Error al guardar el menú. Inténtalo de nuevo.')
-    } finally {
-      setGuardando(false)
-    }
-  }
 
   return (
     <div className="min-h-screen p-4 max-w-lg mx-auto pb-24 page-enter">
@@ -305,21 +279,6 @@ export default function Exportar() {
               {/* Preview visual del menú */}
               <MenuPreview menu={menu} />
             </>
-          )}
-          {enlacePublico && (
-            <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-xl border border-green-200 dark:border-green-800">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Enlace público</p>
-              <div className="flex items-center gap-2">
-                <a href={enlacePublico} target="_blank" rel="noopener noreferrer"
-                  className="text-xs text-green-select hover:underline break-all flex-1 font-mono">
-                  {enlacePublico}
-                </a>
-                <button onClick={() => copiar(enlacePublico, () => {})}
-                  className="text-xs bg-green-select text-white px-2 py-1 rounded-lg shrink-0">
-                  Copiar
-                </button>
-              </div>
-            </div>
           )}
         </ExportCard>
 

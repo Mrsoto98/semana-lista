@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CeldaMenu } from '../components/CeldaMenu'
-import { ProgressBar } from '../components/ui/ProgressBar'
 import { ModalGenerarMenu, type ConfigGeneracion } from '../components/ModalGenerarMenu'
 import { usePerfil } from '../hooks/usePerfil'
 import { useListasCompartidas } from '../hooks/useListaCompartida'
@@ -73,7 +72,7 @@ export default function Menu() {
     listaDestinoId: recuperar<string | null>('menu_lista_destino') ?? null,
   }))
 
-  function abrirModalSorpresa() {
+  function _abrirModalSorpresa() {
     setCuestionario(prev => ({
       ...prev,
       dificultad: (perfil as { dificultad_recetas?: string })?.dificultad_recetas ?? 'combinado',

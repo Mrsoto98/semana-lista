@@ -114,7 +114,7 @@ export default function Lista() {
 
   // Foto ampliada (sección del menú)
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
-  const [copiado, setCopiado] = useState(false)
+  const [, setCopiado] = useState(false)
 
   // Edición de precio inline
   const [editandoPrecio, setEditandoPrecio] = useState<string | null>(null)
@@ -405,7 +405,7 @@ export default function Lista() {
     return Math.round(total * 100) / 100
   }, [gruposMenu, menuEnCasa, MERCADONA])
 
-  function compartirLista() {
+  function _compartirLista() {
     const lines: string[] = ['🛒 Lista de la compra — Semana Lista\n']
     if (gruposMenuPorCategoria.length > 0) {
       lines.push('📋 DEL MENÚ ESTA SEMANA')
