@@ -18,7 +18,7 @@
     min-height: 100dvh;
   }
   html.dark body {
-    background: linear-gradient(145deg, #071a0e 0%, #030712 45%, #050d1a 100%);
+    background: linear-gradient(145deg, #0d2818 0%, #0a0f1a 45%, #0a1628 100%);
     background-attachment: fixed;
   }
 }
@@ -34,9 +34,9 @@
     box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8);
   }
   html.dark .card {
-    background: rgba(17,24,39,0.72);
-    border-color: rgba(255,255,255,0.08);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+    background: rgba(20,30,50,0.78);
+    border-color: rgba(255,255,255,0.10);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07);
   }
   .card-interactive {
     @apply card transition-all duration-150 cursor-pointer;
