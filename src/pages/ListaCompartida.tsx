@@ -441,7 +441,7 @@ export default function ListaCompartida() {
       )}
 
       {/* ── STICKY HEADER ─────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-20 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+      <div className="sticky top-0 z-20 border-b border-white/40 dark:border-white/5" style={{background:'rgba(255,255,255,0.82)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
         <div className="p-4 pb-3">
 
           {/* Título + código */}
@@ -529,21 +529,17 @@ export default function ListaCompartida() {
           </div>
 
           {/* Buscador catálogo + selector de categoría */}
-          {catalogo && (
-            <div className="mb-3">
-              <div className="flex gap-2 items-center">
-                <input type="text" placeholder={`Buscar${catActiva === TODO_CAT ? '' : ` en ${catActiva}`}...`}
-                  value={busqueda}
-                  onChange={e => { setBusqueda(e.target.value); setLimite(PAGINA) }}
-                  className="flex-1 min-w-0 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
-              </div>
-              <CategoriasSelector
-                categorias={categorias}
-                catActiva={catActiva}
-                onSelect={cat => { setCatActiva(cat); setBusqueda(''); setLimite(PAGINA) }}
-              />
-            </div>
-          )}
+          <div className="mb-3">
+            <input type="text" placeholder={`Buscar${catActiva === TODO_CAT ? '' : ` en ${catActiva}`}...`}
+              value={busqueda}
+              onChange={e => { setBusqueda(e.target.value); setLimite(PAGINA) }}
+              className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm mb-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
+            <CategoriasSelector
+              categorias={categorias}
+              catActiva={catActiva}
+              onSelect={cat => { setCatActiva(cat); setBusqueda(''); setLimite(PAGINA) }}
+            />
+          </div>
 
           {/* Lista a comprar */}
           {(porComprar.length > 0 || comprados.length > 0) && (

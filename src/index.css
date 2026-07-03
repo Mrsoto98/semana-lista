@@ -11,21 +11,59 @@
     padding-top: env(safe-area-inset-top);
   }
   body {
-    @apply bg-warm-white text-gray-900 dark:bg-gray-950 dark:text-gray-100;
+    @apply text-gray-900 dark:text-gray-100;
     -webkit-font-smoothing: antialiased;
+    background: linear-gradient(145deg, #f0fdf4 0%, #F8F8F6 40%, #f0f9ff 100%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+  }
+  html.dark body {
+    background: linear-gradient(145deg, #071a0e 0%, #030712 45%, #050d1a 100%);
+    background-attachment: fixed;
   }
 }
 
 @layer components {
-  /* Card base — sombra en lugar de borde */
+  /* Card glass — efecto cristal sobre gradiente */
   .card {
-    @apply bg-white dark:bg-gray-900 rounded-card shadow-card;
+    @apply rounded-card;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.55);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8);
+  }
+  html.dark .card {
+    background: rgba(17,24,39,0.72);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
   }
   .card-interactive {
-    @apply card transition-shadow duration-150 cursor-pointer hover:shadow-card-md;
+    @apply card transition-all duration-150 cursor-pointer;
+  }
+  .card-interactive:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+    transform: translateY(-1px);
   }
   .card-selected {
-    @apply shadow-card-md ring-2 ring-green-select/25 bg-green-50/60 dark:bg-green-950/40;
+    @apply ring-2 ring-green-select/25;
+    background: rgba(240,253,244,0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  html.dark .card-selected {
+    background: rgba(5,46,22,0.55);
+  }
+  /* Utility glass para elementos que no son .card */
+  .glass {
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.5);
+  }
+  html.dark .glass {
+    background: rgba(17,24,39,0.65);
+    border-color: rgba(255,255,255,0.07);
   }
 }
 

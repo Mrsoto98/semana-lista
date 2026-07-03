@@ -242,7 +242,7 @@ function Navbar() {
         className="fixed bottom-0 left-0 right-0 z-50 flex justify-center max-w-lg mx-auto pointer-events-none"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', paddingTop: '0' }}
       >
-        <div className="flex gap-2 pointer-events-auto px-3">
+        <div className="flex gap-2 pointer-events-auto px-3 py-2 rounded-2xl glass shadow-glass mx-3 mb-1">
           {tabs.map(({ key, path, label }) => {
             const active = key === 'compartida' ? isCompartidaActive : location.pathname === path
             return (

@@ -153,10 +153,10 @@ export function RecetaCard({
 
   return (
     <div
-      className={`rounded-card border-l-4 ${accent} overflow-hidden fade-slide-up transition-all duration-150 cursor-pointer
+      className={`rounded-card border-l-4 ${accent} overflow-hidden fade-slide-up transition-all duration-150 cursor-pointer card
         ${estaSeleccionada
-          ? 'shadow-card-md ring-2 ring-green-select/20 bg-white dark:bg-gray-900'
-          : 'shadow-card bg-white dark:bg-gray-900 hover:shadow-card-md'
+          ? 'shadow-card-md ring-2 ring-green-select/20'
+          : 'hover:shadow-card-md hover:-translate-y-0.5'
         }`}
       onClick={() => onSeleccionar(vista)}
     >
