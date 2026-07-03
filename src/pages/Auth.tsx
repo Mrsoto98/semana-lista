@@ -72,6 +72,7 @@ export default function Auth() {
     })
   }
 
+
   if (loading) return null
 
   // Pantalla de confirmación de email
@@ -87,9 +88,15 @@ export default function Auth() {
           </p>
           <button
             onClick={() => { setConfirmacionEnviada(false); setMode('login') }}
-            className="text-green-select font-medium hover:underline text-sm"
+            className="text-green-select font-medium hover:underline text-sm block mx-auto"
           >
             Ya lo confirmé → Iniciar sesión
+          </button>
+          <button
+            onClick={() => { setConfirmacionEnviada(false); setMode('registro') }}
+            className="mt-3 text-gray-400 hover:text-gray-500 text-xs block mx-auto hover:underline"
+          >
+            Email incorrecto, volver atrás
           </button>
         </div>
       </div>
@@ -159,6 +166,7 @@ export default function Auth() {
           </svg>
           Continuar con Google
         </button>
+
 
         <p className="mt-6 text-center text-sm text-gray-500">
           {mode === 'login' ? '¿Sin cuenta?' : '¿Ya tienes cuenta?'}{' '}

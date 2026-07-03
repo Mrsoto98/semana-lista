@@ -5,9 +5,17 @@ import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'jso
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get('origin') ?? ''
+  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') ? origin : ALLOWED_ORIGIN
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
 // Mapea el valor de "cocina" que elige el usuario en la UI al código de
@@ -168,8 +176,9 @@ async function llamarClaude(prompt: string, maxTokens: number): Promise<string> 
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS })
+  const cors = corsHeaders(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors })
 
   try {
     const body = await req.json()
@@ -188,7 +197,7 @@ Deno.serve(async (req: Request) => {
       const parsed = JSON.parse(raw)
       return new Response(
         JSON.stringify({ pasos: parsed.pasos ?? [] }),
-        { headers: { ...CORS, 'Content-Type': 'application/json' } },
+        { headers: { ...cors, 'Content-Type': 'application/json' } },
       )
     }
 
@@ -199,7 +208,7 @@ Deno.serve(async (req: Request) => {
       const receta = JSON.parse(raw)
       return new Response(
         JSON.stringify({ dia, franja, receta }),
-        { headers: { ...CORS, 'Content-Type': 'application/json' } },
+        { headers: { ...cors, 'Content-Type': 'application/json' } },
       )
     }
 
@@ -210,7 +219,7 @@ Deno.serve(async (req: Request) => {
       const receta = JSON.parse(raw)
       return new Response(
         JSON.stringify({ dia, franja, opciones: [receta] }),
-        { headers: { ...CORS, 'Content-Type': 'application/json' } },
+        { headers: { ...cors, 'Content-Type': 'application/json' } },
       )
     }
 
@@ -240,14 +249,14 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({ semana: resultado }),
-      { headers: { ...CORS, 'Content-Type': 'application/json' } },
+      { headers: { ...cors, 'Content-Type': 'application/json' } },
     )
   } catch (err: unknown) {
     const mensaje = err instanceof Error ? err.message : 'Error interno'
     console.error('Error en generar-recetas:', mensaje)
     return new Response(
       JSON.stringify({ error: true, mensaje }),
-      { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } },
     )
   }
 })

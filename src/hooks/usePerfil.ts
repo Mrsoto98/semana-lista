@@ -24,10 +24,18 @@ export function usePerfil() {
 
   async function guardarPerfil(p: Omit<Perfil, 'id' | 'usuario_id'>) {
     if (!user) return
-    // Ensure usuarios row exists (trigger may not have run for older accounts)
+    // Ensure usuarios row exists and generate codigo_usuario if missing
+    const { data: usuarioExistente } = await supabase
+      .from('usuarios')
+      .select('codigo_usuario')
+      .eq('id', user.id)
+      .maybeSingle()
+    const codigoNuevo = usuarioExistente?.codigo_usuario
+      ? undefined
+      : String(Math.floor(100 + Math.random() * 900)).padStart(3, '0') + '-' + String(Math.floor(Math.random() * 1000)).padStart(3, '0')
     await supabase
       .from('usuarios')
-      .upsert({ id: user.id, email: user.email }, { onConflict: 'id' })
+      .upsert({ id: user.id, email: user.email, ...(codigoNuevo ? { codigo_usuario: codigoNuevo } : {}) }, { onConflict: 'id' })
     const { data } = await supabase
       .from('perfiles')
       .upsert({ ...p, usuario_id: user.id }, { onConflict: 'usuario_id' })

@@ -1,10 +1,11 @@
 // src/pages/Onboarding.tsx
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TagInput } from '../components/ui/TagInput'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { usePerfil } from '../hooks/usePerfil'
-import { guardar, recuperar } from '../lib/storage'
+import { useUsuario } from '../hooks/useUsuario'
+import { useAuth } from '../hooks/useAuth'
 import type { Objetivo, DificultadPreferida, Perfil } from '../types'
 
 const OBJETIVOS: { value: Objetivo; label: string; emoji: string }[] = [
@@ -23,7 +24,7 @@ const DIFICULTADES: { value: DificultadPreferida; label: string; emoji: string; 
   { value: 'combinado', label: 'Combinado', emoji: '🎲', desc: 'Variedad máxima' },
 ]
 
-const TOTAL_PASOS = 8
+const TOTAL_PASOS = 9
 
 type Draft = Omit<Perfil, 'id' | 'usuario_id'>
 
@@ -42,16 +43,15 @@ const DRAFT_INICIAL: Draft = {
 export default function Onboarding() {
   const navigate = useNavigate()
   const { guardarPerfil } = usePerfil()
-  const [paso, setPaso] = useState(() => recuperar<number>('onboarding_paso') ?? 1)
-  const [draft, setDraft] = useState<Draft>(
-    () => recuperar<Draft>('onboarding_draft') ?? DRAFT_INICIAL
-  )
+  const { guardarUsuario } = useUsuario()
+  const { user } = useAuth()
+  const [paso, setPaso] = useState(1)
+  const [draft, setDraft] = useState<Draft>(DRAFT_INICIAL)
   const [guardando, setGuardando] = useState(false)
 
-  useEffect(() => {
-    guardar('onboarding_paso', paso)
-    guardar('onboarding_draft', draft)
-  }, [paso, draft])
+  // Nombre para mostrar (paso 1)
+  const nombreGoogle = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ''
+  const [nombreDisplay, setNombreDisplay] = useState(nombreGoogle)
 
   function set<K extends keyof Draft>(key: K, val: Draft[K]) {
     setDraft(d => ({ ...d, [key]: val }))
@@ -59,11 +59,15 @@ export default function Onboarding() {
 
   async function finalizar() {
     setGuardando(true)
-    await guardarPerfil(draft)
-    navigate('/menu', { replace: true })
+    await Promise.all([
+      guardarPerfil(draft),
+      nombreDisplay.trim() ? guardarUsuario({ nombre_display: nombreDisplay.trim() }) : Promise.resolve(),
+    ])
+    navigate('/menu', { replace: true, state: { tutorialFirstRun: true } })
   }
 
   const pasoLabel = [
+    'Tu nombre',
     'Personas en el hogar',
     'Presupuesto semanal',
     'Código postal',
@@ -84,6 +88,24 @@ export default function Onboarding() {
       <div className="flex-1">
         {paso === 1 && (
           <div className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-400">¿Cómo te llamamos? Esto es lo que verán el resto de miembros de tus listas compartidas.</p>
+            <input
+              type="text"
+              value={nombreDisplay}
+              onChange={e => setNombreDisplay(e.target.value)}
+              placeholder="Tu nombre o apodo"
+              maxLength={40}
+              autoFocus
+              className="w-full border-2 rounded-card px-4 py-3 text-xl bg-white dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:border-green-select"
+            />
+            {nombreGoogle && (
+              <p className="text-xs text-gray-400">Pre-rellenado con tu nombre de Google. Cámbialo si quieres.</p>
+            )}
+          </div>
+        )}
+
+        {paso === 2 && (
+          <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">¿Cuántas personas van a comer?</p>
             <div className="flex gap-3 flex-wrap">
               {[1, 2, 3, 4, 5, 6].map(n => (
@@ -103,7 +125,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 2 && (
+        {paso === 3 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">Presupuesto semanal para la compra (€)</p>
             <input
@@ -118,7 +140,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 3 && (
+        {paso === 4 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">Código postal para precios de tu Mercadona más cercano</p>
             <input
@@ -134,7 +156,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 4 && (
+        {paso === 5 && (
           <div className="space-y-3">
             <p className="text-gray-600 dark:text-gray-400">¿Tienes algún objetivo nutricional?</p>
             {OBJETIVOS.map(obj => (
@@ -154,7 +176,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 5 && (
+        {paso === 6 && (
           <div className="space-y-3">
             <p className="text-gray-600 dark:text-gray-400">¿Qué nivel de dificultad prefieres en las recetas?</p>
             <div className="grid grid-cols-2 gap-2">
@@ -176,7 +198,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 6 && (
+        {paso === 7 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">Ingredientes que te gustan o usas frecuentemente</p>
             <TagInput
@@ -187,7 +209,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 7 && (
+        {paso === 8 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">Ingredientes que NO quieres en tus menús</p>
             <TagInput
@@ -198,7 +220,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 8 && (
+        {paso === 9 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">
               ¿Qué tienes en la nevera esta semana? (lo usaremos en los menús)
@@ -224,7 +246,7 @@ export default function Onboarding() {
         {paso < TOTAL_PASOS ? (
           <button
             onClick={() => setPaso(p => p + 1)}
-            disabled={paso === 3 && draft.codigo_postal.length !== 5}
+            disabled={paso === 4 && draft.codigo_postal.length !== 5}
             className="flex-1 bg-green-select text-white rounded-card py-3 font-semibold hover:bg-green-600 disabled:opacity-50"
           >
             Siguiente

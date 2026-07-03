@@ -61,7 +61,7 @@ export default function Lista() {
   const navigate = useNavigate()
   const { listas, crearLista, unirseConCodigo } = useListasCompartidas()
   const [modalCompartida, setModalCompartida] = useState(false)
-  const [abiertoMenu, setAbiertoMenu] = useState(true)
+  const [abiertoMenu, setAbiertoMenu] = useState(false)
   const [modoModal, setModoModal] = useState<'elegir' | 'crear' | 'unirse'>('elegir')
   const [pickerIngrediente, setPickerIngrediente] = useState<{ nombre: string; enCasa: boolean } | null>(null)
   const [pickerOpciones, setPickerOpciones] = useState<MatchProducto[]>([])
@@ -98,7 +98,8 @@ export default function Lista() {
       setEnCasa(merged)
       guardar('lista_nevera', Array.from(merged))
     }
-  }, [perfil?.nevera?.join(',')])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(perfil?.nevera)])
   const [precios, setPrecios] = useState<Record<string, number>>(() => recuperar<Record<string, number>>('lista_precios') ?? {})
   const [customItems, setCustomItems] = useState<string[]>(() => recuperar<string[]>('lista_custom_items_v2') ?? [])
   const [comprado, setComprado] = useState<Set<string>>(() => new Set(recuperar<string[]>('lista_comprado') ?? []))
@@ -246,7 +247,7 @@ export default function Lista() {
     for (const receta of Object.values(menu)) {
       if (!receta) continue
       for (const ing of receta.ingredientes)
-        set.add(ing.nombre.charAt(0).toUpperCase() + ing.nombre.slice(1).toLowerCase())
+        if (ing.nombre) set.add(ing.nombre.charAt(0).toUpperCase() + ing.nombre.slice(1).toLowerCase())
     }
     return Array.from(set).sort()
   }, [])
@@ -390,15 +391,19 @@ export default function Lista() {
   const sinCatalogo = MERCADONA !== null && CATEGORIAS_MERCADONA.length === 0
 
   // Precio estimado de los ingredientes del menú (mejor match Mercadona)
+  // Solo incluye los que NO están ya en casa
   const precioEstimadoMenu = useMemo(() => {
     if (!MERCADONA?.categorias || gruposMenu.length === 0) return 0
     let total = 0
     for (const { items } of gruposMenu) {
+      // Si cualquier variante del grupo coincide con lo que ya hay en casa, no sumamos
+      const estaEnCasa = items.some(item => menuEnCasa.has(item))
+      if (estaEnCasa) continue
       const top = topMatchesMercadona(items[0], MERCADONA.categorias, 1)
       if (top[0]?.precio) total += top[0].precio
     }
     return Math.round(total * 100) / 100
-  }, [gruposMenu, MERCADONA])
+  }, [gruposMenu, menuEnCasa, MERCADONA])
 
   function compartirLista() {
     const lines: string[] = ['🛒 Lista de la compra — Semana Lista\n']
@@ -455,7 +460,7 @@ export default function Lista() {
       {modalCompartida && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm pt-16"
           onClick={() => { setModalCompartida(false); setModoModal('elegir'); setNombreNueva(''); setCodigoUnirse(''); setErrorCompartida('') }}>
-          <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-xl p-6" onClick={e => e.stopPropagation()}>
+          <div data-tutorial="compartida-modal" className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-xl p-6" onClick={e => e.stopPropagation()}>
             {modoModal === 'elegir' && (
               <>
                 <h2 className="text-lg font-black tracking-tight mb-1">👥 Listas compartidas</h2>
@@ -474,14 +479,19 @@ export default function Lista() {
                   </div>
                 )}
 
+                {listas.length >= 2 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2 mb-3 text-center">
+                    Has alcanzado el límite de 2 listas compartidas
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setModoModal('crear')}
-                    className="flex flex-col items-center gap-1.5 border-2 border-green-select bg-green-50 dark:bg-green-900/20 rounded-xl py-4 font-semibold text-sm text-green-select hover:bg-green-100">
+                  <button onClick={() => setModoModal('crear')} disabled={listas.length >= 2}
+                    className="flex flex-col items-center gap-1.5 border-2 border-green-select bg-green-50 dark:bg-green-900/20 rounded-xl py-4 font-semibold text-sm text-green-select hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed">
                     <span className="text-2xl">✨</span>
                     Crear lista
                   </button>
-                  <button onClick={() => setModoModal('unirse')}
-                    className="flex flex-col items-center gap-1.5 border-2 border-gray-200 dark:border-gray-700 rounded-xl py-4 font-semibold text-sm text-gray-700 dark:text-gray-300 hover:border-green-select">
+                  <button onClick={() => setModoModal('unirse')} disabled={listas.length >= 2}
+                    className="flex flex-col items-center gap-1.5 border-2 border-gray-200 dark:border-gray-700 rounded-xl py-4 font-semibold text-sm text-gray-700 dark:text-gray-300 hover:border-green-select disabled:opacity-40 disabled:cursor-not-allowed">
                     <span className="text-2xl">🔑</span>
                     Unirse con código
                   </button>
@@ -541,10 +551,11 @@ export default function Lista() {
       <div className="sticky top-0 z-10 bg-white/90 dark:bg-gray-950/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
         <div className="p-4 pb-3">
           {/* Cabecera */}
-          <div className="flex items-center justify-between mb-3">
+          <div data-tutorial="lista-cabecera" className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-black tracking-tight">Lista</h1>
               <button
+                data-tutorial="compartida-btn"
                 onClick={() => { setModoModal('elegir'); setModalCompartida(true) }}
                 className="flex items-center gap-1.5 bg-green-select text-white text-xs font-bold px-2.5 py-1.5 rounded-full shadow-sm hover:bg-green-600 transition-colors"
               >
@@ -552,7 +563,7 @@ export default function Lista() {
                 <span>Compartida{listas.length > 0 ? ` (${listas.length})` : ''}</span>
               </button>
             </div>
-            <button className="text-right" onClick={() => { setPresupuestoDraft(presupuesto > 0 ? presupuesto.toString() : ''); setEditandoPresupuesto(true) }}>
+            <button data-tutorial="presupuesto" className="text-right" onClick={() => { setPresupuestoDraft(presupuesto > 0 ? presupuesto.toString() : ''); setEditandoPresupuesto(true) }}>
               {totalEstimado > 0 && (
                 <span className={`text-xl font-black block ${sobrepresupuesto ? 'text-red-500' : 'text-green-select'}`}>
                   {totalEstimado.toFixed(2)} €
@@ -579,6 +590,7 @@ export default function Lista() {
                     }`}>
                       <div className="flex items-center gap-2">
                         <input
+                          data-tutorial="list-checkbox"
                           type="checkbox"
                           checked={comprado.has(item)}
                           onChange={() => {
@@ -679,26 +691,21 @@ export default function Lista() {
       <div className="p-4 space-y-6">
 
         {/* ── DEL MENÚ ESTA SEMANA ──────────────────────────────────────────── */}
-        {ingredientesMenu.length > 0 && (
-          <div>
-            <div className="flex items-center mb-2 gap-2">
-              <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center flex-1 text-left">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
-                {precioEstimadoMenu > 0 && (
-                  <span className="ml-2 text-xs font-bold text-green-select">~{precioEstimadoMenu.toFixed(2)} €</span>
-                )}
-                <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abiertoMenu ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
-              </button>
-              <button
-                onClick={compartirLista}
-                className="text-xs font-semibold text-gray-400 hover:text-green-select px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors shrink-0"
-              >
-                {copiado ? '✓ Copiado' : '↑ Compartir'}
-              </button>
-            </div>
-            {abiertoMenu && (
-              <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
-                {gruposMenuPorCategoria.map(([cat, grupos]) => (
+        <div>
+          <div className="flex items-center mb-2 gap-2">
+            <button data-tutorial="menu-semana-btn" onClick={() => setAbiertoMenu(v => !v)} className="flex items-center flex-1 text-left gap-2 py-1">
+              <h2 data-tutorial="menu-semana" className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
+              {precioEstimadoMenu > 0 && (
+                <span className="text-xs font-bold text-green-select">~{precioEstimadoMenu.toFixed(2)} €/aprox</span>
+              )}
+              <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abiertoMenu ? 'rotate-0' : '-rotate-90'}`}>▾</span>
+            </button>
+          </div>
+          {abiertoMenu && (
+            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
+              {gruposMenuPorCategoria.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-2">Genera tu menú para ver los ingredientes aquí 📋</p>
+              ) : gruposMenuPorCategoria.map(([cat, grupos]) => (
                   <div key={cat}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
                       {CAT_EMOJI[cat] ?? '📦'} {cat}
@@ -724,7 +731,7 @@ export default function Lista() {
                               className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
                               {enC ? '✓' : '🛒'} <span className={enN ? 'line-through decoration-2' : ''}>{etiqueta}</span>
                             </button>
-                            <button onClick={() => enN ? quitarGrupoDeCasa(items) : abrirPickerMenu(items, true)}
+                            <button data-tutorial="en-casa" onClick={() => enN ? quitarGrupoDeCasa(items) : abrirPickerMenu(items, true)}
                               className={`text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 transition-colors ${enN ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50'}`}>
                               {enN ? '✓' : '🏠'}
                             </button>
@@ -733,22 +740,19 @@ export default function Lista() {
                       })}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* ── EN CASA TENEMOS ───────────────────────────────────────────────── */}
-        {enCasa.size > 0 && (
-          <EnCasaSection
+        <EnCasaSection
             enCasa={enCasa}
             catalogo={MERCADONA?.categorias}
             onRemove={removeCasa}
             enCarrito={comprar}
             onAddToCart={addCasaToCart}
           />
-        )}
 
         {/* ── CATÁLOGO MERCADONA ────────────────────────────────────────────── */}
         <div>
@@ -756,7 +760,7 @@ export default function Lista() {
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Catálogo Mercadona</h2>
             {MERCADONA?.actualizado && (
               <span className="text-xs text-gray-400">
-                {new Date(MERCADONA.actualizado).toLocaleDateString('es-ES')} · {TODOS_LOS_PRODUCTOS.length} productos
+                {new Date(MERCADONA.actualizado).toLocaleDateString('es-ES')} · {MERCADONA.total_productos} productos
               </span>
             )}
           </div>
@@ -777,6 +781,7 @@ export default function Lista() {
             <>
               {/* Buscador único */}
               <input
+                data-tutorial="add-custom"
                 type="text"
                 placeholder={`Buscar${catActiva === TODO_CAT ? '' : ` en ${catActiva}`}...`}
                 value={busqueda}

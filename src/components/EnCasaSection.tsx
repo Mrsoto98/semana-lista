@@ -27,7 +27,7 @@ const CAT_EMOJI: Record<string, string> = {
 
 export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarrito }: Props) {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
-  const [abierto, setAbierto] = useState(true)
+  const [abierto, setAbierto] = useState(false)
 
   React.useEffect(() => {
     if (!fotoAmpliada) return
@@ -63,17 +63,20 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
 
   return (
     <>
-      <div>
+      <div data-tutorial="en-casa">
         <button
+          data-tutorial="en-casa-btn"
           onClick={() => setAbierto(v => !v)}
-          className="flex items-center w-full text-left mb-2"
+          className="flex items-center gap-2 w-full text-left mb-2 py-1"
         >
           <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">🏠 En casa</h2>
-          <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abierto ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
+          <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abierto ? 'rotate-0' : '-rotate-90'}`}>▾</span>
         </button>
         {abierto && (
           <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
-            {grupos.map(([cat, items]) => (
+            {grupos.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-2">Nada en casa todavía 🏠</p>
+            ) : grupos.map(([cat, items]) => (
               <div key={cat}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
                   {CAT_EMOJI[cat] ?? '📦'} {cat}

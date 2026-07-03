@@ -1,9 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useListaCompartida } from '../hooks/useListaCompartida'
+import { useListaCompartida, useListasCompartidas } from '../hooks/useListaCompartida'
 import { useAuth } from '../hooks/useAuth'
-import { useAmigos } from '../hooks/useAmigos'
 import { Avatar } from '../components/Avatar'
 import { supabase } from '../lib/supabase'
 import { recuperar } from '../lib/storage'
@@ -18,7 +17,7 @@ import type { MenuSemanal } from '../types'
 interface ProductoMercadona {
   id: string; nombre: string; precio: number; tamaño: number; unidad: string; foto?: string | null; precio_kg?: number | null
 }
-type CatalogoData = { categorias: Record<string, ProductoMercadona[]> }
+type CatalogoData = { actualizado: string; total_productos: number; categorias: Record<string, ProductoMercadona[]> }
 
 const TODO_CAT = 'Todo'
 const PASO_KG = 0.5
@@ -41,21 +40,90 @@ export default function ListaCompartida() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const {
-    lista, items, miembros, loading, error,
+    lista, items, miembros, loading, error, recargar,
     añadirItem, toggleComprado, toggleEnCasa,
     actualizarPrecio, actualizarCantidad, actualizarUnidadYCantidad, eliminarItem, renombrarLista, actualizarPresupuesto,
   } = useListaCompartida(id ?? null)
 
-  const { amigos, invitarALista } = useAmigos()
   const [perfilesMiembros, setPerfilesMiembros] = useState<Record<string, { nombre_display?: string; avatar_emoji?: string; avatar_url?: string }>>({})
+
+  // Solicitudes pendientes (solo visible para admins)
+  const [solicitudes, setSolicitudes] = useState<{ id: string; usuario_id: string; nombre_display?: string; avatar_emoji?: string }[]>([])
+  const esAdmin = miembros.find(m => m.usuario_id === user?.id)?.rol === 'admin'
+  const { recargar: recargarListas } = useListasCompartidas()
+
+  const cargarSolicitudes = useCallback(async () => {
+    if (!id || !esAdmin) { setSolicitudes([]); return }
+    const { data } = await supabase.from('solicitudes_lista').select('id, usuario_id').eq('lista_id', id)
+    if (!data?.length) { setSolicitudes([]); return }
+    // Filtrar solicitudes de usuarios que ya son miembros
+    const miembroIds = new Set(miembros.map(m => m.usuario_id))
+    const pendientes = data.filter(s => !miembroIds.has(s.usuario_id))
+    // Limpiar solicitudes de miembros ya aceptados de la DB
+    const yaAceptados = data.filter(s => miembroIds.has(s.usuario_id))
+    if (yaAceptados.length) {
+      supabase.from('solicitudes_lista').delete().in('id', yaAceptados.map(s => s.id)).then(({ error }) => {
+        if (error) console.warn('limpieza solicitudes antiguas:', error.message)
+      })
+    }
+    if (!pendientes.length) { setSolicitudes([]); return }
+    const { data: perfiles } = await supabase.from('usuarios').select('id, nombre_display, avatar_emoji').in('id', pendientes.map(s => s.usuario_id))
+    const map: Record<string, { nombre_display?: string; avatar_emoji?: string }> = {}
+    perfiles?.forEach((p: { id: string; nombre_display?: string; avatar_emoji?: string }) => { map[p.id] = p })
+    setSolicitudes(pendientes.map(s => ({ ...s, ...map[s.usuario_id] })))
+  }, [id, esAdmin, miembros])
+
+  useEffect(() => { cargarSolicitudes() }, [cargarSolicitudes])
+
+  useEffect(() => {
+    if (!id || !esAdmin) return
+    const canal = supabase.channel(`solicitudes-${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes_lista', filter: `lista_id=eq.${id}` }, cargarSolicitudes)
+      .subscribe()
+    return () => { supabase.removeChannel(canal) }
+  }, [id, esAdmin, cargarSolicitudes])
+
+  async function aceptarSolicitud(solicitudId: string, usuarioIdSolicitante: string) {
+    const { error: errInsert } = await supabase.from('lista_compartida_miembros')
+      .upsert({ lista_id: id, usuario_id: usuarioIdSolicitante, rol: 'miembro' }, { onConflict: 'lista_id,usuario_id' })
+    if (errInsert) { console.error('insert miembro:', errInsert.message); return }
+    // Ocultar inmediatamente de la UI
+    setSolicitudes(prev => prev.filter(s => s.id !== solicitudId))
+    // Intentar borrar de DB (puede fallar por RLS; cargarSolicitudes la filtrará si queda)
+    supabase.from('solicitudes_lista').delete().eq('id', solicitudId).then(({ error }) => {
+      if (error) console.warn('delete solicitud:', error.message)
+    })
+    recargar()
+    recargarListas()
+  }
+
+  async function expulsarMiembro(usuarioId: string) {
+    const { error } = await supabase.rpc('expulsar_miembro', { p_lista_id: id, p_usuario_id: usuarioId })
+    if (error) { console.error('expulsarMiembro:', error); return }
+    recargar()
+    recargarListas()
+  }
+
+  async function rechazarSolicitud(solicitudId: string) {
+    const { error } = await supabase.from('solicitudes_lista').delete().eq('id', solicitudId)
+    if (error) { console.error('rechazarSolicitud:', error); return }
+    setSolicitudes(prev => prev.filter(s => s.id !== solicitudId))
+    recargarListas()
+  }
 
   // Catálogo
   const [catalogo, setCatalogo] = useState<CatalogoData | null>(null)
   const [catActiva, setCatActiva] = useState(TODO_CAT)
   const [busqueda, setBusqueda] = useState('')
+  const [busquedaDebounced, setBusquedaDebounced] = useState('')
   const [limite, setLimite] = useState(PAGINA)
+
+  useEffect(() => {
+    const t = setTimeout(() => setBusquedaDebounced(busqueda), 200)
+    return () => clearTimeout(t)
+  }, [busqueda])
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
-  const [abiertoMenu, setAbiertoMenu] = useState(true)
+  const [abiertoMenu, setAbiertoMenu] = useState(false)
 
   // UI
   const [inputCustom, setInputCustom] = useState('')
@@ -64,8 +132,6 @@ export default function ListaCompartida() {
   const [editandoPrecio, setEditandoPrecio] = useState<string | null>(null)
   const [precioDraft, setPrecioDraft] = useState('')
   const [copiado, setCopiado] = useState(false)
-  const [invitandoAmigo, setInvitandoAmigo] = useState<string | null>(null)
-  const [errorInvitar, setErrorInvitar] = useState('')
   const [editandoPresupuesto, setEditandoPresupuesto] = useState(false)
   const [presupuestoDraft, setPresupuestoDraft] = useState('')
   const [pickerIngrediente, setPickerIngrediente] = useState<{ nombre: string; enCasa: boolean } | null>(null)
@@ -108,10 +174,10 @@ export default function ListaCompartida() {
         seenId.add(p.id); seenN.add(p.nombre); return true
       })
     })()
-    if (!busqueda || busqueda.length < 2) return rawBase
-    const palabras = busqueda.toLowerCase().split(/\s+/).filter(Boolean)
+    if (!busquedaDebounced || busquedaDebounced.length < 2) return rawBase
+    const palabras = busquedaDebounced.toLowerCase().split(/\s+/).filter(Boolean)
     return rawBase.filter(p => palabras.every(w => p.nombre.toLowerCase().includes(w)))
-  }, [catalogo, catActiva, busqueda, todosDedup])
+  }, [catalogo, catActiva, busquedaDebounced, todosDedup])
 
   // Mapa nombre → item para saber si está en lista
   const itemPorNombre = useMemo(() => {
@@ -192,14 +258,6 @@ export default function ListaCompartida() {
     navigator.clipboard.writeText(lista.codigo).then(() => { setCopiado(true); setTimeout(() => setCopiado(false), 2000) })
   }
 
-  async function handleInvitarAmigo(amigoId: string) {
-    if (!id) return
-    setInvitandoAmigo(amigoId); setErrorInvitar('')
-    const { error } = await invitarALista(id, amigoId)
-    setInvitandoAmigo(null)
-    if (error) setErrorInvitar(error)
-  }
-
   // ── Derivados ─────────────────────────────────────────────────────────────
   const porComprar = items.filter(i => !i.comprado && !i.en_casa)
   const comprados  = items.filter(i => i.comprado)
@@ -240,7 +298,7 @@ export default function ListaCompartida() {
     for (const receta of Object.values(menu)) {
       if (!receta) continue
       for (const ing of receta.ingredientes)
-        nombres.add(ing.nombre.charAt(0).toUpperCase() + ing.nombre.slice(1).toLowerCase())
+        if (ing.nombre) nombres.add(ing.nombre.charAt(0).toUpperCase() + ing.nombre.slice(1).toLowerCase())
     }
     return Array.from(nombres).sort()
   }, [id])
@@ -289,6 +347,18 @@ export default function ListaCompartida() {
     () => resolverContraSet(ingredientesMenu, enCasaNombres, catalogo?.categorias),
     [ingredientesMenu, enCasaNombres, catalogo],
   )
+
+  const precioEstimadoMenu = useMemo(() => {
+    if (!catalogo?.categorias || gruposMenu.length === 0) return 0
+    let total = 0
+    for (const { items: grupoItems } of gruposMenu) {
+      const estaEnCasa = grupoItems.some(i => menuEnCasa.has(i))
+      if (estaEnCasa) continue
+      const top = topMatchesMercadona(grupoItems[0], catalogo.categorias, 1)
+      if (top[0]?.precio) total += top[0].precio
+    }
+    return Math.round(total * 100) / 100
+  }, [gruposMenu, menuEnCasa, catalogo])
 
   // Quita de golpe todos los productos resueltos para un grupo de variantes
   // (ej. al desmarcar el botón fusionado "Aceite de oliva").
@@ -356,15 +426,50 @@ export default function ListaCompartida() {
 
           {/* Miembros + total */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5">
-              <div className="flex -space-x-1.5">
-                {miembros.slice(0, 5).map(m => (
-                  <Avatar key={m.usuario_id} url={perfilesMiembros[m.usuario_id]?.avatar_url}
+            <div className="flex items-center gap-2 flex-wrap">
+              {miembros.slice(0, 5).map(m => (
+                <div key={m.usuario_id} className="flex items-center gap-1.5 group">
+                  <Avatar url={perfilesMiembros[m.usuario_id]?.avatar_url}
                     emoji={perfilesMiembros[m.usuario_id]?.avatar_emoji} size="sm" />
-                ))}
-              </div>
-              <span className="text-xs text-gray-400">{miembros.length} miembro{miembros.length !== 1 ? 's' : ''}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                    {perfilesMiembros[m.usuario_id]?.nombre_display || 'Usuario'}
+                    {m.rol === 'admin' && <span className="ml-1 text-[9px] text-green-select font-black">ADMIN</span>}
+                  </span>
+                  {esAdmin && m.usuario_id !== user?.id && (
+                    <button
+                      onClick={() => expulsarMiembro(m.usuario_id)}
+                      title="Expulsar de la lista"
+                      className="hidden group-hover:flex items-center justify-center w-4 h-4 rounded-full bg-red-100 dark:bg-red-900/40 text-red-400 hover:bg-red-200 hover:text-red-600 text-[10px] transition-colors"
+                    >✕</button>
+                  )}
+                </div>
+              ))}
+              {esAdmin && solicitudes.length > 0 && (
+                <span className="ml-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{solicitudes.length}</span>
+              )}
             </div>
+            {/* Panel de solicitudes pendientes */}
+            {esAdmin && solicitudes.length > 0 && (
+              <div className="mb-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-3">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">🔔 Solicitudes para unirse</p>
+                <div className="space-y-2">
+                  {solicitudes.map(s => (
+                    <div key={s.id} className="flex items-center gap-2">
+                      <span className="text-lg">{s.avatar_emoji ?? '👤'}</span>
+                      <p className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{s.nombre_display ?? 'Usuario'}</p>
+                      <button onClick={() => rechazarSolicitud(s.id)}
+                        className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500">
+                        Rechazar
+                      </button>
+                      <button onClick={() => aceptarSolicitud(s.id, s.usuario_id)}
+                        className="text-xs px-2.5 py-1.5 rounded-lg bg-green-select text-white font-semibold">
+                        Aceptar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {(() => {
               const pres = lista?.presupuesto ?? 0
               const pasado = pres > 0 && totalEst > pres
@@ -457,7 +562,7 @@ export default function ListaCompartida() {
           )}
 
           {comprados.length > 0 && (
-            <button onClick={() => Promise.all(comprados.map(i => eliminarItem(i.id)))}
+            <button onClick={async () => { try { await Promise.all(comprados.map(i => eliminarItem(i.id))) } catch { /* item may already be deleted */ } }}
               className="w-full text-xs text-red-400 hover:text-red-600 py-1.5 mb-1 border border-red-100 dark:border-red-900 rounded-xl transition-colors">
               Limpiar comprados ({comprados.length})
             </button>
@@ -479,15 +584,19 @@ export default function ListaCompartida() {
       <div className="p-4 space-y-6">
 
         {/* ── DEL MENÚ ESTA SEMANA ─────────────────────────────────────────── */}
-        {ingredientesMenu.length > 0 && (
-          <div>
-            <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center w-full text-left mb-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
-              <span className="ml-auto text-gray-400 text-xs transition-transform duration-200" style={{ transform: abiertoMenu ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
-            </button>
-            {abiertoMenu && (
-              <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
-                {gruposMenuPorCategoria.map(([cat, grupos]) => (
+        <div>
+          <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center gap-2 w-full text-left mb-2 py-1">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
+            {precioEstimadoMenu > 0 && (
+              <span className="text-xs font-bold text-green-select">~{precioEstimadoMenu.toFixed(2)} €/aprox</span>
+            )}
+            <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abiertoMenu ? 'rotate-0' : '-rotate-90'}`}>▾</span>
+          </button>
+          {abiertoMenu && (
+            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
+              {gruposMenuPorCategoria.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-2">Genera tu menú para ver los ingredientes aquí 📋</p>
+              ) : gruposMenuPorCategoria.map(([cat, grupos]) => (
                   <div key={cat}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
                       {CAT_EMOJI[cat] ?? '📦'} {cat}
@@ -524,15 +633,13 @@ export default function ListaCompartida() {
                       })}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* ── EN CASA ───────────────────────────────────────────────────────── */}
-        {enCasa.length > 0 && (
-          <EnCasaSection
+        <EnCasaSection
             enCasa={new Set(enCasa.map(i => i.nombre))}
             catalogo={catalogo?.categorias}
             onRemove={nombre => { const it = enCasa.find(i => i.nombre === nombre); if (it) toggleEnCasa(it.id, false) }}
@@ -548,13 +655,16 @@ export default function ListaCompartida() {
               añadirItem(nombre, { precio, cantidad: 1, unidad: 'ud' })
             }}
           />
-        )}
 
         {/* ── CATÁLOGO MERCADONA ────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Catálogo Mercadona</h2>
-            {catalogo && <span className="text-xs text-gray-400">{todosDedup.length} productos</span>}
+            {catalogo?.actualizado && (
+              <span className="text-xs text-gray-400">
+                {new Date(catalogo.actualizado).toLocaleDateString('es-ES')} · {catalogo.total_productos} productos
+              </span>
+            )}
           </div>
 
           {catalogo === null ? (
@@ -657,35 +767,6 @@ export default function ListaCompartida() {
           </button>
         </div>
 
-        {/* ── INVITAR AMIGOS ─────────────────────────────────────────────────── */}
-        {amigos.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-card p-4">
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Invitar amigos</p>
-            {errorInvitar && <p className="text-xs text-red-500 mb-2">{errorInvitar}</p>}
-            <div className="space-y-2">
-              {amigos.map(a => {
-                const yaEsMiembro = miembros.some(m => m.usuario_id === a.otro?.id)
-                return (
-                  <div key={a.id} className="flex items-center gap-3">
-                    <Avatar url={a.otro?.avatar_url} emoji={a.otro?.avatar_emoji} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{a.otro?.nombre_display || a.otro?.username || 'Amigo'}</p>
-                    </div>
-                    {yaEsMiembro ? (
-                      <span className="text-xs text-green-select font-medium">✓ Ya está</span>
-                    ) : (
-                      <button onClick={() => a.otro && handleInvitarAmigo(a.otro.id)}
-                        disabled={invitandoAmigo === a.otro?.id}
-                        className="text-xs bg-green-select text-white px-3 py-1.5 rounded-lg font-medium disabled:opacity-50">
-                        {invitandoAmigo === a.otro?.id ? '...' : 'Invitar'}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── MODAL PRESUPUESTO ─────────────────────────────────────────────── */}

@@ -6,9 +6,17 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 )
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get('origin') ?? ''
+  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') ? origin : ALLOWED_ORIGIN
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
 const MERCADONA_BASE = 'https://tienda.mercadona.es/api'
@@ -63,8 +71,9 @@ async function fetchMercadona(url: string, cookie: string): Promise<Record<strin
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS })
+  const cors = corsHeaders(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors })
 
   try {
     const body = await req.json()
@@ -79,7 +88,7 @@ Deno.serve(async (req: Request) => {
         id: c.id,
         nombre: String(c.name ?? c.slug ?? c.id),
       }))
-      return new Response(JSON.stringify({ categorias }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ categorias }), { headers: { ...cors, 'Content-Type': 'application/json' } })
     }
 
     // Productos de una categoría
@@ -95,14 +104,14 @@ Deno.serve(async (req: Request) => {
       }
       return new Response(
         JSON.stringify({ productos, nombre: String(data.name ?? categoria_id) }),
-        { headers: { ...CORS, 'Content-Type': 'application/json' } },
+        { headers: { ...cors, 'Content-Type': 'application/json' } },
       )
     }
 
     // Precios para lista de ingredientes (modo original)
     if (!action) {
       const { ingredientes } = body as { ingredientes: Array<{ nombre: string; cantidad: number; unidad: string }> }
-      if (!ingredientes?.length) return new Response(JSON.stringify({ resultados: [] }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+      if (!ingredientes?.length) return new Response(JSON.stringify({ resultados: [] }), { headers: { ...cors, 'Content-Type': 'application/json' } })
 
       // Cargar catálogo cacheado o fresco
       let catalogo: Record<string, { productos: ReturnType<typeof parsearProducto>[] }> = {}
@@ -126,17 +135,17 @@ Deno.serve(async (req: Request) => {
         }
         return { ingrediente: ing.nombre, sin_precio: true }
       }))
-      return new Response(JSON.stringify({ resultados }), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ resultados }), { headers: { ...cors, 'Content-Type': 'application/json' } })
     }
 
-    return new Response(JSON.stringify({ error: true, mensaje: 'Acción desconocida' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: true, mensaje: 'Acción desconocida' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } })
 
   } catch (err: unknown) {
     const mensaje = err instanceof Error ? err.message : 'Error interno'
     console.error('precios-mercadona error:', mensaje)
     return new Response(
       JSON.stringify({ error: true, mensaje }),
-      { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } },
     )
   }
 })

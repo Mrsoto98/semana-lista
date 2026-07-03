@@ -1,7 +1,48 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Badge } from './ui/Badge'
 import type { Receta } from '../types'
+import { obtenerImagenReceta, fotoUrlPollinations } from '../lib/recetasCache'
+
+function FotoReceta({ nombre }: { nombre: string }) {
+  const [estado, setEstado] = useState<'cargando' | 'ok' | 'error'>('cargando')
+  const [src, setSrc] = useState<string | null>(null)
+  const divRef = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const el = divRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setVisible(true); obs.disconnect() }
+    }, { threshold: 0.1 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!visible) return
+    obtenerImagenReceta(nombre).then(url => setSrc(url))
+  }, [visible, nombre])
+
+  return (
+    <div ref={divRef} className="w-full h-28 rounded-t-card overflow-hidden bg-gray-100 dark:bg-gray-800 relative">
+      {estado === 'cargando' && (
+        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse" />
+      )}
+      {src && estado !== 'error' && (
+        <img
+          src={src}
+          alt={nombre}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${estado === 'ok' ? 'opacity-100' : 'opacity-0'}`}
+          style={{ objectPosition: 'center 30%' }}
+          onLoad={() => setEstado('ok')}
+          onError={() => { setSrc(fotoUrlPollinations(nombre)); setEstado('cargando') }}
+        />
+      )}
+    </div>
+  )
+}
 
 interface Props {
   opciones: Receta[]
@@ -119,15 +160,13 @@ export function RecetaCard({
         }`}
       onClick={() => onSeleccionar(vista)}
     >
+      <FotoReceta nombre={receta.nombre} />
       <div className="p-3">
         <div className="flex items-start justify-between gap-2 mb-1">
           <span className="font-semibold text-sm leading-tight">
             {emoji} {receta.nombre}
           </span>
-          <div className="flex items-center gap-1 shrink-0">
-            {estaSeleccionada && (
-              <span className="text-green-select text-base font-bold">✓</span>
-            )}
+          <div data-tutorial="receta-acciones" className="flex items-center gap-1 shrink-0">
             {onToggleFavorita && (
               <button
                 onClick={e => { e.stopPropagation(); onToggleFavorita(receta) }}
@@ -168,6 +207,7 @@ export function RecetaCard({
 
         <div className="mt-2.5 flex items-center gap-3">
           <button
+            data-tutorial="ver-receta"
             onClick={verReceta}
             className="text-xs text-green-select hover:text-green-700 font-medium transition-colors"
           >
@@ -196,7 +236,9 @@ export function RecetaCard({
             className="bg-white dark:bg-gray-900 rounded-2xl p-5 w-full max-w-md shadow-card-lg max-h-[80svh] overflow-y-auto animate-fade-in"
             onClick={e => e.stopPropagation()}
           >
-            <div className="w-full h-1 rounded-full mb-4 opacity-60" style={{ background: `linear-gradient(to right, ${color}, transparent)` }} />
+            <div className="-mx-5 -mt-5 mb-4 h-44 overflow-hidden rounded-t-2xl">
+              <FotoReceta nombre={receta.nombre} />
+            </div>
             <div className="flex items-start justify-between mb-3">
               <h2 className="font-bold text-base leading-tight pr-2">{emoji} {receta.nombre}</h2>
               <button onClick={() => setModalAbierto(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none shrink-0">✕</button>

@@ -9,6 +9,9 @@ import { useListasCompartidas } from '../hooks/useListaCompartida'
 import { usePreferencias } from '../hooks/usePreferencias'
 import { useAnalytics } from '../hooks/useAnalytics'
 import { guardar, recuperar } from '../lib/storage'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
+import { guardarRecetasEnCache } from '../lib/recetasCache'
 import type { Dia, Franja, OpcionesSlot, MenuSemanal, ClaveMenu, Receta } from '../types'
 import { DIAS, DIAS_LABEL, FRANJAS } from '../types'
 
@@ -53,6 +56,7 @@ function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvita
 
 export default function Menu() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { perfil, loading: perfilLoading } = usePerfil()
   const { listas: listasCompartidas } = useListasCompartidas()
   const { dislikes, ingredientesEvitar, guardarPreferencia, quitarPreferencia } = usePreferencias()
@@ -63,7 +67,7 @@ export default function Menu() {
   const [generando, setGenerando] = useState(false)
   const [modalGenerar, setModalGenerar] = useState(false)
   const [modalSorpresa, setModalSorpresa] = useState(false)
-  const [infoGenerarVisible, setInfoGenerarVisible] = useState(false)
+
   const [cuestionario, setCuestionario] = useState<Cuestionario>(() => ({
     ...CUESTIONARIO_INICIAL,
     listaDestinoId: recuperar<string | null>('menu_lista_destino') ?? null,
@@ -87,6 +91,7 @@ export default function Menu() {
   const [mostrarGuardadas, setMostrarGuardadas] = useState(false)
   const [mostrarFavoritas, setMostrarFavoritas] = useState(false)
   const [favoritas, setFavoritas] = useState<Receta[]>(() => recuperar<Receta[]>('recetas_favoritas') ?? [])
+  const [datosSupabaseCargados, setDatosSupabaseCargados] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
   // Configuración de días y franjas a generar (persistida en localStorage)
@@ -114,6 +119,25 @@ export default function Menu() {
     return ['comida', 'cena']
   }
 
+  // Cargar favoritas y semanas guardadas desde Supabase al iniciar sesión
+  useEffect(() => {
+    if (!user || datosSupabaseCargados) return
+    supabase.from('perfiles').select('recetas_favoritas, semanas_guardadas').eq('usuario_id', user.id).maybeSingle().then(({ data }) => {
+      if (!data) return
+      const favs = (data as { recetas_favoritas?: Receta[] }).recetas_favoritas
+      const sems = (data as { semanas_guardadas?: SemanaGuardada[] }).semanas_guardadas
+      if (Array.isArray(favs) && favs.length > 0) {
+        setFavoritas(favs)
+        guardar('recetas_favoritas', favs)
+      }
+      if (Array.isArray(sems) && sems.length > 0) {
+        setSemanasGuardadas(sems)
+        guardar('semanas_guardadas', sems)
+      }
+      setDatosSupabaseCargados(true)
+    })
+  }, [user, datosSupabaseCargados])
+
   const favoritasNombres = new Set(favoritas.map(r => r.nombre))
 
   function toggleFavorita(receta: Receta) {
@@ -121,6 +145,7 @@ export default function Menu() {
     const next = yaEsta ? favoritas.filter(r => r.nombre !== receta.nombre) : [receta, ...favoritas]
     setFavoritas(next)
     guardar('recetas_favoritas', next)
+    if (user) supabase.from('perfiles').update({ recetas_favoritas: next }).eq('usuario_id', user.id).then(({ error }) => { if (error) console.error('guardar favoritas:', error.message) })
     if (!yaEsta) track('receta_favorita', { receta: receta.nombre })
   }
 
@@ -135,6 +160,26 @@ export default function Menu() {
 
   useEffect(() => { guardar('menu_estados', estados) }, [estados])
   useEffect(() => { guardar('menu_seleccion', seleccion) }, [seleccion])
+
+  // Restaurar último menú desde Supabase si localStorage está vacío
+  useEffect(() => {
+    if (!user || perfilLoading) return
+    const hayMenu = Object.values(estados).some(e => e?.estado === 'listo')
+    if (hayMenu) return
+    supabase.from('perfiles').select('ultimo_menu').eq('usuario_id', user.id).maybeSingle().then(({ data }) => {
+      const um = (data as { ultimo_menu?: { estados: MapaEstados; seleccion: MapaSeleccion } | null })?.ultimo_menu
+      if (um?.estados && Object.values(um.estados).some(e => (e as EstadoSlot)?.estado === 'listo')) {
+        setEstados(um.estados)
+        setSeleccion(um.seleccion ?? {})
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, perfilLoading])
+
+  async function guardarMenuEnSupabase(e: MapaEstados, s: MapaSeleccion) {
+    if (!user) return
+    await supabase.from('perfiles').update({ ultimo_menu: { estados: e, seleccion: s } }).eq('usuario_id', user.id)
+  }
 
   // Pone todos los slots en cargando, luego hace una sola llamada a la API
   async function generarSemanaCompleta(extraPrompt?: string, cocina?: string) {
@@ -194,6 +239,12 @@ export default function Menu() {
       }
       setEstados(nuevosEstados)
       setSeleccion(nuevaSeleccion)
+      guardarMenuEnSupabase(nuevosEstados, nuevaSeleccion)
+      // Guardar todas las recetas generadas en la caché global
+      const todasRecetas = Object.values(nuevosEstados)
+        .filter(e => e?.estado === 'listo')
+        .flatMap(e => (e as { datos?: OpcionesSlot }).datos?.opciones ?? []) as Receta[]
+      if (todasRecetas.length) guardarRecetasEnCache(todasRecetas)
       track('menu_generado', { slots: Object.keys(nuevosEstados).filter(k => nuevosEstados[k as ClaveMenu]?.estado === 'listo').length })
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Error desconocido'
@@ -229,10 +280,15 @@ export default function Menu() {
       })
       if (fnError) throw new Error(fnError.message)
       if (data?.error) throw new Error(data.mensaje)
-      setEstados(prev => ({ ...prev, [clave]: { estado: 'listo', datos: data as OpcionesSlot } }))
+      setEstados(prev => {
+        const next = { ...prev, [clave]: { estado: 'listo' as EstadoCelda, datos: data as OpcionesSlot } }
+        guardarMenuEnSupabase(next, { ...seleccion, [clave]: 0 })
+        return next
+      })
       setSeleccion(prev => ({ ...prev, [clave]: 0 }))
-    } catch {
+    } catch (err) {
       setEstados(prev => ({ ...prev, [clave]: { estado: 'error' } }))
+      setErrorMsg(err instanceof Error ? err.message : 'Error regenerando la receta')
     }
   }
 
@@ -405,6 +461,7 @@ export default function Menu() {
     }
     const next = [nueva, ...semanasGuardadas].slice(0, 20)
     setSemanasGuardadas(next); guardar('semanas_guardadas', next)
+    if (user) supabase.from('perfiles').update({ semanas_guardadas: next }).eq('usuario_id', user.id).then(({ error }) => { if (error) console.error('guardar semanas:', error.message) })
     setModalGuardar(false); setNombreGuardar('')
   }
 
@@ -417,6 +474,7 @@ export default function Menu() {
   function eliminarSemana(id: string) {
     const next = semanasGuardadas.filter(s => s.id !== id)
     setSemanasGuardadas(next); guardar('semanas_guardadas', next)
+    if (user) supabase.from('perfiles').update({ semanas_guardadas: next }).eq('usuario_id', user.id).then(({ error }) => { if (error) console.error('eliminar semana:', error.message) })
   }
 
   function construirMenuDesdeSeleccion(): MenuSemanal {
@@ -443,19 +501,6 @@ export default function Menu() {
   const totalSeleccionadas = Object.keys(seleccion).filter(k => estados[k as ClaveMenu]?.estado === 'listo').length
   const menuVacio = totalListos === 0 && !generando
 
-  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('semana-lista:seen-tips-v1'))
-  const [onboardingStep, setOnboardingStep] = useState(0)
-
-  function dismissOnboarding() {
-    localStorage.setItem('semana-lista:seen-tips-v1', '1')
-    setShowOnboarding(false)
-  }
-
-  const ONBOARDING_STEPS = [
-    { emoji: '✨', titulo: 'Genera tu menú semanal', desc: 'Pulsa "Generar" para elegir tipo de cocina, dificultad y más. O "Sorpresa" para dejar que la IA decida por ti.' },
-    { emoji: '🛒', titulo: 'Lista de la compra automática', desc: 'Cuando tengas el menú listo, pulsa "Ver lista" para generar automáticamente la lista de la compra con todos los ingredientes.' },
-    { emoji: '⭐', titulo: 'Guarda tus favoritas', desc: 'Pulsa la estrella en cualquier receta para guardarla. Tus menus también se pueden guardar con 💾 para reutilizarlos.' },
-  ]
 
   // Calorías totales por día (suma comida + cena)
   const caloriasDelDia = useMemo(() => {
@@ -669,71 +714,72 @@ export default function Menu() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 sticky top-4 bg-warm-white dark:bg-gray-950 py-2 z-10 gap-2">
-        <h1 className="text-2xl font-black shrink-0 tracking-tight">Tu semana</h1>
-        <div className="flex gap-1.5 flex-wrap justify-end">
-          <button onClick={() => { setMostrarFavoritas(p => !p); setMostrarGuardadas(false) }}
-            className="text-sm border rounded-card px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800">
-            {favoritas.length > 0 ? `⭐ (${favoritas.length})` : '⭐ Favoritas'}
-          </button>
-          <button onClick={() => { setMostrarGuardadas(p => !p); setMostrarFavoritas(false) }}
-            className="text-sm border rounded-card px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800">
-            📂 {semanasGuardadas.length > 0 ? `(${semanasGuardadas.length})` : 'Guardadas'}
-          </button>
-          <button onClick={() => setModalGuardar(true)} disabled={totalListos === 0}
-            className="text-sm border rounded-card px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40">
-            💾 Guardar
-          </button>
-          <button onClick={abrirModalSorpresa} disabled={generando || !perfil}
-            className="text-sm border rounded-card px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50">
-            🎲 Sorpresa
-          </button>
-          <button onClick={() => setModalGenerar(true)} disabled={generando || !perfil}
-            className="text-sm bg-green-select text-white rounded-card px-3 py-1.5 font-semibold hover:bg-green-600 disabled:opacity-50">
-            {generando ? 'Generando...' : 'Generar ✨'}
-          </button>
-          <div className="relative">
+      <div className="sticky top-0 bg-warm-white dark:bg-gray-950 pt-2 pb-3 z-10">
+        {/* Fila título + botón generar */}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight leading-none">Tu semana</h1>
+            {totalListos > 0 && (
+              <p className="text-xs text-gray-400 mt-0.5">{totalListos}/14 recetas</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setInfoGenerarVisible(v => !v)}
-              className="w-7 h-7 rounded-full border-2 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 text-xs font-bold hover:border-green-select hover:text-green-select transition-colors flex items-center justify-center"
+              onClick={() => window.dispatchEvent(new CustomEvent('semana-lista:open-tutorial'))}
+              title="Ver tutorial"
+              className="w-9 h-9 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-400 text-xs font-bold hover:border-green-select hover:text-green-select transition-colors flex items-center justify-center"
             >
               ?
             </button>
-            {infoGenerarVisible && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setInfoGenerarVisible(false)} />
-                <div className="absolute right-0 top-9 z-50 w-72 bg-white dark:bg-gray-900 rounded-xl shadow-card-lg border border-gray-100 dark:border-gray-800 p-4 text-sm">
-                  <div className="space-y-3">
-                    <div className="flex gap-2.5">
-                      <span className="text-xl shrink-0">✨</span>
-                      <div>
-                        <p className="font-semibold text-gray-800 dark:text-gray-100 mb-0.5">Generar</p>
-                        <p className="text-gray-500 dark:text-gray-400 leading-snug">Te pregunta qué tipo de cocina, dificultad, tiempo y ocasión quieres. También puedes elegir qué ingredientes usar. Más control, resultado más ajustado a ti.</p>
-                      </div>
-                    </div>
-                    <div className="border-t border-gray-100 dark:border-gray-800" />
-                    <div className="flex gap-2.5">
-                      <span className="text-xl shrink-0">🎲</span>
-                      <div>
-                        <p className="font-semibold text-gray-800 dark:text-gray-100 mb-0.5">Sorpresa</p>
-                        <p className="text-gray-500 dark:text-gray-400 leading-snug">La IA elige el menú libremente basándose en tu perfil. Ideal para cuando no tienes nada en mente y quieres dejarte sorprender.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+            <button
+              data-tutorial="generar-btn"
+              onClick={() => setModalGenerar(true)}
+              disabled={generando || !perfil}
+              className="flex items-center gap-1.5 bg-green-select text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors shadow-sm"
+            >
+              {generando ? (
+                <span className="animate-pulse">Generando…</span>
+              ) : (
+                <>Generar <span className="text-base">✨</span></>
+              )}
+            </button>
           </div>
         </div>
-      </div>
 
-      <div className="mb-4">
-        <ProgressBar value={totalListos} max={14} label="Recetas generadas" />
+        {/* Barra de progreso */}
         {totalListos > 0 && (
-          <p className="text-xs text-gray-400 mt-1">
-            Opciones extra: {diasExtra.size}/{LIMITE_DIAS_EXTRA} días usados
-          </p>
+          <div className="mb-2">
+            <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-select rounded-full transition-all duration-500"
+                style={{ width: `${(totalListos / 14) * 100}%` }}
+              />
+            </div>
+          </div>
         )}
+
+        {/* Botones secundarios */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setMostrarFavoritas(p => !p); setMostrarGuardadas(false) }}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${mostrarFavoritas ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+          >
+            ⭐ Favoritas {favoritas.length > 0 && <span className="bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{favoritas.length}</span>}
+          </button>
+          <button
+            onClick={() => { setMostrarGuardadas(p => !p); setMostrarFavoritas(false) }}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${mostrarGuardadas ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+          >
+            📂 Guardadas {semanasGuardadas.length > 0 && <span className="bg-blue-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{semanasGuardadas.length}</span>}
+          </button>
+          <button
+            onClick={() => setModalGuardar(true)}
+            disabled={totalListos === 0}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
+          >
+            💾 Guardar
+          </button>
+        </div>
       </div>
 
       {/* Widget nutricional — solo cuando hay recetas */}
@@ -948,40 +994,6 @@ export default function Menu() {
         </div>
       )}
 
-      {/* Onboarding — se muestra solo la primera vez */}
-      {showOnboarding && (
-        <div className="fixed inset-x-0 bottom-20 z-40 px-4 pointer-events-none">
-          <div className="max-w-lg mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 pointer-events-auto">
-            <div className="flex items-start gap-3 mb-3">
-              <span className="text-3xl shrink-0">{ONBOARDING_STEPS[onboardingStep].emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-gray-800 dark:text-gray-100">{ONBOARDING_STEPS[onboardingStep].titulo}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{ONBOARDING_STEPS[onboardingStep].desc}</p>
-              </div>
-              <button onClick={dismissOnboarding} className="text-gray-300 hover:text-gray-500 text-sm shrink-0">✕</button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1.5">
-                {ONBOARDING_STEPS.map((_, i) => (
-                  <button key={i} onClick={() => setOnboardingStep(i)}
-                    className={`w-2 h-2 rounded-full transition-colors ${i === onboardingStep ? 'bg-green-select' : 'bg-gray-200 dark:bg-gray-700'}`} />
-                ))}
-              </div>
-              {onboardingStep < ONBOARDING_STEPS.length - 1 ? (
-                <button onClick={() => setOnboardingStep(s => s + 1)}
-                  className="text-xs font-semibold text-green-select hover:text-green-700">
-                  Siguiente →
-                </button>
-              ) : (
-                <button onClick={dismissOnboarding}
-                  className="text-xs font-semibold bg-green-select text-white px-3 py-1.5 rounded-lg">
-                  ¡Entendido!
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {totalSeleccionadas > 0 && (
         <div className="mt-8 sticky bottom-24 flex justify-center">

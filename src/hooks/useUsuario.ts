@@ -9,6 +9,7 @@ export interface UsuarioPerfil {
   username?: string
   avatar_emoji?: string
   avatar_url?: string
+  codigo_usuario?: string
 }
 
 export function useUsuario() {
@@ -20,7 +21,7 @@ export function useUsuario() {
     if (!user) { setLoading(false); return }
     const { data } = await supabase
       .from('usuarios')
-      .select('id, email, nombre_display, username, avatar_emoji, avatar_url')
+      .select('id, email, nombre_display, username, avatar_emoji, avatar_url, codigo_usuario')
       .eq('id', user.id)
       .maybeSingle()
     setUsuario(data as UsuarioPerfil | null)
