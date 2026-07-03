@@ -24,10 +24,10 @@
         document.documentElement.classList.add('dark')
       }
     } catch {}
-    // Fuerza actualización del service worker si hay una versión nueva
+    // Fuerza recarga cuando Workbox activa un SW nuevo (skipWaiting + clientsClaim)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(r => r.update())
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload()
       })
     }
   </script>
