@@ -229,17 +229,14 @@ export function expandirCatalogo(catalogo: Record<string, Producto[]>): Record<s
   if (!catalogo[CAT_ORIGEN]) return catalogo
   const prods = catalogo[CAT_ORIGEN]
   const aceites: Producto[] = []
-  const especias: Producto[] = []
-  const salsas: Producto[] = []
+  const resto: Producto[] = []
   for (const p of prods) {
-    if (ACEITE_RE.test(p.nombre)) aceites.push(p)
-    else if (ESPECIA_RE.test(p.nombre)) especias.push(p)
-    else salsas.push(p)
+    if (ACEITE_RE.test(p.nombre) || VINAGRE_RE.test(p.nombre)) aceites.push(p)
+    else resto.push(p)
   }
   const result = { ...catalogo }
   delete result[CAT_ORIGEN]
-  if (aceites.length) result['Aceites y vinagres'] = [...aceites, ...prods.filter(p => VINAGRE_RE.test(p.nombre))]
-  if (especias.length) result['Especias y condimentos'] = especias
-  if (salsas.length) result['Salsas y aderezos'] = salsas.filter(p => !VINAGRE_RE.test(p.nombre))
+  if (aceites.length) result['Aceites y vinagres'] = aceites
+  if (resto.length) result['Especias, salsas y aderezos'] = resto
   return result
 }

@@ -30,8 +30,7 @@ const DEFECTO_KG = 1
 const CAT_EMOJI: Record<string, string> = {
   'Aceite, especias y salsas':      '🫒',
   'Aceites y vinagres':             '🫒',
-  'Especias y condimentos':         '🧂',
-  'Salsas y aderezos':              '🥫',
+  'Especias, salsas y aderezos':   '🧂',
   'Agua y refrescos':               '💧',
   'Aperitivos':                     '🍿',
   'Arroz, legumbres y pasta':       '🍝',

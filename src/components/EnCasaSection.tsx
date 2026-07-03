@@ -14,7 +14,7 @@ interface Props {
 
 const CAT_EMOJI: Record<string, string> = {
   'Aceites y vinagres': '🫒', 'Aceite, especias y salsas': '🫒',
-  'Especias y condimentos': '🧂', 'Salsas y aderezos': '🥫',
+  'Especias, salsas y aderezos': '🧂',
   'Agua y refrescos': '💧', 'Aperitivos': '🍿',
   'Arroz, legumbres y pasta': '🍚', 'Bodega': '🍷', 'Carne': '🥩',
   'Charcutería y quesos': '🧀', 'Congelados': '🧊', 'Conservas y productos en tarro': '🥫',
