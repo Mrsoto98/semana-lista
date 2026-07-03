@@ -36,21 +36,77 @@ const CAT_EMOJI: Record<string, string> = {
   'Pizzas y platos preparados':'🍕','Postres y yogures':'🍮','Zumos':'🍊',
 }
 
+function ArticuloPersonalizado({ inputRef, onAñadir }: {
+  inputRef: React.RefObject<HTMLInputElement | null>
+  onAñadir: (nombre: string) => void
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const [valor, setValor] = useState('')
+  function confirmar() {
+    if (!valor.trim()) return
+    onAñadir(valor)
+    setValor('')
+    setAbierto(false)
+  }
+  return (
+    <div className="mt-2">
+      {!abierto ? (
+        <button
+          onClick={() => setAbierto(true)}
+          className="text-xs text-gray-400 dark:text-gray-500 hover:text-green-select transition-colors flex items-center gap-1"
+        >✏️ Artículo personalizado</button>
+      ) : (
+        <div className="flex gap-2">
+          <input
+            ref={inputRef}
+            autoFocus
+            type="text"
+            value={valor}
+            onChange={e => setValor(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setAbierto(false) }}
+            placeholder="Nombre del artículo..."
+            className="flex-1 min-w-0 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select"
+          />
+          <button onClick={confirmar} disabled={!valor.trim()}
+            className="text-sm bg-green-select text-white px-4 py-2 rounded-xl font-semibold shrink-0 hover:bg-green-700 transition-colors disabled:opacity-40">+</button>
+          <button onClick={() => setAbierto(false)}
+            className="text-sm text-gray-400 px-2 py-2 rounded-xl hover:text-gray-600 transition-colors">✕</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function CategoriasSelector({ categorias, catActiva, onSelect }: {
   categorias: string[]; catActiva: string; onSelect: (cat: string) => void
 }) {
+  const [abierto, setAbierto] = useState(false)
+  const esActiva = catActiva !== TODO_CAT
   return (
-    <div className="flex flex-wrap gap-1.5 mb-4">
-      <button
-        onClick={() => onSelect(TODO_CAT)}
-        className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${catActiva === TODO_CAT ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}
-      >🛒 Todo</button>
-      {categorias.map(cat => (
-        <button key={cat}
-          onClick={() => onSelect(cat)}
-          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${catActiva === cat ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}
-        >{CAT_EMOJI[cat] ?? ''} {cat}</button>
-      ))}
+    <div className="mb-4">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => { onSelect(TODO_CAT); setAbierto(false) }}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${!esActiva ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}
+        >🛒 Todo</button>
+        <button
+          onClick={() => setAbierto(v => !v)}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1 ${esActiva ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}
+        >
+          {esActiva ? `${CAT_EMOJI[catActiva] ?? ''} ${catActiva}` : 'Categorías'}
+          <span className={`transition-transform duration-200 inline-block ${abierto ? 'rotate-180' : ''}`}>▾</span>
+        </button>
+      </div>
+      {abierto && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {categorias.map(cat => (
+            <button key={cat}
+              onClick={() => { onSelect(cat); setAbierto(false) }}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${catActiva === cat ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}
+            >{CAT_EMOJI[cat] ?? ''} {cat}</button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -592,16 +648,8 @@ export default function ListaCompartida() {
             </button>
           )}
 
-          {/* Input personalizado */}
-          <div className="flex gap-2 mt-2">
-            <input ref={inputRef} type="text" value={inputCustom}
-              onChange={e => setInputCustom(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && añadir(inputCustom)}
-              placeholder="Añadir artículo..."
-              className="flex-1 min-w-0 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
-            <button onClick={() => añadir(inputCustom)} disabled={!inputCustom.trim()}
-              className="text-sm bg-green-select text-white px-4 py-2 rounded-xl font-semibold shrink-0 hover:bg-green-700 transition-colors disabled:opacity-40">+</button>
-          </div>
+          {/* Input personalizado colapsable */}
+          <ArticuloPersonalizado inputRef={inputRef} onAñadir={añadir} />
         </div>
       </div>
 
