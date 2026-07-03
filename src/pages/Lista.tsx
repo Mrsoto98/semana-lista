@@ -644,15 +644,7 @@ export default function Lista() {
                   <span className={`inline-block transition-transform duration-200 ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
                   {listaColapsada ? `${comprarArray.length} artículos` : 'Plegar lista'}
                 </button>
-                {listaColapsada ? (
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {comprarArray.map(item => (
-                      <span key={item} className={`text-xs px-2.5 py-1 rounded-full border ${comprado.has(item) ? 'text-gray-300 dark:text-gray-600 border-gray-200 dark:border-gray-800 line-through' : 'text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
+                {!listaColapsada && (
                 <div className="max-h-64 overflow-y-auto space-y-1 mb-2">
                   {comprarArray.map(item => {
                     const { modo, precioKg } = getModoInfo(item)
@@ -742,12 +734,13 @@ export default function Lista() {
                     Limpiar comprados ({comprado.size})
                   </button>
                 )}
+                {listaColapsada && <div className="mb-1" />}
               </>
             )
           }
 
-          {/* Añadir personalizado */}
-          <AnadirProducto inputCustom={inputCustom} setInputCustom={setInputCustom} precioInputCustom={precioInputCustom} setPrecioInputCustom={setPrecioInputCustom} onAdd={addCustom} />
+          {/* Añadir personalizado — solo visible cuando la lista está expandida */}
+          {!listaColapsada && <AnadirProducto inputCustom={inputCustom} setInputCustom={setInputCustom} precioInputCustom={precioInputCustom} setPrecioInputCustom={setPrecioInputCustom} onAdd={addCustom} />}
         </div>
       </div>
 
