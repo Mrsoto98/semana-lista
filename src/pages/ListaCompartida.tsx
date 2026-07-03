@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase'
 import { recuperar } from '../lib/storage'
 import {
   topMatchesMercadona, agruparIngredientes, resolverContraSet, etiquetaGrupo, nombreGuardadoComo as nombreGuardadoComoLib,
-  type MatchProducto,
+  expandirCatalogo, type MatchProducto,
 } from '../lib/matchMercadona'
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
 import { EnCasaSection } from '../components/EnCasaSection'
@@ -25,7 +25,8 @@ const DEFECTO_KG = 1
 const PAGINA = 50
 
 const CAT_EMOJI: Record<string, string> = {
-  'Aceite, especias y salsas':'🫒','Agua y refrescos':'💧','Aperitivos':'🍿',
+  'Aceite, especias y salsas':'🫒','Aceites y vinagres':'🫒','Especias, salsas y aderezos':'🧂',
+  'Agua y refrescos':'💧','Aperitivos':'🍿',
   'Arroz, legumbres y pasta':'🍝','Azúcar, caramelos y chocolate':'🍫','Bebé':'👶',
   'Bodega':'🍷','Cacao, café e infusiones':'☕','Carne':'🥩','Cereales y galletas':'🥣',
   'Charcutería y quesos':'🧀','Congelados':'🧊','Conservas, caldos y cremas':'🥫',
@@ -33,6 +34,40 @@ const CAT_EMOJI: Record<string, string> = {
   'Fruta y verdura':'🥦','Huevos, leche y mantequilla':'🥛','Limpieza y hogar':'🧹',
   'Maquillaje':'💄','Marisco y pescado':'🐟','Mascotas':'🐾','Panadería y pastelería':'🥖',
   'Pizzas y platos preparados':'🍕','Postres y yogures':'🍮','Zumos':'🍊',
+}
+
+function CategoriasSelector({ categorias, catActiva, onSelect }: {
+  categorias: string[]; catActiva: string; onSelect: (cat: string) => void
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const esActiva = catActiva !== TODO_CAT
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => { onSelect(TODO_CAT); setAbierto(false) }}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${!esActiva ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 border border-gray-200 dark:border-gray-700'}`}
+        >🛒 Todo</button>
+        <button
+          onClick={() => setAbierto(v => !v)}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1 ${esActiva ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 border border-gray-200 dark:border-gray-700'}`}
+        >
+          {esActiva ? `${CAT_EMOJI[catActiva] ?? ''} ${catActiva}` : 'Categoría'}
+          <span className={`transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`}>▾</span>
+        </button>
+      </div>
+      {abierto && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {categorias.map(cat => (
+            <button key={cat}
+              onClick={() => { onSelect(cat); setAbierto(false) }}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${catActiva === cat ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}
+            >{CAT_EMOJI[cat] ?? ''} {cat}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function ListaCompartida() {
@@ -139,7 +174,10 @@ export default function ListaCompartida() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    import('../data/mercadona.json').then(m => setCatalogo(m.default as CatalogoData))
+    import('../data/mercadona.json').then(m => {
+      const raw = m.default as CatalogoData
+      setCatalogo({ ...raw, categorias: expandirCatalogo(raw.categorias) as typeof raw.categorias })
+    })
   }, [])
 
   useEffect(() => {
@@ -155,6 +193,7 @@ export default function ListaCompartida() {
 
   // ── Catálogo ──────────────────────────────────────────────────────────────
   const categorias = useMemo(() => catalogo ? Object.keys(catalogo.categorias) : [], [catalogo])
+
 
   const todosDedup = useMemo<ProductoMercadona[]>(() => {
     if (!catalogo) return []
@@ -678,16 +717,12 @@ export default function ListaCompartida() {
                 onChange={e => { setBusqueda(e.target.value); setLimite(PAGINA) }}
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm mb-3 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
 
-              {/* Pills categorías */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {[TODO_CAT, ...categorias].map(cat => (
-                  <button key={cat}
-                    onClick={() => { setCatActiva(cat); setBusqueda(''); setLimite(PAGINA) }}
-                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${catActiva === cat ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}>
-                    {cat === TODO_CAT ? '🛒 Todo' : `${CAT_EMOJI[cat] ?? ''} ${cat}`}
-                  </button>
-                ))}
-              </div>
+              {/* Selector categorías colapsable */}
+              <CategoriasSelector
+                categorias={categorias}
+                catActiva={catActiva}
+                onSelect={cat => { setCatActiva(cat); setBusqueda(''); setLimite(PAGINA) }}
+              />
 
               {/* Lista de productos */}
               <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
