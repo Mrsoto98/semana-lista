@@ -221,7 +221,6 @@ export function nombreGuardadoComo(
 
 // Expande "Aceite, especias y salsas" en tres subcategorías independientes
 const ACEITE_RE = /\baceite\b/i
-const ESPECIA_RE = /\b(especia|pimienta|canela|orégano|oregano|tomillo|romero|curry|comino|pimentón|pimenton|cúrcuma|curcuma|azafrán|azafran|laurel|nuez moscada|ajo en polvo|cebolla en polvo|albahaca|perejil|cilantro|jengibre|cardamomo|anís|anis|clavo|hierbas)\b/i
 const VINAGRE_RE = /\bvinagre\b/i
 
 export function expandirCatalogo(catalogo: Record<string, Producto[]>): Record<string, Producto[]> {
