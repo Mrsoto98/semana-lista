@@ -238,7 +238,7 @@ export default function Ajustes() {
   return (
     <div className="min-h-screen p-4 max-w-lg mx-auto pb-24 page-enter">
       {modalFeedback && <FeedbackModal onClose={() => setModalFeedback(false)} />}
-      <h1 className="text-2xl font-black tracking-tight mb-6 mt-2">Ajustes</h1>
+      <h1 data-tutorial="ajustes-h1" className="text-2xl font-black tracking-tight mb-6 mt-2">Ajustes</h1>
 
       {/* ── Perfil de usuario ────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 rounded-card shadow-card p-4 mb-6 space-y-4">

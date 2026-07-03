@@ -87,6 +87,7 @@ export default function Menu() {
   const [errorMsg, setErrorMsg] = useState('')
   const [generacionesMes, setGeneracionesMes] = useState<number>(0)
   const LIMITE_GENERACIONES = 15
+  const [modalDestinoLista, setModalDestinoLista] = useState(false)
 
   // Configuración de días y franjas a generar (persistida en localStorage)
   type DiasConfig = 'semana' | 'laboral' | 'personalizado'
@@ -503,10 +504,18 @@ export default function Menu() {
   }
 
   function irALista() {
+    if (listasCompartidas.length > 0) {
+      setModalDestinoLista(true)
+    } else {
+      navegarALista(null)
+    }
+  }
+
+  function navegarALista(listaId: string | null) {
     const menu = construirMenuDesdeSeleccion()
     guardar('menu_semana', menu); guardar('sorpresa_menu', menu)
-    const listaDestinoId = recuperar<string | null>('menu_lista_destino') ?? recuperar<string>('lista_compartida_principal')
-    navigate(listaDestinoId ? `/lista-compartida/${listaDestinoId}` : '/lista')
+    setModalDestinoLista(false)
+    navigate(listaId ? `/lista-compartida/${listaId}` : '/lista')
   }
 
   const totalListos = DIAS.flatMap(d => FRANJAS.map(f => `${d}_${f}` as ClaveMenu)).filter(k => estados[k]?.estado === 'listo').length
@@ -1019,6 +1028,50 @@ export default function Menu() {
             style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
             🛒 Ver lista ({totalSeleccionadas} comidas)
           </button>
+        </div>
+      )}
+
+      {/* Modal selección destino de la lista */}
+      {modalDestinoLista && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setModalDestinoLista(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-t-3xl p-6 pb-10 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-5" />
+            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">¿Dónde ver los ingredientes?</h3>
+            <p className="text-xs text-gray-400 mb-5">Elige la lista a la que se añadirán las comidas seleccionadas</p>
+
+            <div className="flex flex-col gap-3">
+              {/* Lista personal */}
+              <button
+                onClick={() => navegarALista(null)}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-accent hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-all text-left"
+              >
+                <span className="text-2xl">🛒</span>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900 dark:text-white">Lista personal</p>
+                  <p className="text-xs text-gray-400">Solo tú la ves y editas</p>
+                </div>
+              </button>
+
+              {/* Listas compartidas */}
+              {listasCompartidas.map(lista => (
+                <button
+                  key={lista.id}
+                  onClick={() => navegarALista(lista.id)}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all text-left"
+                >
+                  <span className="text-2xl">👥</span>
+                  <div>
+                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{lista.nombre}</p>
+                    <p className="text-xs text-gray-400">Lista compartida</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
