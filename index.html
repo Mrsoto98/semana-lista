@@ -24,16 +24,22 @@
         document.documentElement.classList.add('dark')
       }
     } catch {}
-    // Fuerza recarga cuando Workbox activa un SW nuevo (skipWaiting + clientsClaim)
+
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // Registrar SW con updateViaCache:'none' para que el navegador siempre
+      // descargue sw.js fresco desde la red, sin que el SW actual lo intercepte
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+        .then(function(reg) {
+          // Comprobar actualizaciones inmediatamente y al volver al foco
+          reg.update()
+          document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') reg.update()
+          })
+        })
+
+      // Recargar cuando el nuevo SW tome el control
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
         window.location.reload()
-      })
-      // En móvil la PWA puede estar minimizada; revisar actualizaciones al volver al foco
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          navigator.serviceWorker.getRegistration().then(r => r && r.update())
-        }
       })
     }
   </script>
