@@ -1,5 +1,5 @@
 // src/App.tsx
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { usePerfil } from './hooks/usePerfil'
@@ -391,12 +391,41 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function IosBanner() {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const esIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    const esStandalone = ('standalone' in navigator) && (navigator as { standalone?: boolean }).standalone
+    const yaVisto = localStorage.getItem('ios-install-banner-visto')
+    if (esIos && !esStandalone && !yaVisto) setVisible(true)
+  }, [])
+  if (!visible) return null
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3 shadow-xl">
+      <div className="flex items-start gap-3 max-w-lg mx-auto">
+        <span className="text-2xl shrink-0">📲</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Instalar Semana Lista</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Toca <strong>compartir</strong> <span className="inline-block">⎋</span> y luego <strong>"Añadir a pantalla de inicio"</strong>
+          </p>
+        </div>
+        <button
+          onClick={() => { setVisible(false); localStorage.setItem('ios-install-banner-visto', '1') }}
+          className="text-gray-400 hover:text-gray-600 text-lg shrink-0 leading-none"
+        >✕</button>
+      </div>
+    </div>
+  )
+}
+
 function AppRoutes() {
   const { user } = useAuth()
 
   return (
     <>
       <OfflineBanner />
+      <IosBanner />
       <Tutorial />
       <Navbar />
       <div style={{ paddingBottom: user ? 'calc(3.5rem + env(safe-area-inset-bottom))' : '0' }}>

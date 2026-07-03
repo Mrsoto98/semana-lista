@@ -56,6 +56,41 @@ const CAT_EMOJI: Record<string, string> = {
   'Zumos':                          '🍊',
 }
 
+function AnadirProducto({ inputCustom, setInputCustom, precioInputCustom, setPrecioInputCustom, onAdd }: {
+  inputCustom: string; setInputCustom: (v: string) => void
+  precioInputCustom: string; setPrecioInputCustom: (v: string) => void
+  onAdd: () => void
+}) {
+  const [abierto, setAbierto] = useState(false)
+  return abierto ? (
+    <div className="flex gap-2 mt-3">
+      <input
+        autoFocus
+        type="text" value={inputCustom} onChange={e => setInputCustom(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && onAdd()}
+        placeholder="Nombre del producto..."
+        className="flex-1 min-w-0 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select"
+      />
+      <input
+        type="number" step="0.01" min="0" value={precioInputCustom}
+        onChange={e => setPrecioInputCustom(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && onAdd()}
+        placeholder="€"
+        className="w-16 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-2 py-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select"
+      />
+      <button onClick={onAdd} className="text-sm bg-green-select text-white px-3 py-2 rounded-xl font-semibold shrink-0 hover:bg-green-700 transition-colors">+</button>
+      <button onClick={() => setAbierto(false)} className="text-sm text-gray-400 px-2 py-2 rounded-xl hover:text-gray-600 transition-colors">✕</button>
+    </div>
+  ) : (
+    <button
+      onClick={() => setAbierto(true)}
+      className="mt-3 flex items-center gap-1.5 text-xs text-gray-400 hover:text-green-select transition-colors py-1"
+    >
+      <span className="text-base leading-none">+</span> Producto personalizado
+    </button>
+  )
+}
+
 export default function Lista() {
   const { perfil, guardarPerfil } = usePerfil()
   const navigate = useNavigate()
@@ -642,18 +677,7 @@ export default function Lista() {
           }
 
           {/* Añadir personalizado */}
-          <div className="flex gap-2 mt-3">
-            <input type="text" value={inputCustom} onChange={e => setInputCustom(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addCustom()}
-              placeholder="Añadir producto..."
-              className="flex-1 min-w-0 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
-            <input type="number" step="0.01" min="0" value={precioInputCustom}
-              onChange={e => setPrecioInputCustom(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addCustom()}
-              placeholder="€"
-              className="w-16 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-2 py-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
-            <button onClick={addCustom} className="text-sm bg-green-select text-white px-4 py-2 rounded-xl font-semibold shrink-0 hover:bg-green-700 transition-colors">+</button>
-          </div>
+          <AnadirProducto inputCustom={inputCustom} setInputCustom={setInputCustom} precioInputCustom={precioInputCustom} setPrecioInputCustom={setPrecioInputCustom} onAdd={addCustom} />
         </div>
       </div>
 
