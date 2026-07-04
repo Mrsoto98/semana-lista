@@ -513,7 +513,6 @@ export default function Menu() {
   function navegarALista(listaId: string | null) {
     const menu = construirMenuDesdeSeleccion()
     guardar('menu_semana', menu); guardar('sorpresa_menu', menu)
-    setModalDestinoLista(false)
     navigate(listaId ? `/lista-compartida/${listaId}` : '/lista')
   }
 
