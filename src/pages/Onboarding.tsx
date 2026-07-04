@@ -9,7 +9,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useI18n } from '../hooks/useI18n'
 import type { Objetivo, DificultadPreferida, Perfil } from '../types'
 
-const TOTAL_PASOS = 9
+const TOTAL_PASOS = 10
 
 type Draft = Omit<Perfil, 'id' | 'usuario_id'>
 
@@ -26,7 +26,7 @@ const DRAFT_INICIAL: Draft = {
 }
 
 export default function Onboarding() {
-  const { t } = useI18n()
+  const { t, lang, setLang } = useI18n()
   const navigate = useNavigate()
   const { guardarPerfil } = usePerfil()
   const { guardarUsuario } = useUsuario()
@@ -69,6 +69,7 @@ export default function Onboarding() {
   }
 
   const pasoLabel = [
+    t.ajustes_idioma,
     t.onb_tu_nombre,
     t.ajustes_personas,
     t.ajustes_presupuesto,
@@ -90,6 +91,44 @@ export default function Onboarding() {
       <div className="flex-1">
         {paso === 1 && (
           <div className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-400">{lang === 'ca' ? 'En quin idioma vols usar l\'app?' : '¿En qué idioma quieres usar la app?'}</p>
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                { value: 'es' as const, label: 'Español', flag: (
+                  <svg viewBox="0 0 24 24" width="28" height="28" className="rounded-full overflow-hidden shrink-0">
+                    <rect width="24" height="24" fill="#c60b1e"/>
+                    <rect y="6" width="24" height="12" fill="#ffc400"/>
+                  </svg>
+                )},
+                { value: 'ca' as const, label: 'Català', flag: (
+                  <svg viewBox="0 0 24 24" width="28" height="28" className="rounded-full overflow-hidden shrink-0">
+                    <rect width="24" height="24" fill="#fcdd09"/>
+                    <rect y="3"  width="24" height="3" fill="#da121a"/>
+                    <rect y="9"  width="24" height="3" fill="#da121a"/>
+                    <rect y="15" width="24" height="3" fill="#da121a"/>
+                    <rect y="21" width="24" height="3" fill="#da121a"/>
+                  </svg>
+                )},
+              ]).map(({ value, label, flag }) => (
+                <button
+                  key={value}
+                  onClick={() => { setLang(value); setPaso(2) }}
+                  className={`flex items-center justify-center gap-2 py-4 rounded-card border-2 text-base font-semibold transition-colors ${
+                    lang === value
+                      ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-green-select'
+                  }`}
+                >
+                  {flag}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {paso === 2 && (
+          <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso1_pregunta}</p>
             <input
               type="text"
@@ -106,7 +145,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 2 && (
+        {paso === 3 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso2_pregunta}</p>
             <div className="flex gap-3 flex-wrap">
@@ -127,7 +166,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 3 && (
+        {paso === 4 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso3_pregunta}</p>
             <input
@@ -142,7 +181,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 4 && (
+        {paso === 5 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso4_pregunta}</p>
             <input
@@ -158,7 +197,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 5 && (
+        {paso === 6 && (
           <div className="space-y-3">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso5_pregunta}</p>
             {OBJETIVOS.map(obj => (
@@ -178,7 +217,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 6 && (
+        {paso === 7 && (
           <div className="space-y-3">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso6_pregunta}</p>
             <div className="grid grid-cols-2 gap-2">
@@ -200,7 +239,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 7 && (
+        {paso === 8 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso7_pregunta}</p>
             <TagInput
@@ -211,7 +250,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 8 && (
+        {paso === 9 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso8_pregunta}</p>
             <TagInput
@@ -222,7 +261,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {paso === 9 && (
+        {paso === 10 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso9_pregunta}</p>
             <TagInput
@@ -246,7 +285,7 @@ export default function Onboarding() {
         {paso < TOTAL_PASOS ? (
           <button
             onClick={() => setPaso(p => p + 1)}
-            disabled={paso === 4 && draft.codigo_postal.length !== 5}
+            disabled={paso === 5 && draft.codigo_postal.length !== 5}
             className="flex-1 bg-green-select text-white rounded-card py-3 font-semibold hover:bg-green-600 disabled:opacity-50"
           >
             {t.onb_siguiente}
