@@ -10,7 +10,7 @@ const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.v
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get('origin') ?? ''
-  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') ? origin : ALLOWED_ORIGIN
+  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') || origin.startsWith('http://localhost') ? origin : ALLOWED_ORIGIN
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
