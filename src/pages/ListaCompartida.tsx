@@ -574,10 +574,10 @@ export default function ListaCompartida() {
           {(porComprar.length > 0 || comprados.length > 0) && (
             <button
               onClick={() => setListaColapsada(v => !v)}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 mb-2 transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-3 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
-              <span className={`inline-block transition-transform duration-200 ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
-              {listaColapsada ? `${porComprar.length + comprados.length} artículos` : 'Plegar lista'}
+              <span className={`inline-block transition-transform duration-200 text-base ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
+              {listaColapsada ? `Mostrar lista (${porComprar.length + comprados.length})` : 'Esconder lista'}
             </button>
           )}
 
