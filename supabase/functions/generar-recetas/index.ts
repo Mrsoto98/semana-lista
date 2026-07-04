@@ -52,7 +52,7 @@ const DIAS = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'
 const FRANJAS = ['comida','cena']
 
 function idiomaInstruccion(lang: string): string {
-  if (lang === 'ca') return 'IMPORTANT: Genera tota la recepta completament en català: nom, descripció curta, tags i tots els textos han d\'estar en català.'
+  if (lang === 'ca') return 'IMPORTANT: El nom de la recepta, la descripció_curta i els tags han d\'estar completament en català correcte. Exemples: "pollastre" (no "pollo"), "porc" (no "cerdo"), "vedella" (no "ternera"), "bacallà" (no "bacalao"), "gambes" (no "gambas"), "ou" (no "huevo"), "patata" (no "patatas" però sí en plural "patates"). Els noms dels ingredients han de ser els del catàleg Mercadona (en castellà), però el nom i descripció de la recepta han d\'estar en català.'
   return ''
 }
 

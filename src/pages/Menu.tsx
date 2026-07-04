@@ -89,8 +89,6 @@ export default function Menu() {
   const [errorMsg, setErrorMsg] = useState('')
   const [generacionesMes, setGeneracionesMes] = useState<number>(0)
   const LIMITE_GENERACIONES = 15
-  const [modalDestinoLista, setModalDestinoLista] = useState(false)
-  const [btnRect, setBtnRect] = useState<{ top: number; left: number; right: number } | null>(null)
 
   // Configuración de días y franjas a generar (persistida en localStorage)
   type DiasConfig = 'semana' | 'laboral' | 'personalizado'
@@ -507,14 +505,9 @@ export default function Menu() {
     return menu
   }
 
-  function irALista(e: React.MouseEvent<HTMLButtonElement>) {
-    if (listasCompartidas.length > 0) {
-      const rect = e.currentTarget.getBoundingClientRect()
-      setBtnRect({ top: rect.top, left: rect.left, right: rect.right })
-      setModalDestinoLista(true)
-    } else {
-      navegarALista(null)
-    }
+  function irALista(_e: React.MouseEvent<HTMLButtonElement>) {
+    const listaDestinoId = recuperar<string | null>('menu_lista_destino') ?? null
+    navegarALista(listaDestinoId)
   }
 
   function navegarALista(listaId: string | null) {
@@ -1037,53 +1030,6 @@ export default function Menu() {
         </div>
       )}
 
-      {/* Modal selección destino de la lista */}
-      {modalDestinoLista && btnRect && (
-        <div className="fixed inset-0 z-50" onClick={() => setModalDestinoLista(false)}>
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <div
-            className="absolute bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-2xl w-72"
-            style={{
-              bottom: window.innerHeight - btnRect.top + 10,
-              left: Math.min(Math.max(btnRect.left + (btnRect.right - btnRect.left) / 2 - 144, 12), window.innerWidth - 300),
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-4" />
-            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t.menu_donde_ingredientes}</h3>
-            <p className="text-xs text-gray-400 mb-5">{t.menu_elige_lista}</p>
-
-            <div className="flex flex-col gap-3">
-              {/* Lista personal */}
-              <button
-                onClick={() => navegarALista(null)}
-                className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-orange-accent hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-all text-left"
-              >
-                <span className="text-2xl">🛒</span>
-                <div>
-                  <p className="font-semibold text-sm text-gray-900 dark:text-white">{t.menu_lista_personal}</p>
-                  <p className="text-xs text-gray-400">{t.menu_lista_personal_desc}</p>
-                </div>
-              </button>
-
-              {/* Listas compartidas */}
-              {listasCompartidas.map(lista => (
-                <button
-                  key={lista.id}
-                  onClick={() => navegarALista(lista.id)}
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all text-left"
-                >
-                  <span className="text-2xl">👥</span>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{lista.nombre}</p>
-                    <p className="text-xs text-gray-400">{t.modal_lista_compartida}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   )
