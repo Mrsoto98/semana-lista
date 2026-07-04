@@ -4,7 +4,7 @@ import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'jso
 
 const ZHIPU_API_KEY = Deno.env.get('ZHIPU_API_KEY')!
 const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
-const ZHIPU_MODEL = 'glm-4.6'
+const ZHIPU_MODEL = 'glm-5-turbo'
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
 
