@@ -406,6 +406,37 @@ export default function ListaCompartida() {
     return map
   }, [ingredientesMenu, catalogo])
 
+  // Foto+categoría para cada item de la lista de compra compartida
+  const infoItemLC = useMemo(() => {
+    const map = new Map<string, { foto: string | null; categoria: string }>()
+    if (!catalogo?.categorias) return map
+    const catMap = new Map<string, string>()
+    for (const [cat, prods] of Object.entries(catalogo.categorias)) {
+      for (const p of prods) { if (!catMap.has(p.nombre)) catMap.set(p.nombre, cat) }
+    }
+    for (const item of items) {
+      if (map.has(item.nombre)) continue
+      const top = topMatchesMercadona(item.nombre, catalogo.categorias, 1)
+      map.set(item.nombre, { foto: top[0]?.foto ?? null, categoria: catMap.get(top[0]?.nombre ?? '') ?? 'Otros' })
+    }
+    return map
+  }, [items, catalogo])
+
+  // Agrupa items por categoría (pendientes primero, comprados al final)
+  const itemsPorCategoria = useMemo(() => {
+    const allItems = [...porComprar, ...comprados]
+    const g = new Map<string, typeof allItems>()
+    for (const item of allItems) {
+      const cat = infoItemLC.get(item.nombre)?.categoria ?? 'Otros'
+      if (!g.has(cat)) g.set(cat, [])
+      g.get(cat)!.push(item)
+    }
+    return Array.from(g.entries()).sort(([a], [b]) => {
+      if (a === 'Otros') return 1; if (b === 'Otros') return -1
+      return a.localeCompare(b, 'es')
+    })
+  }, [porComprar, comprados, infoItemLC])
+
   const gruposMenuPorCategoria = useMemo(() => {
     const g = new Map<string, typeof gruposMenu>()
     for (const grupo of gruposMenu) {
@@ -587,73 +618,70 @@ export default function ListaCompartida() {
 
           {!listaColapsada && (porComprar.length > 0 || comprados.length > 0) && (
             <>
-            <div className="max-h-64 overflow-y-auto space-y-1 mb-2">
-              {[...porComprar, ...comprados].map(item => {
-                const enKg = item.unidad === 'kg'
-                const precioKg = precioKgDe(item.nombre)
-                return (
-                <div key={item.id} className={`rounded-xl px-3 py-2 transition-colors ${item.comprado ? 'bg-gray-50 dark:bg-gray-900' : 'bg-green-50 dark:bg-green-950/50'}`}>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={item.comprado}
-                      onChange={() => toggleComprado(item.id, !item.comprado)}
-                      className="shrink-0 accent-green-select w-4 h-4" />
-                    <span className={`flex-1 text-sm font-medium truncate ${item.comprado ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
-                      {item.nombre}
-                    </span>
-                    {!item.added_by || item.added_by === user?.id ? null : (
-                      <Avatar url={perfilesMiembros[item.added_by]?.avatar_url}
-                        emoji={perfilesMiembros[item.added_by]?.avatar_emoji} size="sm" className="opacity-60 shrink-0" />
-                    )}
-                    {editandoPrecio === item.id ? (
-                      <form onSubmit={e => { e.preventDefault(); guardarPrecio(item.id) }} className="flex gap-1 items-center shrink-0">
-                        <input autoFocus type="number" step="0.01" min="0" value={precioDraft}
-                          onChange={e => setPrecioDraft(e.target.value)}
-                          className="w-20 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-800" placeholder="0.00" />
-                        <button type="submit" className="text-xs text-green-select font-bold">✓</button>
-                        <button type="button" onClick={() => setEditandoPrecio(null)} className="text-xs text-gray-400">✕</button>
-                      </form>
-                    ) : (
-                      <button onClick={() => { setEditandoPrecio(item.id); setPrecioDraft(item.precio?.toString() ?? '') }}
-                        className="text-xs font-semibold text-gray-500 hover:text-green-select shrink-0 min-w-[52px] text-right transition-colors">
-                        {item.precio ? `${(item.precio * (item.cantidad ?? 1)).toFixed(2)} €` : <span className="text-gray-300 font-normal">+ precio</span>}
-                      </button>
-                    )}
-                    <button onClick={() => toggleEnCasa(item.id, !item.en_casa)} title={t.lista_tengo_casa}
-                      className="text-base shrink-0 opacity-50 hover:opacity-100 transition-opacity">🏠</button>
-                    <button onClick={() => eliminarItem(item.id)} className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">✕</button>
-                  </div>
-
-                  {/* Cantidad / kg */}
-                  <div className="flex items-center gap-2 mt-1.5 ml-6">
-                    {precioKg != null && (
-                      <div className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 text-[10px] font-bold">
-                        <button onClick={() => enKg && toggleModoKg(item, precioKg, item.precio ?? 0)}
-                          className={`px-2 py-0.5 transition-colors ${!enKg ? 'bg-green-select text-white' : 'text-gray-400 hover:text-gray-600'}`}>
-                          ud
-                        </button>
-                        <button onClick={() => !enKg && toggleModoKg(item, precioKg, item.precio ?? 0)}
-                          className={`px-2 py-0.5 transition-colors ${enKg ? 'bg-green-select text-white' : 'text-gray-400 hover:text-gray-600'}`}>
-                          kg
-                        </button>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => decrementar(item)}
-                        className="w-5 h-5 rounded-full border border-green-select text-green-select font-bold text-xs flex items-center justify-center leading-none hover:bg-green-100 dark:hover:bg-green-900 transition-colors">
-                        −
-                      </button>
-                      <span className="text-xs font-bold text-green-select min-w-[2.5rem] text-center">
-                        {enKg ? `${item.cantidad ?? DEFECTO_KG} kg` : `×${item.cantidad ?? 1}`}
-                      </span>
-                      <button onClick={() => incrementar(item, precioKg)}
-                        className="w-5 h-5 rounded-full border border-green-select text-green-select font-bold text-xs flex items-center justify-center leading-none hover:bg-green-100 dark:hover:bg-green-900 transition-colors">
-                        +
-                      </button>
-                    </div>
+            <div className="max-h-72 overflow-y-auto space-y-3 mb-2">
+              {itemsPorCategoria.map(([cat, catItems]) => (
+                <div key={cat}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1 px-1">
+                    {CAT_EMOJI[cat] ?? '📦'} {cat}
+                  </p>
+                  <div className="space-y-0.5">
+                    {catItems.map(item => {
+                      const enKg = item.unidad === 'kg'
+                      const precioKg = precioKgDe(item.nombre)
+                      const foto = infoItemLC.get(item.nombre)?.foto ?? null
+                      return (
+                        <div key={item.id} className={`flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors ${item.comprado ? 'bg-gray-50 dark:bg-gray-900 opacity-60' : 'bg-green-50 dark:bg-green-950/50'}`}>
+                          <input type="checkbox" checked={item.comprado}
+                            onChange={() => toggleComprado(item.id, !item.comprado)}
+                            className="shrink-0 accent-green-select w-4 h-4" />
+                          {foto
+                            ? <img src={foto} alt="" loading="lazy" className="w-7 h-7 rounded-lg object-cover shrink-0 bg-gray-100 dark:bg-gray-800" onError={e => { e.currentTarget.style.display = 'none' }} />
+                            : <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0 flex items-center justify-center text-sm">🛒</div>
+                          }
+                          <span className={`flex-1 text-xs font-medium truncate ${item.comprado ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                            {item.nombre}
+                          </span>
+                          {!item.added_by || item.added_by === user?.id ? null : (
+                            <Avatar url={perfilesMiembros[item.added_by]?.avatar_url}
+                              emoji={perfilesMiembros[item.added_by]?.avatar_emoji} size="sm" className="opacity-60 shrink-0" />
+                          )}
+                          {/* Cantidad */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {precioKg != null && (
+                              <div className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 text-[9px] font-bold">
+                                <button onClick={() => enKg && toggleModoKg(item, precioKg, item.precio ?? 0)} className={`px-1.5 py-0.5 ${!enKg ? 'bg-green-select text-white' : 'text-gray-400'}`}>ud</button>
+                                <button onClick={() => !enKg && toggleModoKg(item, precioKg, item.precio ?? 0)} className={`px-1.5 py-0.5 ${enKg ? 'bg-green-select text-white' : 'text-gray-400'}`}>kg</button>
+                              </div>
+                            )}
+                            <button onClick={() => decrementar(item)} className="w-4 h-4 rounded-full border border-green-select text-green-select font-bold text-[10px] flex items-center justify-center leading-none">−</button>
+                            <span className="text-[10px] font-bold text-green-select min-w-[1.8rem] text-center">
+                              {enKg ? `${item.cantidad ?? DEFECTO_KG}kg` : `×${item.cantidad ?? 1}`}
+                            </span>
+                            <button onClick={() => incrementar(item, precioKg)} className="w-4 h-4 rounded-full border border-green-select text-green-select font-bold text-[10px] flex items-center justify-center leading-none">+</button>
+                          </div>
+                          {/* Precio */}
+                          {editandoPrecio === item.id ? (
+                            <form onSubmit={e => { e.preventDefault(); guardarPrecio(item.id) }} className="flex gap-1 items-center shrink-0">
+                              <input autoFocus type="number" step="0.01" min="0" value={precioDraft}
+                                onChange={e => setPrecioDraft(e.target.value)}
+                                className="w-16 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-800" placeholder="0.00" />
+                              <button type="submit" className="text-xs text-green-select font-bold">✓</button>
+                              <button type="button" onClick={() => setEditandoPrecio(null)} className="text-xs text-gray-400">✕</button>
+                            </form>
+                          ) : (
+                            <button onClick={() => { setEditandoPrecio(item.id); setPrecioDraft(item.precio?.toString() ?? '') }}
+                              className="text-[10px] font-semibold text-gray-500 hover:text-green-select shrink-0 min-w-[40px] text-right">
+                              {item.precio ? `${(item.precio * (item.cantidad ?? 1)).toFixed(2)} €` : <span className="text-gray-300">+€</span>}
+                            </button>
+                          )}
+                          <button onClick={() => toggleEnCasa(item.id, !item.en_casa)} title={t.lista_tengo_casa} className="text-sm shrink-0 opacity-40 hover:opacity-100 transition-opacity">🏠</button>
+                          <button onClick={() => eliminarItem(item.id)} className="text-gray-300 hover:text-red-400 shrink-0 text-xs transition-colors">✕</button>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
-                )
-              })}
+              ))}
             </div>
             {comprados.length > 0 && (
               <button onClick={async () => { try { await Promise.all(comprados.map(i => eliminarItem(i.id))) } catch { /* item may already be deleted */ } }}
