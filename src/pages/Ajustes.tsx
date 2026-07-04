@@ -566,9 +566,28 @@ export default function Ajustes() {
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_idioma}</p>
         <div className="grid grid-cols-2 gap-2">
           {([
-            { value: 'es', label: 'Español', emoji: '🇪🇸' },
-            { value: 'ca', label: 'Català',  emoji: '🏴' },
-          ] as const).map(({ value, label, emoji }) => (
+            {
+              value: 'es', label: 'Español',
+              flag: (
+                <svg viewBox="0 0 24 24" width="24" height="24" className="rounded-full overflow-hidden shrink-0">
+                  <rect width="24" height="24" fill="#c60b1e"/>
+                  <rect y="6" width="24" height="12" fill="#ffc400"/>
+                </svg>
+              ),
+            },
+            {
+              value: 'ca', label: 'Català',
+              flag: (
+                <svg viewBox="0 0 24 24" width="24" height="24" className="rounded-full overflow-hidden shrink-0">
+                  <rect width="24" height="24" fill="#fcdd09"/>
+                  <rect y="3"  width="24" height="3" fill="#da121a"/>
+                  <rect y="9"  width="24" height="3" fill="#da121a"/>
+                  <rect y="15" width="24" height="3" fill="#da121a"/>
+                  <rect y="21" width="24" height="3" fill="#da121a"/>
+                </svg>
+              ),
+            },
+          ] as const).map(({ value, label, flag }) => (
             <button
               key={value}
               onClick={() => setLang(value)}
@@ -578,7 +597,7 @@ export default function Ajustes() {
                   : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
               }`}
             >
-              <span className="text-xl">{emoji}</span>
+              {flag}
               {label}
             </button>
           ))}
