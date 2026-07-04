@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Badge } from './ui/Badge'
 import type { Receta } from '../types'
 import { obtenerImagenReceta, fotoUrlPollinations } from '../lib/recetasCache'
+import { useI18n } from '../hooks/useI18n'
 
 function FotoReceta({ nombre }: { nombre: string }) {
   const [estado, setEstado] = useState<'cargando' | 'ok' | 'error'>('cargando')
@@ -80,6 +81,7 @@ export function RecetaCard({
   esDislike = false, onDislike, onQuitarDislike,
   puedeAnadirExtra = false, cargandoExtra = false, onAnadirOpcionExtra,
 }: Props) {
+  const { lang } = useI18n()
   const [vista, setVista] = useState(seleccionada)
   // Sync local vista when external seleccionada changes (e.g. after regenerar día)
   React.useEffect(() => { setVista(seleccionada) }, [seleccionada])
@@ -112,7 +114,7 @@ export function RecetaCard({
     try {
       const { supabase } = await import('../lib/supabase')
       const { data } = await supabase.functions.invoke('generar-recetas', {
-        body: { action: 'pasos', nombre: receta.nombre, ingredientes: receta.ingredientes, descripcion: receta.descripcion_corta },
+        body: { action: 'pasos', nombre: receta.nombre, ingredientes: receta.ingredientes, descripcion: receta.descripcion_corta, lang },
       })
       setPasos((data as { pasos: string[] })?.pasos ?? [])
     } catch {

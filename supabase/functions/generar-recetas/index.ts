@@ -51,6 +51,11 @@ function ingredientesParaPrompt(cocina?: string): string {
 const DIAS = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo']
 const FRANJAS = ['comida','cena']
 
+function idiomaInstruccion(lang: string): string {
+  if (lang === 'ca') return 'IMPORTANT: Genera tota la recepta completament en català: nom, descripció curta, tags i tots els textos han d\'estar en català.'
+  return ''
+}
+
 function dificultadInstruccion(d?: string): string {
   if (d === 'fácil')   return 'Todas las recetas deben ser fáciles (≤30 min, técnicas simples).'
   if (d === 'media')   return 'Recetas de dificultad media (30-60 min, técnicas habituales).'
@@ -73,7 +78,7 @@ const DIA_LABEL: Record<string, string> = {
   jueves: 'jueves', viernes: 'viernes', sabado: 'sábado', domingo: 'domingo',
 }
 
-function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[], claves: string[]): string {
+function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[], claves: string[], lang = 'es'): string {
   const { personas, objetivo, ingredientes_no, nevera, extra_instrucciones, dificultad_recetas, cocina } = perfil as {
     personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string; cocina?: string
   }
@@ -91,6 +96,8 @@ function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[]
   if (nevera?.length) ctx.push(`Ingredientes a usar: ${nevera.join(', ')}.`)
   if (recetasYaUsadas?.length) ctx.push(`No repetir estas recetas: ${recetasYaUsadas.slice(0, 8).join(', ')}.`)
   if (extra_instrucciones) ctx.push(extra_instrucciones)
+  const idiomaStr = idiomaInstruccion(lang)
+  if (idiomaStr) ctx.push(idiomaStr)
 
   ctx.push(ingredientesParaPrompt(cocina))
   ctx.push(`Responde SOLO JSON válido sin texto extra. ${claves.length} clave${claves.length > 1 ? 's' : ''} (${claves.join(', ')}), cada una con UNA sola receta (no un array):
@@ -101,7 +108,7 @@ Dificultad: fácil/media/difícil. Unidades: g,kg,ml,l,ud,cucharada,pizca.`)
   return ctx.join('\n')
 }
 
-function promptSlot(dia: string, franja: string, perfil: Record<string, unknown>): string {
+function promptSlot(dia: string, franja: string, perfil: Record<string, unknown>, lang = 'es'): string {
   const { personas, objetivo, ingredientes_no, nevera, extra_instrucciones, dificultad_recetas, cocina } = perfil as {
     personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string; cocina?: string
   }
@@ -117,6 +124,8 @@ function promptSlot(dia: string, franja: string, perfil: Record<string, unknown>
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
   if (nevera?.length) ctx.push(`En casa: ${nevera.join(', ')}.`)
   if (extra_instrucciones) ctx.push(extra_instrucciones)
+  const idiomaStrSlot = idiomaInstruccion(lang)
+  if (idiomaStrSlot) ctx.push(idiomaStrSlot)
   ctx.push(ingredientesParaPrompt(cocina))
   ctx.push(`JSON sin texto extra, UNA sola receta (no un array):
 {"nombre":"A","tiempo_prep":30,"dificultad":"fácil","descripcion_corta":"desc","calorias_aprox":400,"ingredientes":[{"nombre":"x","cantidad":200,"unidad":"g"}],"tags":["t"]}
@@ -126,7 +135,7 @@ Dificultad: "fácil","media" o "difícil". Unidades: g,kg,ml,l,ud,cucharada,pizc
   return ctx.join('\n')
 }
 
-function promptOpcionExtra(dia: string, franja: string, perfil: Record<string, unknown>, recetaExistente: string): string {
+function promptOpcionExtra(dia: string, franja: string, perfil: Record<string, unknown>, recetaExistente: string, lang = 'es'): string {
   const { personas, objetivo, ingredientes_no, nevera, extra_instrucciones, dificultad_recetas, cocina } = perfil as {
     personas: number; objetivo: string; ingredientes_no: string[]; nevera: string[]; extra_instrucciones?: string; dificultad_recetas?: string; cocina?: string
   }
@@ -143,6 +152,8 @@ function promptOpcionExtra(dia: string, franja: string, perfil: Record<string, u
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
   if (nevera?.length) ctx.push(`En casa: ${nevera.join(', ')}.`)
   if (extra_instrucciones) ctx.push(extra_instrucciones)
+  const idiomaStrExtra = idiomaInstruccion(lang)
+  if (idiomaStrExtra) ctx.push(idiomaStrExtra)
   ctx.push(ingredientesParaPrompt(cocina))
   ctx.push(`JSON sin texto extra, UNA sola receta (no un array):
 {"nombre":"A","tiempo_prep":30,"dificultad":"fácil","descripcion_corta":"desc","calorias_aprox":400,"ingredientes":[{"nombre":"x","cantidad":200,"unidad":"g"}],"tags":["t"]}
@@ -182,7 +193,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { perfil, recetas_ya_usadas = [], dia, franja, accion, receta_existente, dias: diasReq, franjas: franjasReq } = body
+    const { perfil, recetas_ya_usadas = [], dia, franja, accion, receta_existente, dias: diasReq, franjas: franjasReq, lang = 'es' } = body
 
     // Modo pasos: generar pasos de cocina para una receta
     if (body.action === 'pasos') {
@@ -192,7 +203,8 @@ Deno.serve(async (req: Request) => {
         descripcion: string
       }
       const ingStr = ingredientes.map((i: { nombre: string; cantidad: number; unidad: string }) => `${i.cantidad} ${i.unidad} ${i.nombre}`).join(', ')
-      const prompt = `Escribe los pasos de cocina numerados para: ${nombre}. Ingredientes: ${ingStr}. ${descripcion}. Solo JSON: {"pasos":["1. ...","2. ...",...]}. Máximo 6 pasos concisos.`
+      const idiomaStr = idiomaInstruccion(lang)
+      const prompt = `Escribe los pasos de cocina numerados para: ${nombre}. Ingredientes: ${ingStr}. ${descripcion}. Solo JSON: {"pasos":["1. ...","2. ...",...]}. Máximo 6 pasos concisos.${idiomaStr ? ' ' + idiomaStr : ''}`
       const raw = await llamarClaude(prompt, 500)
       const parsed = JSON.parse(raw)
       return new Response(
@@ -203,7 +215,7 @@ Deno.serve(async (req: Request) => {
 
     // Modo opción extra: añadir una segunda receta alternativa a una celda ya generada
     if (dia && franja && accion === 'opcion_extra') {
-      const prompt = promptOpcionExtra(dia, franja, perfil, receta_existente ?? '')
+      const prompt = promptOpcionExtra(dia, franja, perfil, receta_existente ?? '', lang)
       const raw = await llamarClaude(prompt, 900)
       const receta = JSON.parse(raw)
       return new Response(
@@ -214,7 +226,7 @@ Deno.serve(async (req: Request) => {
 
     // Modo slot único: regenerar una celda concreta (1 receta fresca)
     if (dia && franja) {
-      const prompt = promptSlot(dia, franja, perfil)
+      const prompt = promptSlot(dia, franja, perfil, lang)
       const raw = await llamarClaude(prompt, 900)
       const receta = JSON.parse(raw)
       return new Response(
@@ -229,7 +241,7 @@ Deno.serve(async (req: Request) => {
     const claves = dias.flatMap((d: string) => franjas.map((f: string) => `${d}_${f}`))
     const maxTokens = Math.min(8000, 900 + claves.length * 500)
 
-    const prompt = promptSemana(perfil, recetas_ya_usadas, claves)
+    const prompt = promptSemana(perfil, recetas_ya_usadas, claves, lang)
     const raw = await llamarClaude(prompt, maxTokens)
     let semana: Record<string, unknown>
     try {

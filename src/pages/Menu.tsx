@@ -55,7 +55,7 @@ function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvita
 }
 
 export default function Menu() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { perfil, loading: perfilLoading } = usePerfil()
@@ -227,6 +227,7 @@ export default function Menu() {
           recetas_ya_usadas: recetasYaUsadas,
           dias: activeDias,
           franjas: activeFranjas,
+          lang,
         },
       })
       if (fnError) throw new Error(fnError.message)
@@ -292,7 +293,7 @@ export default function Menu() {
     try {
       const { supabase } = await import('../lib/supabase')
       const { data, error: fnError } = await supabase.functions.invoke('generar-recetas', {
-        body: { dia, franja, perfil: perfilConNevera(perfil, undefined, ingredientesEvitar), recetas_ya_usadas: [] },
+        body: { dia, franja, perfil: perfilConNevera(perfil, undefined, ingredientesEvitar), recetas_ya_usadas: [], lang },
       })
       if (fnError) throw new Error(fnError.message)
       if (data?.error) throw new Error(data.mensaje)
@@ -324,7 +325,7 @@ export default function Menu() {
       const { data, error: fnError } = await supabase.functions.invoke('generar-recetas', {
         body: {
           dia, franja, accion: 'opcion_extra', receta_existente: recetaActual.nombre,
-          perfil: perfilConNevera(perfil, undefined, ingredientesEvitar),
+          perfil: perfilConNevera(perfil, undefined, ingredientesEvitar), lang,
         },
       })
       if (fnError) throw new Error(fnError.message)
