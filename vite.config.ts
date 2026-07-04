@@ -1,10 +1,23 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'fs'
+import path from 'path'
+
+function buildVersionPlugin() {
+  return {
+    name: 'build-version',
+    closeBundle() {
+      const v = Date.now()
+      fs.writeFileSync(path.resolve(__dirname, 'dist/version.json'), JSON.stringify({ v }))
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
     react(),
+    buildVersionPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null, // Registro manual en index.html con updateViaCache:'none'
