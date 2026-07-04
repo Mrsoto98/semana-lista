@@ -431,6 +431,39 @@ export default function Lista() {
 
   // ── Lista de compra ───────────────────────────────────────────────────────
   const comprarArray = Array.from(comprar).sort()
+
+  // Lookup foto+categoría para items de la lista de compra
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const infoItem = useMemo(() => {
+    const map = new Map<string, { foto: string | null; categoria: string }>()
+    if (!MERCADONA?.categorias) return map
+    const catMap = new Map<string, string>()
+    for (const [cat, prods] of Object.entries(MERCADONA.categorias)) {
+      for (const p of prods) { if (!catMap.has(p.nombre)) catMap.set(p.nombre, cat) }
+    }
+    for (const item of comprarArray) {
+      if (map.has(item)) continue
+      const top = topMatchesMercadona(item, MERCADONA.categorias, 1)
+      map.set(item, { foto: top[0]?.foto ?? null, categoria: catMap.get(top[0]?.nombre ?? '') ?? 'Otros' })
+    }
+    return map
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(comprarArray), MERCADONA])
+
+  // Agrupa items de la lista por categoría Mercadona
+  const comprarPorCategoria = useMemo(() => {
+    const g = new Map<string, string[]>()
+    for (const item of comprarArray) {
+      const cat = infoItem.get(item)?.categoria ?? 'Otros'
+      if (!g.has(cat)) g.set(cat, [])
+      g.get(cat)!.push(item)
+    }
+    return Array.from(g.entries()).sort(([a], [b]) => {
+      if (a === 'Otros') return 1; if (b === 'Otros') return -1
+      return a.localeCompare(b, 'es')
+    })
+  }, [comprarArray, infoItem])
+
   const totalEstimado = comprarArray.filter(item => !comprado.has(item)).reduce((s, item) => {
     const { modo, precioKg } = getModoInfo(item)
     const precio = modo === 'kg' ? (precioKg ?? precios[item] ?? 0) : (precios[item] ?? 0)
@@ -649,81 +682,76 @@ export default function Lista() {
                   {listaColapsada ? t.lista_mostrar(comprarArray.length) : t.lista_esconder}
                 </button>
                 {!listaColapsada && (
-                <div className="max-h-64 overflow-y-auto space-y-1 mb-2">
-                  {comprarArray.map(item => {
-                    const { modo, precioKg } = getModoInfo(item)
-                    const enKg = modo === 'kg'
-                    return (
-                    <div key={item} className={`rounded-xl px-3 py-2 transition-colors ${
-                      comprado.has(item) ? 'bg-gray-50 dark:bg-gray-900' : 'bg-green-50 dark:bg-green-950/50'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        <input
-                          data-tutorial="list-checkbox"
-                          type="checkbox"
-                          checked={comprado.has(item)}
-                          onChange={() => {
-                            const cp = new Set(comprado)
-                            if (cp.has(item)) cp.delete(item); else cp.add(item)
-                            saveComprado(cp)
-                          }}
-                          className="shrink-0 accent-green-select w-4 h-4"
-                        />
-                        <span className={`flex-1 text-sm font-medium truncate ${comprado.has(item) ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
-                          {item}
-                        </span>
-
-                        {editandoPrecio === item ? (
-                          <form onSubmit={e => { e.preventDefault(); guardarPrecio(item) }} className="flex gap-1 items-center shrink-0">
-                            <input autoFocus type="number" step="0.01" min="0" value={precioEdit}
-                              onChange={e => setPrecioEdit(e.target.value)}
-                              className="w-20 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-800" placeholder="0.00" />
-                            <button type="submit" className="text-xs text-green-select font-bold">✓</button>
-                            <button type="button" onClick={() => setEditandoPrecio(null)} className="text-xs text-gray-400">✕</button>
-                          </form>
-                        ) : (
-                          <button
-                            onClick={() => { setEditandoPrecio(item); setPrecioEdit(precios[item]?.toString() ?? precioSugerido(item)?.toString() ?? '') }}
-                            className="text-xs font-semibold text-gray-500 hover:text-green-select shrink-0 min-w-[52px] text-right transition-colors">
-                            {precios[item] ? `${precios[item].toFixed(2)} €` : <span className="text-gray-300 font-normal">+ precio</span>}
-                          </button>
-                        )}
-
-                        <button onClick={() => addToCasa(item)} title={t.lista_tengo_casa} className="text-base shrink-0 opacity-50 hover:opacity-100 transition-opacity">🏠</button>
-                        <button onClick={() => removeComprar(item)} className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">✕</button>
-                      </div>
-
-                      {/* Cantidad / kg — se puede tocar aunque el precio del producto sea por unidad */}
-                      <div className="flex items-center gap-2 mt-1.5 ml-6">
-                        {precioKg != null && (
-                          <div className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 text-[10px] font-bold">
-                            <button onClick={() => modo !== 'ud' && toggleModoKg(item)}
-                              className={`px-2 py-0.5 transition-colors ${modo === 'ud' ? 'bg-green-select text-white' : 'text-gray-400 hover:text-gray-600'}`}>
-                              ud
-                            </button>
-                            <button onClick={() => modo !== 'kg' && toggleModoKg(item)}
-                              className={`px-2 py-0.5 transition-colors ${modo === 'kg' ? 'bg-green-select text-white' : 'text-gray-400 hover:text-gray-600'}`}>
-                              kg
-                            </button>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          <button onClick={() => decrementarCantidad(item)}
-                            className="w-5 h-5 rounded-full border border-green-select text-green-select font-bold text-xs flex items-center justify-center leading-none hover:bg-green-100 dark:hover:bg-green-900 transition-colors">
-                            −
-                          </button>
-                          <span className="text-xs font-bold text-green-select min-w-[2.5rem] text-center">
-                            {enKg ? `${cantidades[item] ?? DEFECTO_KG} kg` : `×${cantidades[item] ?? 1}`}
-                          </span>
-                          <button onClick={() => incrementarCantidad(item)}
-                            className="w-5 h-5 rounded-full border border-green-select text-green-select font-bold text-xs flex items-center justify-center leading-none hover:bg-green-100 dark:hover:bg-green-900 transition-colors">
-                            +
-                          </button>
-                        </div>
+                <div className="max-h-72 overflow-y-auto mb-2 space-y-3">
+                  {comprarPorCategoria.map(([cat, items]) => (
+                    <div key={cat}>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1 px-1">
+                        {CAT_EMOJI[cat] ?? '📦'} {cat}
+                      </p>
+                      <div className="space-y-0.5">
+                        {items.map(item => {
+                          const { modo, precioKg } = getModoInfo(item)
+                          const enKg = modo === 'kg'
+                          const foto = infoItem.get(item)?.foto ?? null
+                          return (
+                            <div key={item} className={`flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors ${
+                              comprado.has(item) ? 'bg-gray-50 dark:bg-gray-900 opacity-60' : 'bg-green-50 dark:bg-green-950/50'
+                            }`}>
+                              <input
+                                data-tutorial="list-checkbox"
+                                type="checkbox"
+                                checked={comprado.has(item)}
+                                onChange={() => {
+                                  const cp = new Set(comprado)
+                                  if (cp.has(item)) cp.delete(item); else cp.add(item)
+                                  saveComprado(cp)
+                                }}
+                                className="shrink-0 accent-green-select w-4 h-4"
+                              />
+                              {foto
+                                ? <img src={foto} alt="" loading="lazy" onClick={() => setFotoAmpliada(foto)} className="w-7 h-7 rounded-lg object-cover shrink-0 cursor-zoom-in bg-gray-100 dark:bg-gray-800" onError={e => { e.currentTarget.style.display = 'none' }} />
+                                : <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 shrink-0 flex items-center justify-center text-sm">🛒</div>
+                              }
+                              <span className={`flex-1 text-xs font-medium truncate ${comprado.has(item) ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                                {item}
+                              </span>
+                              {/* Cantidad */}
+                              <div className="flex items-center gap-1 shrink-0">
+                                {precioKg != null && (
+                                  <div className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 text-[9px] font-bold">
+                                    <button onClick={() => modo !== 'ud' && toggleModoKg(item)} className={`px-1.5 py-0.5 ${modo === 'ud' ? 'bg-green-select text-white' : 'text-gray-400'}`}>ud</button>
+                                    <button onClick={() => modo !== 'kg' && toggleModoKg(item)} className={`px-1.5 py-0.5 ${modo === 'kg' ? 'bg-green-select text-white' : 'text-gray-400'}`}>kg</button>
+                                  </div>
+                                )}
+                                <button onClick={() => decrementarCantidad(item)} className="w-4 h-4 rounded-full border border-green-select text-green-select font-bold text-[10px] flex items-center justify-center leading-none">−</button>
+                                <span className="text-[10px] font-bold text-green-select min-w-[1.8rem] text-center">
+                                  {enKg ? `${cantidades[item] ?? DEFECTO_KG}kg` : `×${cantidades[item] ?? 1}`}
+                                </span>
+                                <button onClick={() => incrementarCantidad(item)} className="w-4 h-4 rounded-full border border-green-select text-green-select font-bold text-[10px] flex items-center justify-center leading-none">+</button>
+                              </div>
+                              {/* Precio */}
+                              {editandoPrecio === item ? (
+                                <form onSubmit={e => { e.preventDefault(); guardarPrecio(item) }} className="flex gap-1 items-center shrink-0">
+                                  <input autoFocus type="number" step="0.01" min="0" value={precioEdit}
+                                    onChange={e => setPrecioEdit(e.target.value)}
+                                    className="w-16 text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-0.5 bg-white dark:bg-gray-800" placeholder="0.00" />
+                                  <button type="submit" className="text-xs text-green-select font-bold">✓</button>
+                                  <button type="button" onClick={() => setEditandoPrecio(null)} className="text-xs text-gray-400">✕</button>
+                                </form>
+                              ) : (
+                                <button onClick={() => { setEditandoPrecio(item); setPrecioEdit(precios[item]?.toString() ?? precioSugerido(item)?.toString() ?? '') }}
+                                  className="text-[10px] font-semibold text-gray-500 hover:text-green-select shrink-0 min-w-[40px] text-right">
+                                  {precios[item] ? `${precios[item].toFixed(2)} €` : <span className="text-gray-300">+€</span>}
+                                </button>
+                              )}
+                              <button onClick={() => addToCasa(item)} title={t.lista_tengo_casa} className="text-sm shrink-0 opacity-40 hover:opacity-100 transition-opacity">🏠</button>
+                              <button onClick={() => removeComprar(item)} className="text-gray-300 hover:text-red-400 shrink-0 text-xs transition-colors">✕</button>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
-                    )
-                  })}
+                  ))}
                 </div>
                 )}
                 {!listaColapsada && comprado.size > 0 && (
