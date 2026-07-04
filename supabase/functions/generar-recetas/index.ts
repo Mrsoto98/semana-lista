@@ -2,9 +2,7 @@
 import INGREDIENTES_JSON from './ingredientes.json' with { type: 'json' }
 import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'json' }
 
-const ZHIPU_API_KEY = Deno.env.get('ZHIPU_API_KEY')!
-const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
-const ZHIPU_MODEL = 'glm-5-turbo'
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
 
@@ -165,31 +163,27 @@ Dificultad: "fácil","media" o "difícil". Unidades: g,kg,ml,l,ud,cucharada,pizc
 }
 
 async function llamarClaude(prompt: string, maxTokens: number): Promise<string> {
-  const res = await fetch(ZHIPU_URL, {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Authorization': `Bearer ${ZHIPU_API_KEY}`,
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: ZHIPU_MODEL,
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }],
     }),
   })
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Zhipu ${res.status}: ${err}`)
+    throw new Error(`Anthropic ${res.status}: ${err}`)
   }
   const data = await res.json()
-  const text = data.choices?.[0]?.message?.content ?? ''
-  if (!text) {
-    const reason = data.choices?.[0]?.finish_reason ?? 'unknown'
-    throw new Error(`Zhipu devolvió contenido vacío. finish_reason=${reason}. data=${JSON.stringify(data).substring(0, 300)}`)
-  }
-  // Strip markdown code blocks if present, then extract the JSON object/array
+  const text = data.content?.[0]?.text ?? ''
+  if (!text) throw new Error(`Anthropic devolvió contenido vacío`)
   const stripped = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim()
-  // Find the first { or [ to skip any preamble text the model may have added
   const start = stripped.search(/[{\[]/)
   return start > 0 ? stripped.slice(start) : stripped
 }
