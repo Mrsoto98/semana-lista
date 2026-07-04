@@ -2,8 +2,9 @@
 import INGREDIENTES_JSON from './ingredientes.json' with { type: 'json' }
 import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'json' }
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
+const ZHIPU_API_KEY = Deno.env.get('ZHIPU_API_KEY')!
+const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+const ZHIPU_MODEL = 'glm-4.5'
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
 
@@ -164,25 +165,24 @@ Dificultad: "fácil","media" o "difícil". Unidades: g,kg,ml,l,ud,cucharada,pizc
 }
 
 async function llamarClaude(prompt: string, maxTokens: number): Promise<string> {
-  const res = await fetch(ANTHROPIC_URL, {
+  const res = await fetch(ZHIPU_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${ZHIPU_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: ZHIPU_MODEL,
       max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }],
     }),
   })
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Anthropic ${res.status}: ${err}`)
+    throw new Error(`Zhipu ${res.status}: ${err}`)
   }
   const data = await res.json()
-  const text = data.content?.[0]?.text ?? ''
+  const text = data.choices?.[0]?.message?.content ?? ''
   // Strip markdown code blocks if present, then extract the JSON object/array
   const stripped = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim()
   // Find the first { or [ to skip any preamble text the model may have added
