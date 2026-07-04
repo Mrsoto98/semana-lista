@@ -88,7 +88,7 @@ export default function Menu() {
   const [datosSupabaseCargados, setDatosSupabaseCargados] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [generacionesMes, setGeneracionesMes] = useState<number>(0)
-  const LIMITE_GENERACIONES = 15
+  const LIMITE_GENERACIONES = 12
 
   // Configuración de días y franjas a generar (persistida en localStorage)
   type DiasConfig = 'semana' | 'laboral' | 'personalizado'
