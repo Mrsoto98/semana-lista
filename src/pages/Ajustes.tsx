@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useI18n } from '../hooks/useI18n'
 import { useNavigate } from 'react-router-dom'
 import { TagInput } from '../components/ui/TagInput'
@@ -710,7 +711,7 @@ export default function Ajustes() {
       </div>
 
       {/* Modal eliminar cuenta */}
-      {modalEliminar && (
+      {modalEliminar && createPortal(
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setModalEliminar(false) }}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="text-center">
@@ -760,7 +761,7 @@ export default function Ajustes() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   )
 }
