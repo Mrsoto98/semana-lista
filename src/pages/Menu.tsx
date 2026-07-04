@@ -74,9 +74,9 @@ export default function Menu() {
     listaDestinoId: recuperar<string | null>('menu_lista_destino') ?? null,
   }))
 
-  // Opción extra por comida: máximo 4 días distintos pueden desbloquear una segunda opción
-  const LIMITE_DIAS_EXTRA = 4
-  const [diasExtra, setDiasExtra] = useState<Set<Dia>>(() => new Set(recuperar<Dia[]>('menu_dias_extra') ?? []))
+  // Opción extra: máximo 4 slots pueden desbloquear una segunda opción (1 uso por slot)
+  const LIMITE_SLOTS_EXTRA = 4
+  const [slotsExtra, setSlotsExtra] = useState<Set<ClaveMenu>>(() => new Set(recuperar<ClaveMenu[]>('menu_slots_extra') ?? []))
   const [cargandoExtra, setCargandoExtra] = useState<Set<ClaveMenu>>(new Set())
 
   const [semanasGuardadas, setSemanasGuardadas] = useState<SemanaGuardada[]>(() => recuperar<SemanaGuardada[]>('semanas_guardadas') ?? [])
@@ -195,8 +195,8 @@ export default function Menu() {
       return
     }
     setGenerando(true)
-    setDiasExtra(new Set())
-    guardar('menu_dias_extra', [])
+    setSlotsExtra(new Set())
+    guardar('menu_slots_extra', [])
 
     // Marcar solo las celdas seleccionadas como cargando, el resto vacío
     const activeDias = diasActivos()
@@ -307,15 +307,14 @@ export default function Menu() {
     }
   }
 
-  // Añade una segunda opción a una celda que ya tiene 1 receta. Limitado a
-  // LIMITE_DIAS_EXTRA días distintos por semana (comida+cena del mismo día
-  // cuentan como un solo "día" de cuota).
+  // Añade una segunda opción a una celda que ya tiene 1 receta.
+  // Máximo LIMITE_SLOTS_EXTRA slots distintos, 1 uso por slot.
   async function añadirOpcionExtra(dia: Dia, franja: Franja) {
     if (!perfil) return
     const clave: ClaveMenu = `${dia}_${franja}`
     const recetaActual = estados[clave]?.datos?.opciones[0]
     if (!recetaActual) return
-    if (!diasExtra.has(dia) && diasExtra.size >= LIMITE_DIAS_EXTRA) return
+    if (slotsExtra.has(clave) || slotsExtra.size >= LIMITE_SLOTS_EXTRA) return
 
     setCargandoExtra(prev => new Set(prev).add(clave))
     try {
@@ -334,10 +333,9 @@ export default function Menu() {
         if (!actual?.datos) return prev
         return { ...prev, [clave]: { ...actual, datos: { ...actual.datos, opciones: [...actual.datos.opciones, nuevaReceta] } } }
       })
-      setDiasExtra(prev => {
-        if (prev.has(dia)) return prev
-        const next = new Set(prev).add(dia)
-        guardar('menu_dias_extra', Array.from(next))
+      setSlotsExtra(prev => {
+        const next = new Set(prev).add(clave)
+        guardar('menu_slots_extra', Array.from(next))
         return next
       })
     } catch {
@@ -345,10 +343,6 @@ export default function Menu() {
     } finally {
       setCargandoExtra(prev => { const n = new Set(prev); n.delete(clave); return n })
     }
-  }
-
-  async function regenerarDia(dia: Dia) {
-    await Promise.all([regenerarSlot(dia, 'comida'), regenerarSlot(dia, 'cena')])
   }
 
   async function generarSorpresa() {
@@ -976,14 +970,7 @@ export default function Menu() {
                   {caloriasDelDia[dia] && (
                     <span className="ml-2 text-xs font-semibold text-orange-400">🔥 {caloriasDelDia[dia]} kcal</span>
                   )}
-                  <button
-                    onClick={() => regenerarDia(dia)}
-                    disabled={generando}
-                    title={`Regenerar ${DIAS_LABEL[dia]}`}
-                    className="text-xs text-gray-400 hover:text-gray-600 ml-2 disabled:opacity-40"
-                  >
-                    🔄
-                  </button>
+
                 </div>
                 <div className={`grid gap-3 ${franjasVisibles.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   {franjasVisibles.map(franja => {
@@ -1004,7 +991,7 @@ export default function Menu() {
                           dislikesNombres={dislikes}
                           onDislike={handleDislike}
                           onQuitarDislike={handleQuitarDislike}
-                          puedeAnadirExtra={diasExtra.has(dia) || diasExtra.size < LIMITE_DIAS_EXTRA}
+                          puedeAnadirExtra={!slotsExtra.has(clave) && slotsExtra.size < LIMITE_SLOTS_EXTRA}
                           cargandoExtra={cargandoExtra.has(clave)}
                           onAnadirOpcionExtra={() => añadirOpcionExtra(dia, franja)}
                         />
