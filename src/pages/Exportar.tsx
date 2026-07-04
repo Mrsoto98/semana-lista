@@ -8,6 +8,78 @@ import { DIAS, DIAS_LABEL, FRANJAS, type ClaveMenu } from '../types'
 
 // ── Instagram Stories generator ───────────────────────────────────────────────
 
+type StoriesTheme = {
+  id: string; name: string; emoji: string
+  swatch: [string, string]   // gradient preview
+  bg: [string, string, string]
+  glowColor: string
+  leafColor: string
+  accent: string             // day label, bar, dots
+  accentMuted: string        // separators, lines
+  text: string               // main recipe names
+  subtext: string            // COMIDA/CENA labels
+  appName: string            // "SEMANA LISTA"
+  cardBg: string; cardBorder: string
+}
+
+const STORIES_THEMES: StoriesTheme[] = [
+  {
+    id: 'bosque', name: 'Bosque', emoji: '🌿',
+    swatch: ['#071912', '#163d26'],
+    bg: ['#071912', '#0c2b1a', '#163d26'],
+    glowColor: 'rgba(100,200,120,0.10)',
+    leafColor: '#4a9e5c',
+    accent: '#7dcea0', accentMuted: 'rgba(125,206,160,0.22)',
+    text: '#f2ede4', subtext: 'rgba(242,237,228,0.42)',
+    appName: 'rgba(160,220,160,0.68)',
+    cardBg: 'rgba(255,255,255,0.058)', cardBorder: 'rgba(255,255,255,0.09)',
+  },
+  {
+    id: 'terracota', name: 'Terracota', emoji: '🪴',
+    swatch: ['#1e0e08', '#5c2d1a'],
+    bg: ['#1a0b06', '#3a1a0c', '#5c2a18'],
+    glowColor: 'rgba(220,130,80,0.10)',
+    leafColor: '#a05030',
+    accent: '#e8956a', accentMuted: 'rgba(220,150,100,0.22)',
+    text: '#fdf4ec', subtext: 'rgba(253,244,236,0.42)',
+    appName: 'rgba(230,170,120,0.68)',
+    cardBg: 'rgba(255,255,255,0.058)', cardBorder: 'rgba(220,160,110,0.10)',
+  },
+  {
+    id: 'medianoche', name: 'Medianoche', emoji: '🌙',
+    swatch: ['#07071a', '#1a1a3e'],
+    bg: ['#06060f', '#0e0e28', '#181840'],
+    glowColor: 'rgba(120,120,240,0.10)',
+    leafColor: '#3a3a90',
+    accent: '#9b9bf0', accentMuted: 'rgba(150,150,240,0.22)',
+    text: '#f0f0ff', subtext: 'rgba(240,240,255,0.42)',
+    appName: 'rgba(170,170,255,0.68)',
+    cardBg: 'rgba(255,255,255,0.055)', cardBorder: 'rgba(150,150,255,0.10)',
+  },
+  {
+    id: 'rosa', name: 'Rosa', emoji: '🌸',
+    swatch: ['#130509', '#3a1424'],
+    bg: ['#100406', '#261020', '#3a1630'],
+    glowColor: 'rgba(220,80,150,0.10)',
+    leafColor: '#8b2560',
+    accent: '#e88ab0', accentMuted: 'rgba(220,130,180,0.22)',
+    text: '#fdf0f6', subtext: 'rgba(253,240,246,0.42)',
+    appName: 'rgba(240,160,200,0.68)',
+    cardBg: 'rgba(255,255,255,0.055)', cardBorder: 'rgba(220,130,180,0.10)',
+  },
+  {
+    id: 'carbon', name: 'Dorado', emoji: '✨',
+    swatch: ['#080808', '#1c1408'],
+    bg: ['#080808', '#111008', '#1c1a08'],
+    glowColor: 'rgba(210,175,50,0.08)',
+    leafColor: '#6e5a18',
+    accent: '#e8c84a', accentMuted: 'rgba(210,180,60,0.22)',
+    text: '#f8f4e8', subtext: 'rgba(248,244,232,0.42)',
+    appName: 'rgba(220,185,70,0.68)',
+    cardBg: 'rgba(255,255,255,0.045)', cardBorder: 'rgba(210,175,50,0.12)',
+  },
+]
+
 function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
@@ -29,7 +101,7 @@ function clamp(ctx: CanvasRenderingContext2D, text: string, maxW: number): strin
   return s + '…'
 }
 
-function drawLeaves(ctx: CanvasRenderingContext2D, W: number, H: number) {
+function drawLeaves(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
   const draw = (x: number, y: number, scale: number, rot: number, alpha: number) => {
     ctx.save()
     ctx.globalAlpha = alpha
@@ -43,21 +115,21 @@ function drawLeaves(ctx: CanvasRenderingContext2D, W: number, H: number) {
       ctx.moveTo(0, 0)
       ctx.bezierCurveTo(-30, -60, -10, -140, 0, -170)
       ctx.bezierCurveTo(10, -140, 30, -60, 0, 0)
-      ctx.fillStyle = '#4a9e5c'
+      ctx.fillStyle = color
       ctx.fill()
       ctx.restore()
     }
     ctx.restore()
   }
-  draw(80, 320, 1.4, 0.3, 0.18)
-  draw(W - 60, 380, 1.1, -0.5, 0.14)
-  draw(50, H - 200, 1.2, 0.8, 0.12)
-  draw(W - 80, H - 280, 1.3, -0.9, 0.16)
-  draw(W / 2 - 420, 180, 0.8, 1.2, 0.1)
-  draw(W / 2 + 400, 200, 0.9, -1.0, 0.1)
+  draw(80, 320, 1.4, 0.3, 0.20)
+  draw(W - 60, 380, 1.1, -0.5, 0.16)
+  draw(50, H - 200, 1.2, 0.8, 0.14)
+  draw(W - 80, H - 280, 1.3, -0.9, 0.18)
+  draw(W / 2 - 420, 180, 0.8, 1.2, 0.11)
+  draw(W / 2 + 400, 200, 0.9, -1.0, 0.11)
 }
 
-async function generarStoriesBlob(menu: MenuSemanal): Promise<Blob> {
+async function generarStoriesBlob(menu: MenuSemanal, theme: StoriesTheme): Promise<Blob> {
   const W = 1080, H = 1920
   const canvas = document.createElement('canvas')
   canvas.width = W; canvas.height = H
@@ -65,53 +137,57 @@ async function generarStoriesBlob(menu: MenuSemanal): Promise<Blob> {
 
   // Background gradient
   const bg = ctx.createLinearGradient(0, 0, W * 0.3, H)
-  bg.addColorStop(0, '#071a10')
-  bg.addColorStop(0.45, '#0c2b1a')
-  bg.addColorStop(1, '#163d26')
+  bg.addColorStop(0, theme.bg[0])
+  bg.addColorStop(0.45, theme.bg[1])
+  bg.addColorStop(1, theme.bg[2])
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, W, H)
 
   // Soft glow top center
   const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 700)
-  glow.addColorStop(0, 'rgba(100,200,120,0.10)')
+  glow.addColorStop(0, theme.glowColor)
   glow.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, W, H)
 
   // Botanical leaves
-  drawLeaves(ctx, W, H)
+  drawLeaves(ctx, W, H, theme.leafColor)
 
   // ── Header ──
   ctx.textAlign = 'center'
 
-  // App name
-  ctx.font = '500 34px system-ui, sans-serif'
-  ctx.fillStyle = 'rgba(160,220,160,0.65)'
-  ctx.fillText('S E M A N A   L I S T A', W / 2, 130)
+  // App icon + name row
+  ctx.font = '500 32px system-ui, sans-serif'
+  ctx.fillStyle = theme.appName
+  ctx.fillText('🍽  SEMANA LISTA', W / 2, 118)
 
-  // Decorative thin lines
-  const lineColor = 'rgba(160,220,160,0.22)'
+  // Tagline
+  ctx.font = '300 26px system-ui, sans-serif'
+  ctx.fillStyle = theme.subtext
+  ctx.fillText('Planificador de menú semanal con IA', W / 2, 158)
+
+  // Decorative lines helper
   const drawLine = (y: number, half = 200) => {
-    ctx.strokeStyle = lineColor; ctx.lineWidth = 1
+    ctx.strokeStyle = theme.accentMuted; ctx.lineWidth = 1
     ctx.beginPath(); ctx.moveTo(W / 2 - half, y); ctx.lineTo(W / 2 + half, y); ctx.stroke()
   }
-  drawLine(155)
+  drawLine(182, 280)
 
-  // Title
-  ctx.font = 'bold 110px Georgia, "Times New Roman", serif'
-  ctx.fillStyle = '#f2ede4'
-  ctx.fillText('MI MENÚ', W / 2, 268)
+  // Main title
+  ctx.font = 'bold 108px Georgia, "Times New Roman", serif'
+  ctx.fillStyle = theme.text
+  ctx.fillText('MI MENÚ', W / 2, 300)
 
-  ctx.font = '300 56px Georgia, "Times New Roman", serif'
-  ctx.fillStyle = 'rgba(242,237,228,0.65)'
-  ctx.fillText('DE LA SEMANA', W / 2, 342)
+  ctx.font = '300 54px Georgia, "Times New Roman", serif'
+  ctx.fillStyle = theme.subtext
+  ctx.fillText('DE LA SEMANA', W / 2, 372)
 
-  drawLine(372, 160)
+  drawLine(400, 160)
 
   // ── Day cards ──
   const diasConRecetas = DIAS.filter(d => menu[`${d}_comida`] || menu[`${d}_cena`])
   const n = diasConRecetas.length
-  const CARD_TOP = 416
+  const CARD_TOP = 444
   const CARD_GAP = 18
   const FOOTER_H = 160
   const CARD_H = Math.floor((H - CARD_TOP - FOOTER_H - CARD_GAP * (n - 1)) / n)
@@ -124,58 +200,54 @@ async function generarStoriesBlob(menu: MenuSemanal): Promise<Blob> {
     const cardY = CARD_TOP + i * (CARD_H + CARD_GAP)
 
     // Card bg
-    ctx.fillStyle = 'rgba(255,255,255,0.055)'
+    ctx.fillStyle = theme.cardBg
     rrect(ctx, CX, cardY, CARD_W, CARD_H, 28)
     ctx.fill()
 
     // Card border
-    ctx.strokeStyle = 'rgba(255,255,255,0.09)'
+    ctx.strokeStyle = theme.cardBorder
     ctx.lineWidth = 1.5
     rrect(ctx, CX, cardY, CARD_W, CARD_H, 28)
     ctx.stroke()
 
     // Left accent bar
-    ctx.fillStyle = '#4a9e5c'
-    rrect(ctx, CX, cardY + 20, 5, CARD_H - 40, 3)
+    ctx.fillStyle = theme.accent
+    rrect(ctx, CX, cardY + 22, 5, CARD_H - 44, 3)
     ctx.fill()
 
     // Day name
     ctx.textAlign = 'left'
     ctx.font = 'bold 30px system-ui, sans-serif'
-    ctx.fillStyle = '#7dcea0'
+    ctx.fillStyle = theme.accent
     ctx.fillText(DIAS_LABEL[dia].toUpperCase(), CX + 44, cardY + 52)
 
     // Separator
-    ctx.strokeStyle = 'rgba(125,206,160,0.2)'
+    ctx.strokeStyle = theme.accentMuted
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(CX + 44, cardY + 66)
     ctx.lineTo(CX + CARD_W - 44, cardY + 66)
     ctx.stroke()
 
-    const hasBoth = comida && cena
+    const hasBoth = !!(comida && cena)
     const singleOffset = hasBoth ? 0 : 28
 
     if (comida) {
       ctx.font = '400 24px system-ui, sans-serif'
-      ctx.fillStyle = 'rgba(242,237,228,0.40)'
+      ctx.fillStyle = theme.subtext
       ctx.fillText('☀  COMIDA', CX + 44, cardY + 98 + singleOffset)
-      ctx.font = hasBoth
-        ? `600 ${Math.min(36, Math.floor(CARD_H * 0.19))}px Georgia, serif`
-        : `600 ${Math.min(42, Math.floor(CARD_H * 0.22))}px Georgia, serif`
-      ctx.fillStyle = '#f2ede4'
+      ctx.font = `600 ${Math.min(hasBoth ? 36 : 42, Math.floor(CARD_H * (hasBoth ? 0.19 : 0.22)))}px Georgia, serif`
+      ctx.fillStyle = theme.text
       ctx.fillText(clamp(ctx, comida.nombre, CARD_W - 100), CX + 44, cardY + 140 + singleOffset)
     }
 
     if (cena) {
       const cenaY = hasBoth ? cardY + CARD_H / 2 + 14 : cardY + 98
       ctx.font = '400 24px system-ui, sans-serif'
-      ctx.fillStyle = 'rgba(242,237,228,0.40)'
+      ctx.fillStyle = theme.subtext
       ctx.fillText('☾  CENA', CX + 44, cenaY)
-      ctx.font = hasBoth
-        ? `600 ${Math.min(36, Math.floor(CARD_H * 0.19))}px Georgia, serif`
-        : `600 ${Math.min(42, Math.floor(CARD_H * 0.22))}px Georgia, serif`
-      ctx.fillStyle = '#f2ede4'
+      ctx.font = `600 ${Math.min(hasBoth ? 36 : 42, Math.floor(CARD_H * (hasBoth ? 0.19 : 0.22)))}px Georgia, serif`
+      ctx.fillStyle = theme.text
       ctx.fillText(clamp(ctx, cena.nombre, CARD_W - 100), CX + 44, cenaY + 40)
     }
   })
@@ -184,15 +256,14 @@ async function generarStoriesBlob(menu: MenuSemanal): Promise<Blob> {
   const FY = H - FOOTER_H + 20
   ctx.textAlign = 'center'
   drawLine(FY, 100)
-  ctx.font = '400 28px system-ui, sans-serif'
-  ctx.fillStyle = 'rgba(125,206,160,0.45)'
-  ctx.fillText('planificado con  semana lista', W / 2, FY + 52)
+  ctx.font = '400 26px system-ui, sans-serif'
+  ctx.fillStyle = theme.appName
+  ctx.fillText('🍽  Semana Lista  ·  Tu menú con IA', W / 2, FY + 52)
 
-  // Small dots decoration
   for (let d = 0; d < 5; d++) {
     ctx.beginPath()
-    ctx.arc(W / 2 - 40 + d * 20, FY + 82, 3, 0, Math.PI * 2)
-    ctx.fillStyle = d === 2 ? 'rgba(125,206,160,0.5)' : 'rgba(125,206,160,0.2)'
+    ctx.arc(W / 2 - 40 + d * 20, FY + 84, 3, 0, Math.PI * 2)
+    ctx.fillStyle = d === 2 ? theme.accent : theme.accentMuted
     ctx.fill()
   }
 
@@ -430,11 +501,13 @@ export default function Exportar() {
   const [copiadoLista, setCopiadoLista] = useState(false)
   const [copiadoCompartida, setCopiadoCompartida] = useState<Record<string, boolean>>({})
   const [generandoStories, setGenerandoStories] = useState(false)
+  const [storiesThemeId, setStoriesThemeId] = useState('bosque')
 
   async function compartirStories() {
+    const theme = STORIES_THEMES.find(t => t.id === storiesThemeId) ?? STORIES_THEMES[0]
     setGenerandoStories(true)
     try {
-      const blob = await generarStoriesBlob(menu)
+      const blob = await generarStoriesBlob(menu, theme)
       const file = new File([blob], 'menu-semana.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Mi menú de la semana' })
@@ -491,20 +564,46 @@ export default function Exportar() {
                 <a href={`https://wa.me/?text=${encodeURIComponent(buildMenuTexto(menu))}`} target="_blank" rel="noopener noreferrer" className={waClass}>
                   <WaIcon /> WhatsApp
                 </a>
+              </div>
+
+              {/* Theme picker + Stories button */}
+              <div className="mt-3 p-3 bg-white/5 dark:bg-black/20 rounded-2xl border border-white/10 space-y-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Estilo de la imagen</p>
+                <div className="flex gap-2">
+                  {STORIES_THEMES.map(th => (
+                    <button
+                      key={th.id}
+                      onClick={() => setStoriesThemeId(th.id)}
+                      title={th.name}
+                      className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl border-2 transition-all ${
+                        storiesThemeId === th.id
+                          ? 'border-white/60 scale-105'
+                          : 'border-transparent hover:border-white/20'
+                      }`}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${th.swatch[0]}, ${th.swatch[1]})`, boxShadow: storiesThemeId === th.id ? '0 0 0 2px white' : 'none' }}
+                      />
+                      <span className="text-[9px] text-gray-400 font-medium">{th.emoji}</span>
+                      <span className="text-[9px] text-gray-400">{th.name}</span>
+                    </button>
+                  ))}
+                </div>
                 <button
                   onClick={compartirStories}
                   disabled={generandoStories}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
                   style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)', color: 'white' }}
                 >
                   {generandoStories ? (
-                    <span className="animate-pulse">Generando…</span>
+                    <span className="animate-pulse">Generando imagen…</span>
                   ) : (
                     <>
-                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current shrink-0">
+                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0">
                         <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
                       </svg>
-                      Stories
+                      Compartir en Stories
                     </>
                   )}
                 </button>
