@@ -6,7 +6,7 @@ export const translations = {
     nav_lista: 'Lista',
     nav_menu: 'Menú',
     nav_ajustes: 'Ajustes',
-    nav_exportar: 'Exportar',
+    nav_exportar: 'Compartir',
     nav_compartida: 'Compartida',
 
     // Common
@@ -366,7 +366,7 @@ export const translations = {
     nav_lista: 'Llista',
     nav_menu: 'Menú',
     nav_ajustes: 'Configuració',
-    nav_exportar: 'Exportar',
+    nav_exportar: 'Compartir',
     nav_compartida: 'Compartida',
 
     // Common
