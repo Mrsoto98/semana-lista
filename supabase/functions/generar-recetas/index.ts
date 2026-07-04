@@ -183,7 +183,11 @@ async function llamarClaude(prompt: string, maxTokens: number): Promise<string> 
   }
   const data = await res.json()
   const text = data.content?.[0]?.text ?? ''
-  return text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim()
+  // Strip markdown code blocks if present, then extract the JSON object/array
+  const stripped = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim()
+  // Find the first { or [ to skip any preamble text the model may have added
+  const start = stripped.search(/[{\[]/)
+  return start > 0 ? stripped.slice(start) : stripped
 }
 
 Deno.serve(async (req: Request) => {
