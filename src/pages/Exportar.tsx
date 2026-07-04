@@ -6,6 +6,199 @@ import { useI18n } from '../hooks/useI18n'
 import type { MenuSemanal, Receta } from '../types'
 import { DIAS, DIAS_LABEL, FRANJAS, type ClaveMenu } from '../types'
 
+// ── Instagram Stories generator ───────────────────────────────────────────────
+
+function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.arcTo(x + w, y, x + w, y + r, r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h)
+  ctx.arcTo(x, y + h, x, y + h - r, r)
+  ctx.lineTo(x, y + r)
+  ctx.arcTo(x, y, x + r, y, r)
+  ctx.closePath()
+}
+
+function clamp(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
+  if (ctx.measureText(text).width <= maxW) return text
+  let s = text
+  while (s.length > 0 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1)
+  return s + '…'
+}
+
+function drawLeaves(ctx: CanvasRenderingContext2D, W: number, H: number) {
+  const draw = (x: number, y: number, scale: number, rot: number, alpha: number) => {
+    ctx.save()
+    ctx.globalAlpha = alpha
+    ctx.translate(x, y)
+    ctx.rotate(rot)
+    ctx.scale(scale, scale)
+    for (let i = 0; i < 3; i++) {
+      ctx.save()
+      ctx.rotate((i * Math.PI) / 5)
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.bezierCurveTo(-30, -60, -10, -140, 0, -170)
+      ctx.bezierCurveTo(10, -140, 30, -60, 0, 0)
+      ctx.fillStyle = '#4a9e5c'
+      ctx.fill()
+      ctx.restore()
+    }
+    ctx.restore()
+  }
+  draw(80, 320, 1.4, 0.3, 0.18)
+  draw(W - 60, 380, 1.1, -0.5, 0.14)
+  draw(50, H - 200, 1.2, 0.8, 0.12)
+  draw(W - 80, H - 280, 1.3, -0.9, 0.16)
+  draw(W / 2 - 420, 180, 0.8, 1.2, 0.1)
+  draw(W / 2 + 400, 200, 0.9, -1.0, 0.1)
+}
+
+async function generarStoriesBlob(menu: MenuSemanal): Promise<Blob> {
+  const W = 1080, H = 1920
+  const canvas = document.createElement('canvas')
+  canvas.width = W; canvas.height = H
+  const ctx = canvas.getContext('2d')!
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0, 0, W * 0.3, H)
+  bg.addColorStop(0, '#071a10')
+  bg.addColorStop(0.45, '#0c2b1a')
+  bg.addColorStop(1, '#163d26')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, W, H)
+
+  // Soft glow top center
+  const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 700)
+  glow.addColorStop(0, 'rgba(100,200,120,0.10)')
+  glow.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = glow
+  ctx.fillRect(0, 0, W, H)
+
+  // Botanical leaves
+  drawLeaves(ctx, W, H)
+
+  // ── Header ──
+  ctx.textAlign = 'center'
+
+  // App name
+  ctx.font = '500 34px system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(160,220,160,0.65)'
+  ctx.fillText('S E M A N A   L I S T A', W / 2, 130)
+
+  // Decorative thin lines
+  const lineColor = 'rgba(160,220,160,0.22)'
+  const drawLine = (y: number, half = 200) => {
+    ctx.strokeStyle = lineColor; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(W / 2 - half, y); ctx.lineTo(W / 2 + half, y); ctx.stroke()
+  }
+  drawLine(155)
+
+  // Title
+  ctx.font = 'bold 110px Georgia, "Times New Roman", serif'
+  ctx.fillStyle = '#f2ede4'
+  ctx.fillText('MI MENÚ', W / 2, 268)
+
+  ctx.font = '300 56px Georgia, "Times New Roman", serif'
+  ctx.fillStyle = 'rgba(242,237,228,0.65)'
+  ctx.fillText('DE LA SEMANA', W / 2, 342)
+
+  drawLine(372, 160)
+
+  // ── Day cards ──
+  const diasConRecetas = DIAS.filter(d => menu[`${d}_comida`] || menu[`${d}_cena`])
+  const n = diasConRecetas.length
+  const CARD_TOP = 416
+  const CARD_GAP = 18
+  const FOOTER_H = 160
+  const CARD_H = Math.floor((H - CARD_TOP - FOOTER_H - CARD_GAP * (n - 1)) / n)
+  const CARD_W = W - 80
+  const CX = 40
+
+  diasConRecetas.forEach((dia, i) => {
+    const comida = menu[`${dia}_comida`]
+    const cena = menu[`${dia}_cena`]
+    const cardY = CARD_TOP + i * (CARD_H + CARD_GAP)
+
+    // Card bg
+    ctx.fillStyle = 'rgba(255,255,255,0.055)'
+    rrect(ctx, CX, cardY, CARD_W, CARD_H, 28)
+    ctx.fill()
+
+    // Card border
+    ctx.strokeStyle = 'rgba(255,255,255,0.09)'
+    ctx.lineWidth = 1.5
+    rrect(ctx, CX, cardY, CARD_W, CARD_H, 28)
+    ctx.stroke()
+
+    // Left accent bar
+    ctx.fillStyle = '#4a9e5c'
+    rrect(ctx, CX, cardY + 20, 5, CARD_H - 40, 3)
+    ctx.fill()
+
+    // Day name
+    ctx.textAlign = 'left'
+    ctx.font = 'bold 30px system-ui, sans-serif'
+    ctx.fillStyle = '#7dcea0'
+    ctx.fillText(DIAS_LABEL[dia].toUpperCase(), CX + 44, cardY + 52)
+
+    // Separator
+    ctx.strokeStyle = 'rgba(125,206,160,0.2)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(CX + 44, cardY + 66)
+    ctx.lineTo(CX + CARD_W - 44, cardY + 66)
+    ctx.stroke()
+
+    const hasBoth = comida && cena
+    const singleOffset = hasBoth ? 0 : 28
+
+    if (comida) {
+      ctx.font = '400 24px system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(242,237,228,0.40)'
+      ctx.fillText('☀  COMIDA', CX + 44, cardY + 98 + singleOffset)
+      ctx.font = hasBoth
+        ? `600 ${Math.min(36, Math.floor(CARD_H * 0.19))}px Georgia, serif`
+        : `600 ${Math.min(42, Math.floor(CARD_H * 0.22))}px Georgia, serif`
+      ctx.fillStyle = '#f2ede4'
+      ctx.fillText(clamp(ctx, comida.nombre, CARD_W - 100), CX + 44, cardY + 140 + singleOffset)
+    }
+
+    if (cena) {
+      const cenaY = hasBoth ? cardY + CARD_H / 2 + 14 : cardY + 98
+      ctx.font = '400 24px system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(242,237,228,0.40)'
+      ctx.fillText('☾  CENA', CX + 44, cenaY)
+      ctx.font = hasBoth
+        ? `600 ${Math.min(36, Math.floor(CARD_H * 0.19))}px Georgia, serif`
+        : `600 ${Math.min(42, Math.floor(CARD_H * 0.22))}px Georgia, serif`
+      ctx.fillStyle = '#f2ede4'
+      ctx.fillText(clamp(ctx, cena.nombre, CARD_W - 100), CX + 44, cenaY + 40)
+    }
+  })
+
+  // ── Footer ──
+  const FY = H - FOOTER_H + 20
+  ctx.textAlign = 'center'
+  drawLine(FY, 100)
+  ctx.font = '400 28px system-ui, sans-serif'
+  ctx.fillStyle = 'rgba(125,206,160,0.45)'
+  ctx.fillText('planificado con  semana lista', W / 2, FY + 52)
+
+  // Small dots decoration
+  for (let d = 0; d < 5; d++) {
+    ctx.beginPath()
+    ctx.arc(W / 2 - 40 + d * 20, FY + 82, 3, 0, Math.PI * 2)
+    ctx.fillStyle = d === 2 ? 'rgba(125,206,160,0.5)' : 'rgba(125,206,160,0.2)'
+    ctx.fill()
+  }
+
+  return new Promise(res => canvas.toBlob(b => res(b!), 'image/png'))
+}
+
 type ItemLista = { nombre: string; cantidad?: number; unidad?: string; precio?: number; comprado?: boolean }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -236,6 +429,27 @@ export default function Exportar() {
   const [copiadoMenu, setCopiadoMenu] = useState(false)
   const [copiadoLista, setCopiadoLista] = useState(false)
   const [copiadoCompartida, setCopiadoCompartida] = useState<Record<string, boolean>>({})
+  const [generandoStories, setGenerandoStories] = useState(false)
+
+  async function compartirStories() {
+    setGenerandoStories(true)
+    try {
+      const blob = await generarStoriesBlob(menu)
+      const file = new File([blob], 'menu-semana.png', { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Mi menú de la semana' })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url; a.download = 'menu-semana.png'; a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== 'AbortError') setErrorMsg('No se pudo generar la imagen')
+    } finally {
+      setGenerandoStories(false)
+    }
+  }
   const [errorMsg, setErrorMsg] = useState('')
   const [listaCompartidaItems, setListaCompartidaItems] = useState<Record<string, ItemLista[]>>({})
 
@@ -277,6 +491,23 @@ export default function Exportar() {
                 <a href={`https://wa.me/?text=${encodeURIComponent(buildMenuTexto(menu))}`} target="_blank" rel="noopener noreferrer" className={waClass}>
                   <WaIcon /> WhatsApp
                 </a>
+                <button
+                  onClick={compartirStories}
+                  disabled={generandoStories}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)', color: 'white' }}
+                >
+                  {generandoStories ? (
+                    <span className="animate-pulse">Generando…</span>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current shrink-0">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                      </svg>
+                      Stories
+                    </>
+                  )}
+                </button>
               </div>
               {/* Preview visual del menú */}
               <MenuPreview menu={menu} t={t} />
