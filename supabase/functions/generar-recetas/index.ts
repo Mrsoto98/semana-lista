@@ -4,7 +4,7 @@ import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'jso
 
 const ZHIPU_API_KEY = Deno.env.get('ZHIPU_API_KEY')!
 const ZHIPU_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
-const ZHIPU_MODEL = 'glm-4.5'
+const ZHIPU_MODEL = 'glm-4.6'
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
 
@@ -168,7 +168,7 @@ async function llamarClaude(prompt: string, maxTokens: number): Promise<string> 
   const res = await fetch(ZHIPU_URL, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'Authorization': `Bearer ${ZHIPU_API_KEY}`,
     },
     body: JSON.stringify({
@@ -183,6 +183,10 @@ async function llamarClaude(prompt: string, maxTokens: number): Promise<string> 
   }
   const data = await res.json()
   const text = data.choices?.[0]?.message?.content ?? ''
+  if (!text) {
+    const reason = data.choices?.[0]?.finish_reason ?? 'unknown'
+    throw new Error(`Zhipu devolvió contenido vacío. finish_reason=${reason}. data=${JSON.stringify(data).substring(0, 300)}`)
+  }
   // Strip markdown code blocks if present, then extract the JSON object/array
   const stripped = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim()
   // Find the first { or [ to skip any preamble text the model may have added
@@ -209,7 +213,7 @@ Deno.serve(async (req: Request) => {
       const ingStr = ingredientes.map((i: { nombre: string; cantidad: number; unidad: string }) => `${i.cantidad} ${i.unidad} ${i.nombre}`).join(', ')
       const idiomaStr = idiomaInstruccion(lang)
       const prompt = `Escribe los pasos de cocina numerados para: ${nombre}. Ingredientes: ${ingStr}. ${descripcion}. Solo JSON: {"pasos":["1. ...","2. ...",...]}. Máximo 6 pasos concisos.${idiomaStr ? ' ' + idiomaStr : ''}`
-      const raw = await llamarClaude(prompt, 500)
+      const raw = await llamarClaude(prompt, 1000)
       const parsed = JSON.parse(raw)
       return new Response(
         JSON.stringify({ pasos: parsed.pasos ?? [] }),
@@ -220,7 +224,7 @@ Deno.serve(async (req: Request) => {
     // Modo opción extra: añadir una segunda receta alternativa a una celda ya generada
     if (dia && franja && accion === 'opcion_extra') {
       const prompt = promptOpcionExtra(dia, franja, perfil, receta_existente ?? '', lang)
-      const raw = await llamarClaude(prompt, 900)
+      const raw = await llamarClaude(prompt, 2000)
       const receta = JSON.parse(raw)
       return new Response(
         JSON.stringify({ dia, franja, receta }),
@@ -231,7 +235,7 @@ Deno.serve(async (req: Request) => {
     // Modo slot único: regenerar una celda concreta (1 receta fresca)
     if (dia && franja) {
       const prompt = promptSlot(dia, franja, perfil, lang)
-      const raw = await llamarClaude(prompt, 900)
+      const raw = await llamarClaude(prompt, 2000)
       const receta = JSON.parse(raw)
       return new Response(
         JSON.stringify({ dia, franja, opciones: [receta] }),
@@ -243,7 +247,7 @@ Deno.serve(async (req: Request) => {
     const dias: string[] = Array.isArray(diasReq) && diasReq.length ? diasReq : DIAS
     const franjas: string[] = Array.isArray(franjasReq) && franjasReq.length ? franjasReq : FRANJAS
     const claves = dias.flatMap((d: string) => franjas.map((f: string) => `${d}_${f}`))
-    const maxTokens = Math.min(8000, 900 + claves.length * 500)
+    const maxTokens = Math.min(16000, 2000 + claves.length * 800)
 
     const prompt = promptSemana(perfil, recetas_ya_usadas, claves, lang)
     const raw = await llamarClaude(prompt, maxTokens)
