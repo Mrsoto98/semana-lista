@@ -6,23 +6,8 @@ import { ProgressBar } from '../components/ui/ProgressBar'
 import { usePerfil } from '../hooks/usePerfil'
 import { useUsuario } from '../hooks/useUsuario'
 import { useAuth } from '../hooks/useAuth'
+import { useI18n } from '../hooks/useI18n'
 import type { Objetivo, DificultadPreferida, Perfil } from '../types'
-
-const OBJETIVOS: { value: Objetivo; label: string; emoji: string }[] = [
-  { value: 'sin_restriccion', label: 'Sin restricciones', emoji: '🍽️' },
-  { value: 'bajar_peso',      label: 'Bajar peso',        emoji: '⚖️' },
-  { value: 'mas_proteina',    label: 'Más proteína',      emoji: '💪' },
-  { value: 'vegetariano',     label: 'Vegetariano',       emoji: '🥦' },
-  { value: 'vegano',          label: 'Vegano',            emoji: '🌱' },
-  { value: 'sin_gluten',      label: 'Sin gluten',        emoji: '🌾' },
-]
-
-const DIFICULTADES: { value: DificultadPreferida; label: string; emoji: string; desc: string }[] = [
-  { value: 'fácil',     label: 'Fácil',     emoji: '😊', desc: 'Simples, ≤30 min' },
-  { value: 'media',     label: 'Media',     emoji: '👨‍🍳', desc: '30–60 min' },
-  { value: 'difícil',   label: 'Difícil',   emoji: '🔥', desc: 'Elaboradas' },
-  { value: 'combinado', label: 'Combinado', emoji: '🎲', desc: 'Variedad máxima' },
-]
 
 const TOTAL_PASOS = 9
 
@@ -41,11 +26,28 @@ const DRAFT_INICIAL: Draft = {
 }
 
 export default function Onboarding() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const { guardarPerfil } = usePerfil()
   const { guardarUsuario } = useUsuario()
   const { user } = useAuth()
   const [paso, setPaso] = useState(1)
+
+  const OBJETIVOS: { value: Objetivo; label: string; emoji: string }[] = [
+    { value: 'sin_restriccion', label: t.obj_sin_restriccion, emoji: '🍽️' },
+    { value: 'bajar_peso',      label: t.obj_bajar_peso,      emoji: '⚖️' },
+    { value: 'mas_proteina',    label: t.obj_mas_proteina,    emoji: '💪' },
+    { value: 'vegetariano',     label: t.obj_vegetariano,     emoji: '🥦' },
+    { value: 'vegano',          label: t.obj_vegano,          emoji: '🌱' },
+    { value: 'sin_gluten',      label: t.obj_sin_gluten,      emoji: '🌾' },
+  ]
+
+  const DIFICULTADES: { value: DificultadPreferida; label: string; emoji: string; desc: string }[] = [
+    { value: 'fácil',     label: t.dif_facil,     emoji: '😊', desc: t.dif_onb_desc_facil },
+    { value: 'media',     label: t.dif_media,     emoji: '👨‍🍳', desc: t.dif_onb_desc_media },
+    { value: 'difícil',   label: t.dif_dificil,   emoji: '🔥', desc: t.dif_onb_desc_dificil },
+    { value: 'combinado', label: t.dif_combinado, emoji: '🎲', desc: t.dif_onb_desc_combinado },
+  ]
   const [draft, setDraft] = useState<Draft>(DRAFT_INICIAL)
   const [guardando, setGuardando] = useState(false)
 
@@ -67,46 +69,46 @@ export default function Onboarding() {
   }
 
   const pasoLabel = [
-    'Tu nombre',
-    'Personas en el hogar',
-    'Presupuesto semanal',
-    'Código postal',
-    'Objetivo nutricional',
-    'Dificultad de las recetas',
-    'Ingredientes favoritos',
-    'Ingredientes a evitar',
-    '¿Qué tienes en la nevera?',
+    t.onb_tu_nombre,
+    t.ajustes_personas,
+    t.ajustes_presupuesto,
+    t.ajustes_codigo_postal,
+    t.ajustes_objetivo,
+    t.ajustes_dificultad,
+    t.ajustes_favoritos,
+    t.ajustes_evitar,
+    t.onb_paso9_pregunta,
   ][paso - 1]
 
   return (
     <div className="min-h-screen flex flex-col p-4 max-w-lg mx-auto page-enter">
       <div className="mt-8 mb-6">
-        <h1 className="text-2xl font-black tracking-tight mb-4">Cuéntanos sobre ti</h1>
+        <h1 className="text-2xl font-black tracking-tight mb-4">{t.onb_titulo}</h1>
         <ProgressBar value={paso} max={TOTAL_PASOS} label={pasoLabel} />
       </div>
 
       <div className="flex-1">
         {paso === 1 && (
           <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">¿Cómo te llamamos? Esto es lo que verán el resto de miembros de tus listas compartidas.</p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso1_pregunta}</p>
             <input
               type="text"
               value={nombreDisplay}
               onChange={e => setNombreDisplay(e.target.value)}
-              placeholder="Tu nombre o apodo"
+              placeholder={t.onb_paso1_ph}
               maxLength={40}
               autoFocus
               className="w-full border-2 rounded-card px-4 py-3 text-xl bg-white dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:border-green-select"
             />
             {nombreGoogle && (
-              <p className="text-xs text-gray-400">Pre-rellenado con tu nombre de Google. Cámbialo si quieres.</p>
+              <p className="text-xs text-gray-400">{t.onb_paso1_google}</p>
             )}
           </div>
         )}
 
         {paso === 2 && (
           <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">¿Cuántas personas van a comer?</p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso2_pregunta}</p>
             <div className="flex gap-3 flex-wrap">
               {[1, 2, 3, 4, 5, 6].map(n => (
                 <button
@@ -127,7 +129,7 @@ export default function Onboarding() {
 
         {paso === 3 && (
           <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">Presupuesto semanal para la compra (€)</p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso3_pregunta}</p>
             <input
               type="number"
               min={20}
@@ -136,13 +138,13 @@ export default function Onboarding() {
               onChange={e => set('presupuesto', Number(e.target.value))}
               className="w-full border-2 rounded-card px-4 py-3 text-2xl font-bold text-center bg-white dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:border-green-select"
             />
-            <p className="text-sm text-gray-400">Recomendado: 80–120 € para 2 personas</p>
+            <p className="text-sm text-gray-400">{t.onb_paso3_rec}</p>
           </div>
         )}
 
         {paso === 4 && (
           <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">Código postal para precios de tu Mercadona más cercano</p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso4_pregunta}</p>
             <input
               type="text"
               inputMode="numeric"
@@ -158,7 +160,7 @@ export default function Onboarding() {
 
         {paso === 5 && (
           <div className="space-y-3">
-            <p className="text-gray-600 dark:text-gray-400">¿Tienes algún objetivo nutricional?</p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso5_pregunta}</p>
             {OBJETIVOS.map(obj => (
               <button
                 key={obj.value}
@@ -178,7 +180,7 @@ export default function Onboarding() {
 
         {paso === 6 && (
           <div className="space-y-3">
-            <p className="text-gray-600 dark:text-gray-400">¿Qué nivel de dificultad prefieres en las recetas?</p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso6_pregunta}</p>
             <div className="grid grid-cols-2 gap-2">
               {DIFICULTADES.map(d => (
                 <button
@@ -200,35 +202,33 @@ export default function Onboarding() {
 
         {paso === 7 && (
           <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">Ingredientes que te gustan o usas frecuentemente</p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso7_pregunta}</p>
             <TagInput
               tags={draft.ingredientes_si}
               onChange={tags => set('ingredientes_si', tags)}
-              placeholder="p.ej. pollo, lentejas, tomate..."
+              placeholder={t.onb_paso7_ph}
             />
           </div>
         )}
 
         {paso === 8 && (
           <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">Ingredientes que NO quieres en tus menús</p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso8_pregunta}</p>
             <TagInput
               tags={draft.ingredientes_no}
               onChange={tags => set('ingredientes_no', tags)}
-              placeholder="p.ej. marisco, cilantro..."
+              placeholder={t.onb_paso8_ph}
             />
           </div>
         )}
 
         {paso === 9 && (
           <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-400">
-              ¿Qué tienes en la nevera esta semana? (lo usaremos en los menús)
-            </p>
+            <p className="text-gray-600 dark:text-gray-400">{t.onb_paso9_pregunta}</p>
             <TagInput
               tags={draft.nevera}
               onChange={tags => set('nevera', tags)}
-              placeholder="p.ej. huevos, queso, yogur... (opcional)"
+              placeholder={t.onb_paso9_ph}
             />
           </div>
         )}
@@ -240,7 +240,7 @@ export default function Onboarding() {
             onClick={() => setPaso(p => p - 1)}
             className="flex-1 border-2 border-gray-300 dark:border-gray-600 rounded-card py-3 font-medium hover:border-green-select"
           >
-            Atrás
+            {t.onb_atras}
           </button>
         )}
         {paso < TOTAL_PASOS ? (
@@ -249,7 +249,7 @@ export default function Onboarding() {
             disabled={paso === 4 && draft.codigo_postal.length !== 5}
             className="flex-1 bg-green-select text-white rounded-card py-3 font-semibold hover:bg-green-600 disabled:opacity-50"
           >
-            Siguiente
+            {t.onb_siguiente}
           </button>
         ) : (
           <button
@@ -257,7 +257,7 @@ export default function Onboarding() {
             disabled={guardando}
             className="flex-1 bg-orange-accent text-white rounded-card py-3 font-semibold hover:opacity-90 disabled:opacity-50"
           >
-            {guardando ? 'Guardando...' : '¡Empezar! 🚀'}
+            {guardando ? t.onb_guardando : t.onb_empezar}
           </button>
         )}
       </div>

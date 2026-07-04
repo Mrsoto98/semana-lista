@@ -11,6 +11,7 @@ import { guardar, recuperar } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { guardarRecetasEnCache } from '../lib/recetasCache'
+import { useI18n } from '../hooks/useI18n'
 import type { Dia, Franja, OpcionesSlot, MenuSemanal, ClaveMenu, Receta } from '../types'
 import { DIAS, DIAS_LABEL, FRANJAS } from '../types'
 
@@ -54,6 +55,7 @@ function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvita
 }
 
 export default function Menu() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { perfil, loading: perfilLoading } = usePerfil()
@@ -468,7 +470,7 @@ export default function Menu() {
   }
 
   function guardarSemana() {
-    const nombre = nombreGuardar.trim() || `Semana ${new Date().toLocaleDateString('es-ES')}`
+    const nombre = nombreGuardar.trim() || `${t.menu_guardar_semana_label} ${new Date().toLocaleDateString('es-ES')}`
     const nueva: SemanaGuardada = {
       id: Date.now().toString(), nombre, fecha: new Date().toLocaleDateString('es-ES'),
       tipo: 'normal', estados: { ...estados }, seleccion: { ...seleccion },
@@ -569,17 +571,17 @@ export default function Menu() {
       {modalSorpresa && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold mb-4">🎲 ¿Qué te apetece esta semana?</h2>
+            <h2 className="text-lg font-bold mb-4">{t.modal_titulo}</h2>
             <div className="space-y-4">
               {/* Días y franjas */}
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">¿Para cuántos días?</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.modal_para_cuantos_dias}</p>
                   <div className="flex gap-2">
                     {([
-                      { key: 'semana',        label: 'Semana completa' },
-                      { key: 'laboral',       label: 'Lun – Vie' },
-                      { key: 'personalizado', label: 'Personalizado' },
+                      { key: 'semana',        label: t.modal_semana_completa },
+                      { key: 'laboral',       label: t.modal_lun_vie },
+                      { key: 'personalizado', label: t.modal_personalizado },
                     ] as const).map(({ key, label }) => (
                       <button key={key} onClick={() => setDiasConfig(key)}
                         className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
@@ -600,12 +602,12 @@ export default function Menu() {
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">¿Qué comidas?</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.modal_que_comidas}</p>
                   <div className="flex gap-2">
                     {([
-                      { key: 'ambas',  label: '🍽️ Comida y cena' },
-                      { key: 'comida', label: '☀️ Solo comida' },
-                      { key: 'cena',   label: '🌙 Solo cena' },
+                      { key: 'ambas',  label: t.modal_comida_cena },
+                      { key: 'comida', label: t.modal_solo_comida },
+                      { key: 'cena',   label: t.modal_solo_cena },
                     ] as const).map(({ key, label }) => (
                       <button key={key} onClick={() => setFranjaConfig(key)}
                         className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
@@ -618,13 +620,13 @@ export default function Menu() {
               <div className="border-t border-gray-200 dark:border-gray-700" />
               {listasCompartidas.length > 0 && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-0.5">¿Qué lista quieres usar?</label>
-                  <p className="text-xs text-gray-400 mb-1.5">Ahí es donde irán los ingredientes en casa y la compra del menú</p>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-0.5">{t.modal_que_lista}</label>
+                  <p className="text-xs text-gray-400 mb-1.5">{t.modal_lista_desc}</p>
                   <div className="space-y-1.5">
                     <button onClick={() => setCuestionario(p => ({ ...p, listaDestinoId: null }))}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${!cuestionario.listaDestinoId ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
                       <span className="text-lg">👤</span>
-                      <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100">Mi lista personal</span>
+                      <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100">{t.modal_mi_lista}</span>
                       {!cuestionario.listaDestinoId && <span className="text-green-select">✓</span>}
                     </button>
                     {listasCompartidas.map(lista => (
@@ -639,57 +641,57 @@ export default function Menu() {
                 </div>
               )}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Tipo de cocina</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">{t.modal_tipo_cocina}</label>
                 <select value={cuestionario.cocina} onChange={e => setCuestionario(p => ({ ...p, cocina: e.target.value }))}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800">
-                  <option value="combinado">🎲 Combinado (mezcla varios estilos)</option>
-                  <option value="aleatorio">🔀 Aleatorio (la IA elige libremente)</option>
-                  <option value="española y mediterránea">🥘 Española y mediterránea</option>
-                  <option value="italiana">🍝 Italiana</option>
-                  <option value="asiática">🍜 Asiática</option>
-                  <option value="americana">🍔 Americana</option>
-                  <option value="mexicana">🌮 Mexicana</option>
-                  <option value="variada e internacional">🌍 Variada e internacional</option>
-                  <option value="saludable y ligera">🥗 Saludable y ligera</option>
-                  <option value="tradicional española">🍲 Tradicional española</option>
+                  <option value="combinado">{t.modal_combinado}</option>
+                  <option value="aleatorio">{t.modal_aleatorio}</option>
+                  <option value="española y mediterránea">{t.modal_espanola}</option>
+                  <option value="italiana">{t.modal_italiana}</option>
+                  <option value="asiática">{t.modal_asiatica}</option>
+                  <option value="americana">{t.modal_americana}</option>
+                  <option value="mexicana">{t.modal_mexicana}</option>
+                  <option value="variada e internacional">{t.modal_variada}</option>
+                  <option value="saludable y ligera">{t.modal_saludable}</option>
+                  <option value="tradicional española">{t.modal_tradicional}</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Tiempo para cocinar</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">{t.modal_tiempo}</label>
                 <select value={cuestionario.tiempo} onChange={e => setCuestionario(p => ({ ...p, tiempo: e.target.value }))}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800">
-                  <option value="combinado">🎲 Combinado (variado)</option>
-                  <option value="rápido (menos de 30 min)">⚡ Rápido (menos de 30 min)</option>
-                  <option value="normal (30-60 min)">🕐 Normal (30–60 min)</option>
-                  <option value="sin prisa (más de 1 hora)">🍲 Sin prisa (más de 1 hora)</option>
+                  <option value="combinado">{t.modal_tiempo_combinado}</option>
+                  <option value="rápido (menos de 30 min)">{t.modal_rapido}</option>
+                  <option value="normal (30-60 min)">{t.modal_normal}</option>
+                  <option value="sin prisa (más de 1 hora)">{t.modal_sin_prisa}</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Dificultad de las recetas</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">{t.modal_dificultad}</label>
                 <select value={cuestionario.dificultad} onChange={e => setCuestionario(p => ({ ...p, dificultad: e.target.value }))}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800">
-                  <option value="combinado">🎲 Combinado (mezcla de todo)</option>
-                  <option value="fácil">😊 Fácil (≤30 min, técnicas simples)</option>
-                  <option value="media">👨‍🍳 Media (30–60 min)</option>
-                  <option value="difícil">🔥 Difícil (elaboradas, +45 min)</option>
+                  <option value="combinado">{t.modal_dif_combinado}</option>
+                  <option value="fácil">{t.modal_dif_facil}</option>
+                  <option value="media">{t.modal_dif_media}</option>
+                  <option value="difícil">{t.modal_dif_dificil}</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">¿Algo que quieras comer? (opcional)</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">{t.modal_quieres_comer}</label>
                 <input type="text" value={cuestionario.extra} onChange={e => setCuestionario(p => ({ ...p, extra: e.target.value }))}
-                  placeholder="Ej: quiero pasta, algo con salmón..."
+                  placeholder={t.modal_quieres_comer_ph}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800" />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">¿Algo que NO quieras? (opcional)</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">{t.modal_no_quieres}</label>
                 <input type="text" value={cuestionario.no_quiero} onChange={e => setCuestionario(p => ({ ...p, no_quiero: e.target.value }))}
-                  placeholder="Ej: nada de pasta, sin marisco..."
+                  placeholder={t.modal_no_quieres_ph}
                   className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setModalSorpresa(false)} className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl py-3 text-sm font-medium">Cancelar</button>
-              <button onClick={generarSorpresa} className="flex-1 bg-purple-600 text-white rounded-xl py-3 text-sm font-bold hover:bg-purple-700">🎲 ¡Sorpréndeme!</button>
+              <button onClick={() => setModalSorpresa(false)} className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl py-3 text-sm font-medium">{t.btn_cancelar}</button>
+              <button onClick={generarSorpresa} className="flex-1 bg-purple-600 text-white rounded-xl py-3 text-sm font-bold hover:bg-purple-700">{t.modal_sorprendeme}</button>
             </div>
           </div>
         </div>
@@ -699,13 +701,13 @@ export default function Menu() {
       {modalGuardar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm shadow-xl mx-4">
-            <h2 className="text-lg font-bold mb-4">💾 Guardar semana</h2>
+            <h2 className="text-lg font-bold mb-4">{t.menu_guardar_titulo}</h2>
             <input type="text" value={nombreGuardar} onChange={e => setNombreGuardar(e.target.value)}
-              placeholder={`Semana ${new Date().toLocaleDateString('es-ES')}`}
+              placeholder={`${t.menu_guardar_semana_label} ${new Date().toLocaleDateString('es-ES')}`}
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm mb-4 bg-white dark:bg-gray-800" />
             <div className="flex gap-3">
-              <button onClick={() => setModalGuardar(false)} className="flex-1 border border-gray-300 rounded-xl py-2.5 text-sm">Cancelar</button>
-              <button onClick={guardarSemana} className="flex-1 bg-green-500 text-white rounded-xl py-2.5 text-sm font-bold">Guardar</button>
+              <button onClick={() => setModalGuardar(false)} className="flex-1 border border-gray-300 rounded-xl py-2.5 text-sm">{t.btn_cancelar}</button>
+              <button onClick={guardarSemana} className="flex-1 bg-green-500 text-white rounded-xl py-2.5 text-sm font-bold">{t.btn_guardar}</button>
             </div>
           </div>
         </div>
@@ -742,9 +744,9 @@ export default function Menu() {
         {/* Fila título + botón generar */}
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
-            <h1 className="text-2xl font-black tracking-tight leading-none">Tu semana</h1>
+            <h1 className="text-2xl font-black tracking-tight leading-none">{t.menu_tu_semana}</h1>
             {totalListos > 0 && (
-              <p className="text-xs text-gray-400 mt-0.5">{totalListos}/14 recetas</p>
+              <p className="text-xs text-gray-400 mt-0.5">{totalListos}/14 {t.menu_recetas}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -763,13 +765,13 @@ export default function Menu() {
                 className="flex items-center gap-1.5 bg-green-select text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors shadow-sm"
               >
                 {generando ? (
-                  <span className="animate-pulse">Generando…</span>
+                  <span className="animate-pulse">{t.menu_generando}</span>
                 ) : (
-                  <>Generar <span className="text-base">✨</span></>
+                  <>{t.menu_generar} <span className="text-base">✨</span></>
                 )}
               </button>
               <span className={`text-[10px] font-medium ${generacionesMes >= LIMITE_GENERACIONES ? 'text-red-400' : generacionesMes >= 8 ? 'text-orange-400' : 'text-gray-400'}`}>
-                {LIMITE_GENERACIONES - generacionesMes} gen. restantes
+                {LIMITE_GENERACIONES - generacionesMes} {t.menu_gen_restantes}
               </span>
             </div>
           </div>
@@ -793,20 +795,20 @@ export default function Menu() {
             onClick={() => { setMostrarFavoritas(p => !p); setMostrarGuardadas(false) }}
             className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${mostrarFavoritas ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
           >
-            ⭐ Favoritas {favoritas.length > 0 && <span className="bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{favoritas.length}</span>}
+            {t.menu_favoritas} {favoritas.length > 0 && <span className="bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{favoritas.length}</span>}
           </button>
           <button
             onClick={() => { setMostrarGuardadas(p => !p); setMostrarFavoritas(false) }}
             className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${mostrarGuardadas ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
           >
-            📂 Guardadas {semanasGuardadas.length > 0 && <span className="bg-blue-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{semanasGuardadas.length}</span>}
+            {t.menu_guardadas} {semanasGuardadas.length > 0 && <span className="bg-blue-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{semanasGuardadas.length}</span>}
           </button>
           <button
             onClick={() => setModalGuardar(true)}
             disabled={totalListos === 0}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
           >
-            💾 Guardar
+            {t.menu_guardar}
           </button>
         </div>
       </div>
@@ -817,18 +819,18 @@ export default function Menu() {
           <div className="flex gap-2">
             <div className="flex-1 bg-orange-50 dark:bg-orange-950/30 rounded-xl p-3 text-center">
               <p className="text-lg font-black text-orange-500">{resumenSemanal.totalKcal.toLocaleString('es')}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">kcal semana</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t.menu_kcal_semana}</p>
             </div>
             <div className="flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-xl p-3 text-center">
               <p className="text-lg font-black text-blue-500">{resumenSemanal.mediaKcal}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">kcal / plato</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t.menu_kcal_plato}</p>
             </div>
             <div className="flex-1 bg-green-50 dark:bg-green-950/30 rounded-xl p-3 text-center">
               <p className="text-lg font-black text-green-select">{resumenSemanal.numSlots}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">platos</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t.menu_platos}</p>
             </div>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1.5 text-center">⚠️ Estimaciones de la IA por persona · pueden no ser exactas</p>
+          <p className="text-[10px] text-gray-400 mt-1.5 text-center">{t.menu_estimaciones}</p>
         </div>
       )}
 
@@ -836,16 +838,16 @@ export default function Menu() {
       {menuVacio && (
         <div className="mb-4 bg-green-50 dark:bg-green-950 border border-green-100 dark:border-green-900 rounded-xl p-5 text-center">
           <p className="text-3xl mb-3">🥗</p>
-          <h2 className="font-bold text-base mb-1">Tu menú semanal está vacío</h2>
+          <h2 className="font-bold text-base mb-1">{t.menu_vacio}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Elige para cuántos días y qué comidas quieres generar, luego pulsa <strong>Generar mi menú ✨</strong>.
+            {t.menu_vacio_desc}
           </p>
           <button
             onClick={() => setModalGenerar(true)}
             disabled={!perfil}
             className="bg-green-select text-white rounded-card px-6 py-2.5 font-semibold text-sm hover:bg-green-600 disabled:opacity-50"
           >
-            Generar mi menú ✨
+            {t.menu_generar_btn}
           </button>
         </div>
       )}
@@ -854,12 +856,12 @@ export default function Menu() {
       {menuVacio && (
         <div className="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-card p-4 space-y-3">
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">¿Para cuántos días?</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">{t.modal_para_cuantos_dias}</p>
             <div className="flex gap-2">
               {([
-                { key: 'semana',        label: 'Semana completa' },
-                { key: 'laboral',       label: 'Lun – Vie' },
-                { key: 'personalizado', label: 'Personalizado' },
+                { key: 'semana',        label: t.modal_semana_completa },
+                { key: 'laboral',       label: t.modal_lun_vie },
+                { key: 'personalizado', label: t.modal_personalizado },
               ] as const).map(({ key, label }) => (
                 <button
                   key={key}
@@ -889,12 +891,12 @@ export default function Menu() {
             )}
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">¿Qué comidas?</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">{t.modal_que_comidas}</p>
             <div className="flex gap-2">
               {([
-                { key: 'ambas',  label: 'Comida y cena' },
-                { key: 'comida', label: 'Solo comida' },
-                { key: 'cena',   label: 'Solo cena' },
+                { key: 'ambas',  label: t.modal_comida_cena },
+                { key: 'comida', label: t.modal_solo_comida },
+                { key: 'cena',   label: t.modal_solo_cena },
               ] as const).map(({ key, label }) => (
                 <button
                   key={key}
@@ -913,10 +915,10 @@ export default function Menu() {
       {mostrarFavoritas && (
         <div className="mb-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-            <h3 className="font-semibold text-sm">⭐ Recetas favoritas</h3>
+            <h3 className="font-semibold text-sm">{t.menu_favoritas_titulo}</h3>
           </div>
           {favoritas.length === 0
-            ? <p className="text-sm text-gray-400 p-4 text-center">Pulsa ☆ en cualquier receta para guardarla aquí</p>
+            ? <p className="text-sm text-gray-400 p-4 text-center">{t.menu_favoritas_vacio}</p>
             : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-80 overflow-y-auto">
                 {favoritas.map(r => (
@@ -939,10 +941,10 @@ export default function Menu() {
       {mostrarGuardadas && (
         <div className="mb-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-            <h3 className="font-semibold text-sm">📂 Semanas guardadas</h3>
+            <h3 className="font-semibold text-sm">{t.menu_guardadas_titulo}</h3>
           </div>
           {semanasGuardadas.length === 0
-            ? <p className="text-sm text-gray-400 p-4 text-center">No tienes semanas guardadas aún</p>
+            ? <p className="text-sm text-gray-400 p-4 text-center">{t.menu_guardadas_vacio}</p>
             : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {semanasGuardadas.map(s => (
@@ -952,7 +954,7 @@ export default function Menu() {
                       <p className="text-sm font-medium truncate">{s.nombre}</p>
                       <p className="text-xs text-gray-400">{s.fecha}</p>
                     </div>
-                    <button onClick={() => cargarSemana(s)} className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1.5 rounded-lg font-medium">Cargar</button>
+                    <button onClick={() => cargarSemana(s)} className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1.5 rounded-lg font-medium">{t.menu_cargar}</button>
                     <button onClick={() => eliminarSemana(s.id)} className="text-gray-400 hover:text-red-500 text-sm">✕</button>
                   </div>
                 ))}
@@ -1029,7 +1031,7 @@ export default function Menu() {
           <button onClick={irALista}
             className="bg-orange-accent text-white border-2 border-orange-accent/80 rounded-full px-8 py-3 text-base font-bold shadow-lg shadow-orange-accent/30 hover:opacity-90 active:scale-95 transition-all"
             style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
-            🛒 Ver lista ({totalSeleccionadas} comidas)
+            {t.menu_ver_lista} ({totalSeleccionadas} comidas)
           </button>
         </div>
       )}
@@ -1047,8 +1049,8 @@ export default function Menu() {
             onClick={e => e.stopPropagation()}
           >
             <div className="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-4" />
-            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">¿Dónde ver los ingredientes?</h3>
-            <p className="text-xs text-gray-400 mb-5">Elige la lista a la que se añadirán las comidas seleccionadas</p>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">{t.menu_donde_ingredientes}</h3>
+            <p className="text-xs text-gray-400 mb-5">{t.menu_elige_lista}</p>
 
             <div className="flex flex-col gap-3">
               {/* Lista personal */}
@@ -1058,8 +1060,8 @@ export default function Menu() {
               >
                 <span className="text-2xl">🛒</span>
                 <div>
-                  <p className="font-semibold text-sm text-gray-900 dark:text-white">Lista personal</p>
-                  <p className="text-xs text-gray-400">Solo tú la ves y editas</p>
+                  <p className="font-semibold text-sm text-gray-900 dark:text-white">{t.menu_lista_personal}</p>
+                  <p className="text-xs text-gray-400">{t.menu_lista_personal_desc}</p>
                 </div>
               </button>
 
@@ -1073,7 +1075,7 @@ export default function Menu() {
                   <span className="text-2xl">👥</span>
                   <div>
                     <p className="font-semibold text-sm text-gray-900 dark:text-white">{lista.nombre}</p>
-                    <p className="text-xs text-gray-400">Lista compartida</p>
+                    <p className="text-xs text-gray-400">{t.modal_lista_compartida}</p>
                   </div>
                 </button>
               ))}

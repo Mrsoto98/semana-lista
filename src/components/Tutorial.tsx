@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useI18n } from '../hooks/useI18n'
 
 export const TUTORIAL_STORAGE_KEY = 'semana-lista:tutorial-seen-v1'
 export const TUTORIAL_EVENT = 'semana-lista:open-tutorial'
@@ -15,75 +16,6 @@ interface Paso {
   clickBefore?: string
   scrollTo?: boolean
 }
-
-const PASOS: Paso[] = [
-  {
-    ruta: '/menu',
-    emoji: '👋',
-    titulo: '¡Bienvenido a Semana Lista!',
-    desc: 'Tu planificador semanal inteligente. En segundos tienes menú completo, recetas paso a paso, ingredientes agrupados y precios reales de Mercadona. Te enseñamos todo en un minuto.',
-    chips: ['🤖 IA', '🛒 Mercadona', '👨‍👩‍👧 Familiar', '📱 Fácil'],
-  },
-  {
-    ruta: '/menu',
-    emoji: '✨',
-    titulo: 'Genera tu menú en segundos',
-    desc: 'Pulsa "Generar ✨" para elegir tipo de cocina (mediterránea, asiática, vegetariana…), días de la semana, comidas y dificultad. La IA crea recetas reales con ingredientes y calorías. Tienes 15 generaciones gratis al mes.',
-    chips: ['🍽️ Cocina a elegir', '📅 Días flexibles', '🎁 15 gratis/mes'],
-    selector: '[data-tutorial="generar-btn"]',
-  },
-  {
-    ruta: '/menu',
-    emoji: '⭐',
-    titulo: 'Controla y personaliza cada receta',
-    desc: 'Guarda favoritas ⭐ para que la IA las repita, pide una alternativa ➕ para elegir entre dos opciones, o marca 👎 lo que no te gusta para que la IA lo evite. Pulsa "📖 Ver receta" para ver los pasos completos de cocina.',
-    chips: ['⭐ Favoritas', '➕ Alternativa', '👎 No me gusta', '📖 Pasos'],
-    selector: '[data-tutorial="receta-acciones"]',
-  },
-  {
-    ruta: '/lista',
-    emoji: '🛒',
-    titulo: 'Tu lista se genera sola',
-    desc: 'Los ingredientes de todas tus recetas aparecen aquí automáticamente, agrupados por categoría con precio real de Mercadona. Toca cualquier producto para marcarlo como comprado — aparece tachado. El total se actualiza en tiempo real; pulsa en él para fijar un presupuesto semanal.',
-    chips: ['📋 Auto-generada', '☑️ Toca para comprar', '💰 Presupuesto'],
-    selector: '[data-tutorial="lista-cabecera"]',
-  },
-  {
-    ruta: '/lista',
-    emoji: '🏠',
-    titulo: 'Lo que ya tienes en casa',
-    desc: 'Pulsa 🏠 junto a un ingrediente para marcarlo como "en casa" — se descuenta del presupuesto. Desde la sección En Casa puedes mover productos directamente al carrito de la compra con 🛒.',
-    chips: ['🏠 En casa', '💸 Ahorro automático', '🛒 Al carrito'],
-    selector: '[data-tutorial="en-casa"]',
-    clickBefore: '[data-tutorial="en-casa-btn"]',
-    scrollTo: true,
-  },
-  {
-    ruta: '/lista',
-    emoji: '🔍',
-    titulo: 'Añade cualquier producto',
-    desc: 'Filtra la lista por categoría con el botón "Categoría ▾". Para añadir extras: busca entre 4.600 productos de Mercadona con precio real, o pulsa "Producto personalizado" para escribir uno manualmente.',
-    chips: ['🏷️ Por categoría', '4.600 productos', '✏️ Manual'],
-    selector: '[data-tutorial="add-custom"]',
-    scrollTo: true,
-  },
-  {
-    ruta: '/lista',
-    emoji: '👥',
-    titulo: 'Comparte con tu familia',
-    desc: 'Pulsa "Compartida" para crear una lista familiar o unirte con un código. Todos ven y editan la misma lista en tiempo real.',
-    chips: ['🔗 Código único', '⚡ Tiempo real', '👨‍👩‍👧 Familia'],
-    selector: '[data-tutorial="compartida-btn"]',
-  },
-  {
-    ruta: '/ajustes',
-    emoji: '⚙️',
-    titulo: 'Ajusta todo a tu medida',
-    desc: 'Controla el número de personas para que las raciones sean exactas, fija tu presupuesto semanal, tu objetivo de calorías y tu nombre en las listas compartidas.',
-    chips: ['👥 Personas', '💵 Presupuesto', '🔥 Calorías'],
-    selector: '[data-tutorial="ajustes-h1"]',
-  },
-]
 
 function themeFor(ruta: string) {
   if (ruta.startsWith('/lista') || ruta.startsWith('/compartida')) {
@@ -130,8 +62,78 @@ const DUR = '380ms'
 const PAD = 10
 
 export function Tutorial() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const PASOS: Paso[] = [
+    {
+      ruta: '/menu',
+      emoji: '👋',
+      titulo: t.tut_paso1_titulo,
+      desc: t.tut_desc,
+      chips: ['🤖 IA', '🛒 Mercadona', '👨‍👩‍👧 Familiar', '📱 Fácil'],
+    },
+    {
+      ruta: '/menu',
+      emoji: '✨',
+      titulo: t.tut_paso2_titulo,
+      desc: t.tut_paso2_desc,
+      chips: ['🍽️ Cocina a elegir', '📅 Días flexibles', '🎁 15 gratis/mes'],
+      selector: '[data-tutorial="generar-btn"]',
+    },
+    {
+      ruta: '/menu',
+      emoji: '⭐',
+      titulo: t.tut_paso3_titulo,
+      desc: t.tut_paso3_desc,
+      chips: ['⭐ Favoritas', '➕ Alternativa', '👎 No me gusta', '📖 Pasos'],
+      selector: '[data-tutorial="receta-acciones"]',
+    },
+    {
+      ruta: '/lista',
+      emoji: '🛒',
+      titulo: t.tut_paso4_titulo,
+      desc: t.tut_paso4_desc,
+      chips: ['📋 Auto-generada', '☑️ Toca para comprar', '💰 Presupuesto'],
+      selector: '[data-tutorial="lista-cabecera"]',
+    },
+    {
+      ruta: '/lista',
+      emoji: '🏠',
+      titulo: t.tut_paso5_titulo,
+      desc: t.tut_paso5_desc,
+      chips: ['🏠 En casa', '💸 Ahorro automático', '🛒 Al carrito'],
+      selector: '[data-tutorial="en-casa"]',
+      clickBefore: '[data-tutorial="en-casa-btn"]',
+      scrollTo: true,
+    },
+    {
+      ruta: '/lista',
+      emoji: '🔍',
+      titulo: t.tut_paso6_titulo,
+      desc: t.tut_paso6_desc,
+      chips: ['🏷️ Por categoría', '4.600 productos', '✏️ Manual'],
+      selector: '[data-tutorial="add-custom"]',
+      scrollTo: true,
+    },
+    {
+      ruta: '/lista',
+      emoji: '👥',
+      titulo: t.tut_paso7_titulo,
+      desc: t.tut_paso7_desc,
+      chips: ['🔗 Código único', '⚡ Tiempo real', '👨‍👩‍👧 Familia'],
+      selector: '[data-tutorial="compartida-btn"]',
+    },
+    {
+      ruta: '/ajustes',
+      emoji: '⚙️',
+      titulo: t.tut_paso8_titulo,
+      desc: t.tut_paso8_desc,
+      chips: ['👥 Personas', '💵 Presupuesto', '🔥 Calorías'],
+      selector: '[data-tutorial="ajustes-h1"]',
+    },
+  ]
   const [visible, setVisible] = useState(false)
   const [paso, setPaso] = useState(0)
   const [spotRect, setSpotRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
@@ -541,7 +543,7 @@ export function Tutorial() {
                   transition: 'all 0.2s',
                 }}
               >
-                Saltar
+                {t.tut_saltar}
               </button>
               {paso > 0 && (
                 <button
@@ -553,7 +555,7 @@ export function Tutorial() {
                     transition: 'all 0.2s',
                   }}
                 >
-                  ← Atrás
+                  {t.btn_volver}
                 </button>
               )}
               <button
@@ -567,7 +569,7 @@ export function Tutorial() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {esUltimo ? '¡Empezar! 🚀' : 'Siguiente →'}
+                {esUltimo ? t.tut_empezar : t.tut_siguiente}
               </button>
             </div>
           </div>

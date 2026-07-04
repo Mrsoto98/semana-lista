@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { recuperar } from '../lib/storage'
+import { useI18n } from '../hooks/useI18n'
 import type { DificultadPreferida, Dia } from '../types'
 import { DIAS, DIAS_LABEL } from '../types'
 
@@ -110,6 +111,7 @@ function PillSelector({
 }
 
 export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
+  const { t } = useI18n()
   const [config, setConfig] = useState<ConfigGeneracion>({
     cocina: 'variada e internacional',
     dificultad: dificultadPerfil,
@@ -217,12 +219,12 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
           {/* Días y franjas */}
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">¿Para cuántos días?</p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_para_cuantos_dias}</p>
               <div className="flex gap-2">
                 {([
-                  { key: 'semana',        label: 'Semana completa' },
-                  { key: 'laboral',       label: 'Lun – Vie' },
-                  { key: 'personalizado', label: 'Personalizado' },
+                  { key: 'semana',        label: t.modal_semana_completa },
+                  { key: 'laboral',       label: t.modal_lun_vie },
+                  { key: 'personalizado', label: t.modal_personalizado },
                 ] as const).map(({ key, label }) => (
                   <button key={key} onClick={() => onDiasConfigChange(key)}
                     className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
@@ -243,12 +245,12 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">¿Qué comidas?</p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_que_comidas}</p>
               <div className="flex gap-2">
                 {([
-                  { key: 'ambas',  label: '🍽️ Comida y cena' },
-                  { key: 'comida', label: '☀️ Solo comida' },
-                  { key: 'cena',   label: '🌙 Solo cena' },
+                  { key: 'ambas',  label: t.modal_comida_cena },
+                  { key: 'comida', label: t.modal_solo_comida },
+                  { key: 'cena',   label: t.modal_solo_cena },
                 ] as const).map(({ key, label }) => (
                   <button key={key} onClick={() => onFranjaConfigChange(key)}
                     className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
@@ -265,15 +267,15 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
               dónde salen los "en casa" y a qué lista va la compra del menú */}
           {listasCompartidas.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0.5">¿Qué lista quieres usar?</p>
-              <p className="text-xs text-gray-400 mb-2">Ahí es donde irán los ingredientes en casa y la compra del menú</p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0.5">{t.modal_que_lista}</p>
+              <p className="text-xs text-gray-400 mb-2">{t.modal_lista_desc}</p>
               <div className="space-y-1.5">
                 <button onClick={() => seleccionarLista(null)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${!config.listaDestinoId ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
                   <span className="text-lg">👤</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Mi lista personal</p>
-                    <p className="text-xs text-gray-400">{ingredientesNevera.length} ingredientes en casa</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t.modal_mi_lista}</p>
+                    <p className="text-xs text-gray-400">{ingredientesNevera.length} {t.modal_en_casa_modal}</p>
                   </div>
                   {!config.listaDestinoId && <span className="text-green-select">✓</span>}
                 </button>
@@ -284,7 +286,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</p>
                       <p className="text-xs text-gray-400">
-                        {cargandoCompartida && config.listaDestinoId === lista.id ? 'Cargando...' : config.listaDestinoId === lista.id ? `${itemsNeveraCompartida.length} ingredientes en casa` : 'Lista compartida'}
+                        {cargandoCompartida && config.listaDestinoId === lista.id ? t.cargando : config.listaDestinoId === lista.id ? `${itemsNeveraCompartida.length} ${t.modal_en_casa_modal}` : t.modal_lista_compartida}
                       </p>
                     </div>
                     {config.listaDestinoId === lista.id && !cargandoCompartida && <span className="text-green-select">✓</span>}
@@ -296,7 +298,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
           {/* Tipo de cocina */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tipo de cocina</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_tipo_cocina}</p>
             <div className="grid grid-cols-2 gap-2">
               {OPCIONES_COCINA.map(o => (
                 <button
@@ -318,10 +320,10 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
           {/* Dificultad */}
           <div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Dificultad
+              {t.modal_dificultad}
               {config.dificultad === dificultadPerfil
-                ? <span className="ml-2 text-xs text-gray-400 font-normal">(según tu configuración)</span>
-                : <span className="ml-2 text-xs text-green-select font-normal">(modificado para esta semana)</span>
+                ? <span className="ml-2 text-xs text-gray-400 font-normal">{t.modal_dificultad_config}</span>
+                : <span className="ml-2 text-xs text-green-select font-normal">{t.modal_dificultad_mod}</span>
               }
             </p>
             <PillSelector opciones={OPCIONES_DIFICULTAD} value={config.dificultad} onChange={v => set('dificultad', v)} />
@@ -329,35 +331,35 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
           {/* Tiempo */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tiempo para cocinar</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_tiempo}</p>
             <PillSelector opciones={OPCIONES_TIEMPO} value={config.tiempo} onChange={v => set('tiempo', v)} />
           </div>
 
           {/* Ocasión */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ocasión de la semana</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_ocasion}</p>
             <PillSelector opciones={OPCIONES_OCASION} value={config.ocasion} onChange={v => set('ocasion', v)} />
           </div>
 
           {/* Preferencias libres */}
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">¿Algo que quieras comer? <span className="font-normal text-gray-400">(opcional)</span></p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{t.modal_quieres_comer}</p>
               <input
                 type="text"
                 value={config.extra}
                 onChange={e => set('extra', e.target.value)}
-                placeholder="Ej: quiero pasta, algo con salmón, una buena hamburguesa..."
+                placeholder={t.modal_quieres_comer_ph}
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-select"
               />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">¿Algo que NO quieras? <span className="font-normal text-gray-400">(opcional)</span></p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{t.modal_no_quieres}</p>
               <input
                 type="text"
                 value={config.no_quiero}
                 onChange={e => set('no_quiero', e.target.value)}
-                placeholder="Ej: nada de pasta esta semana, sin marisco, sin picante..."
+                placeholder={t.modal_no_quieres_ph}
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-select"
               />
             </div>
@@ -365,12 +367,12 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
           {/* Ingredientes */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ingredientes a usar</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_ingredientes}</p>
             <div className="grid grid-cols-1 gap-2">
               {([
-                { value: 'libre',        emoji: '🤖', label: 'La IA elige libremente',         desc: 'Sin restricciones de ingredientes' },
-                { value: 'nevera',       emoji: '🏠', label: 'Usar lo que tengo en casa',       desc: neveraActual.length ? `${neveraActual.length} ingredientes disponibles` : 'Sin ingredientes guardados aún' },
-                { value: 'personalizada', emoji: '📝', label: 'Lista personalizada',             desc: 'Busca en Mercadona o añade lo que quieras' },
+                { value: 'libre',        emoji: '🤖', label: t.modal_ia_libre,      desc: t.modal_ia_libre_desc },
+                { value: 'nevera',       emoji: '🏠', label: t.modal_usar_casa,     desc: neveraActual.length ? `${neveraActual.length} ${t.modal_ingredientes_disponibles}` : t.modal_sin_ingredientes },
+                { value: 'personalizada', emoji: '📝', label: t.modal_lista_personalizada, desc: t.modal_busca_escribe },
               ] as const).map(opt => (
                 <button
                   key={opt.value}
@@ -399,7 +401,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                     onClick={cargarNevera}
                     className="text-xs text-green-select font-medium hover:underline"
                   >
-                    + Cargar lo que tengo en casa ({neveraActual.length})
+                    {t.modal_cargar_casa} ({neveraActual.length})
                   </button>
                 )}
 
@@ -410,7 +412,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                     type="text"
                     value={busqueda}
                     onChange={e => setBusqueda(e.target.value)}
-                    placeholder={catalogo ? 'Buscar en Mercadona...' : 'Cargando catálogo...'}
+                    placeholder={catalogo ? t.modal_buscar_mercadona : t.cargando}
                     disabled={!catalogo}
                     className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-green-select"
                   />
@@ -437,7 +439,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                     value={inputCustom}
                     onChange={e => setInputCustom(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); añadirIngrediente(inputCustom) } }}
-                    placeholder="O escribe un ingrediente personalizado..."
+                    placeholder={t.modal_ingrediente_personalizado}
                     className="flex-1 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-green-select"
                   />
                   <button
@@ -464,7 +466,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                 )}
 
                 {config.ingredientesPersonalizados.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-2">Busca o escribe ingredientes para añadirlos</p>
+                  <p className="text-xs text-gray-400 text-center py-2">{t.modal_busca_escribe}</p>
                 )}
               </div>
             )}
@@ -477,14 +479,14 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
             onClick={onCancelar}
             className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl py-3 text-sm font-medium text-gray-600 dark:text-gray-300"
           >
-            Cancelar
+            {t.btn_cancelar}
           </button>
           <button
             onClick={() => onConfirmar({ ...config, neveraItems: config.modoIngredientes === 'nevera' ? neveraActual : undefined })}
             disabled={config.modoIngredientes === 'personalizada' && config.ingredientesPersonalizados.length === 0}
             className="flex-2 flex-grow-[2] bg-green-select text-white rounded-xl py-3 text-sm font-bold hover:bg-green-600 disabled:opacity-40 transition-colors"
           >
-            ✨ Generar menú
+            {t.modal_generar}
           </button>
         </div>
       </div>

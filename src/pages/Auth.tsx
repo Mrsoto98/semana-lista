@@ -3,22 +3,24 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useI18n } from '../hooks/useI18n'
 
 type Mode = 'login' | 'registro'
 
-function traducirError(msg: string): string {
-  if (msg.includes('Invalid login credentials')) return 'Email o contraseña incorrectos.'
-  if (msg.includes('Email not confirmed'))       return 'Confirma tu email antes de entrar. Revisa tu bandeja de entrada.'
-  if (msg.includes('User already registered'))   return 'Ya existe una cuenta con ese email. Inicia sesión.'
-  if (msg.includes('Password should be'))        return 'La contraseña debe tener al menos 6 caracteres.'
-  if (msg.includes('Unable to validate'))        return 'Email inválido. Comprueba que está bien escrito.'
-  if (msg.includes('rate limit'))                return 'Demasiados intentos. Espera unos minutos.'
-  if (msg.includes('network'))                   return 'Error de conexión. Comprueba tu red.'
-  return msg
-}
-
 export default function Auth() {
+  const { t, lang } = useI18n()
   const { user, loading } = useAuth()
+
+  function traducirError(msg: string): string {
+    if (msg.includes('Invalid login credentials')) return t.auth_err_credenciales
+    if (msg.includes('Email not confirmed'))       return t.auth_err_confirma
+    if (msg.includes('User already registered'))   return t.auth_err_existe
+    if (msg.includes('Password should be'))        return t.auth_err_password
+    if (msg.includes('Unable to validate'))        return t.auth_err_email
+    if (msg.includes('rate limit'))                return t.auth_err_intentos
+    if (msg.includes('network'))                   return t.auth_err_conexion
+    return msg
+  }
   const navigate = useNavigate()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
@@ -81,22 +83,21 @@ export default function Auth() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
           <p className="text-5xl mb-4">📬</p>
-          <h1 className="text-xl font-bold mb-2">Revisa tu email</h1>
+          <h1 className="text-xl font-bold mb-2">{t.auth_revisa_email}</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-            Hemos enviado un enlace de confirmación a <strong>{email}</strong>.
-            Ábrelo y vuelve aquí para entrar.
+            {t.auth_enviado} <strong>{email}</strong>.
           </p>
           <button
             onClick={() => { setConfirmacionEnviada(false); setMode('login') }}
             className="text-green-select font-medium hover:underline text-sm block mx-auto"
           >
-            Ya lo confirmé → Iniciar sesión
+            {t.auth_ya_confirme}
           </button>
           <button
             onClick={() => { setConfirmacionEnviada(false); setMode('registro') }}
             className="mt-3 text-gray-400 hover:text-gray-500 text-xs block mx-auto hover:underline"
           >
-            Email incorrecto, volver atrás
+            {t.auth_email_incorrecto}
           </button>
         </div>
       </div>
@@ -108,13 +109,13 @@ export default function Auth() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <p className="text-5xl mb-3">🥗</p>
-          <h1 className="text-3xl font-black tracking-tight mb-1">Semana Lista</h1>
-          <p className="text-gray-400 text-sm">Tu planificador semanal con IA</p>
+          <h1 className="text-3xl font-black tracking-tight mb-1">{t.auth_titulo}</h1>
+          <p className="text-gray-400 text-sm">{t.auth_subtitulo}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1">{t.auth_email}</label>
             <input
               type="email"
               value={email}
@@ -125,7 +126,7 @@ export default function Auth() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Contraseña</label>
+            <label className="block text-sm font-medium mb-1">{t.auth_password}</label>
             <input
               type="password"
               value={password}
@@ -144,13 +145,13 @@ export default function Auth() {
             disabled={enviando}
             className="w-full bg-green-select text-white rounded-card py-2 font-semibold hover:bg-green-600 disabled:opacity-50"
           >
-            {enviando ? 'Cargando...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
+            {enviando ? t.auth_cargando : mode === 'login' ? t.auth_entrar : t.auth_crear_cuenta}
           </button>
         </form>
 
         <div className="mt-4 flex items-center gap-3">
           <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-          <span className="text-xs text-gray-400">o</span>
+          <span className="text-xs text-gray-400">{t.auth_o}</span>
           <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
         </div>
 
@@ -164,23 +165,25 @@ export default function Auth() {
             <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
             <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
           </svg>
-          Continuar con Google
+          {t.auth_google}
         </button>
 
-
         <p className="mt-6 text-center text-sm text-gray-500">
-          {mode === 'login' ? '¿Sin cuenta?' : '¿Ya tienes cuenta?'}{' '}
+          {mode === 'login' ? t.auth_sin_cuenta : t.auth_ya_cuenta}{' '}
           <button
             onClick={() => { setMode(mode === 'login' ? 'registro' : 'login'); setError(null) }}
             className="text-green-select font-medium hover:underline"
           >
-            {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
+            {mode === 'login' ? t.auth_registrate : t.auth_inicia_sesion}
           </button>
         </p>
 
         <p className="mt-8 text-center text-xs text-gray-400">
-          Al continuar aceptas nuestra{' '}
-          <Link to="/privacidad" className="underline hover:text-gray-600">política de privacidad</Link>
+          {lang === 'ca' ? (
+            <>En continuar acceptes la nostra <Link to="/privacidad" className="underline hover:text-gray-600">política de privacitat</Link></>
+          ) : (
+            <>Al continuar aceptas nuestra <Link to="/privacidad" className="underline hover:text-gray-600">política de privacidad</Link></>
+          )}
         </p>
       </div>
     </div>

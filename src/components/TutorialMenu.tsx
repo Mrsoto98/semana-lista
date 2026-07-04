@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useI18n } from '../hooks/useI18n'
 
 const MENU_EJEMPLO = [
   { dia: 'Lun', comida: { emoji: '🍗', nombre: 'Pollo al ajillo', kcal: 420 }, cena: { emoji: '🥣', nombre: 'Crema de calabaza', kcal: 280 } },
@@ -15,31 +16,32 @@ const INGREDIENTES_EJEMPLO = [
   'Queso parmesano', 'Pepino', 'Aceitunas negras', 'Fideos',
 ]
 
-const PASOS = [
-  {
-    titulo: '¡Bienvenido a Tu Semana! 🍽️',
-    subtitulo: 'La IA genera tu menú completo en segundos',
-    contenido: 'menu',
-  },
-  {
-    titulo: 'Escoge tus recetas favoritas ⭐',
-    subtitulo: 'Cambia, regenera o añade opciones extra a cada día',
-    contenido: 'opciones',
-  },
-  {
-    titulo: 'Tu lista de la compra, lista 🛒',
-    subtitulo: 'Los ingredientes del menú se añaden automáticamente',
-    contenido: 'lista',
-  },
-]
-
 interface Props {
   onClose: () => void
 }
 
 export function TutorialMenu({ onClose }: Props) {
+  const { t } = useI18n()
   const [paso, setPaso] = useState(0)
   const [saliendo, setSaliendo] = useState(false)
+
+  const PASOS = [
+    {
+      titulo: t.tutmenu_paso1_titulo,
+      subtitulo: t.tutmenu_titulo,
+      contenido: 'menu',
+    },
+    {
+      titulo: t.tutmenu_paso2_titulo,
+      subtitulo: t.tutmenu_paso2_desc,
+      contenido: 'opciones',
+    },
+    {
+      titulo: t.tutmenu_paso3_titulo,
+      subtitulo: t.tutmenu_paso3_desc,
+      contenido: 'lista',
+    },
+  ]
 
   function siguiente() {
     if (paso < PASOS.length - 1) { setPaso(p => p + 1) } else { cerrar() }
@@ -92,7 +94,7 @@ export function TutorialMenu({ onClose }: Props) {
                   </div>
                 </div>
               ))}
-              <p className="text-[10px] text-center text-gray-400 mt-2">👆 Ejemplo de menú Lun–Vie generado por IA</p>
+              <p className="text-[10px] text-center text-gray-400 mt-2">{t.tutmenu_ejemplo}</p>
             </div>
           )}
 
@@ -122,18 +124,18 @@ export function TutorialMenu({ onClose }: Props) {
               <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
                 <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5 text-center">
                   <p className="text-lg mb-0.5">⭐</p>
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Guardar favorita</p>
-                  <p className="text-[10px] mt-0.5">La IA la repetirá más</p>
+                  <p className="font-semibold text-gray-700 dark:text-gray-200">{t.tutmenu_guardar_fav}</p>
+                  <p className="text-[10px] mt-0.5">{t.tutmenu_la_ia}</p>
                 </div>
                 <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5 text-center">
                   <p className="text-lg mb-0.5">➕</p>
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Otra opción</p>
-                  <p className="text-[10px] mt-0.5">Genera alternativa para elegir</p>
+                  <p className="font-semibold text-gray-700 dark:text-gray-200">{t.tutmenu_otra_opcion}</p>
+                  <p className="text-[10px] mt-0.5">{t.tutmenu_genera_alt}</p>
                 </div>
                 <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5 text-center">
                   <p className="text-lg mb-0.5">👎</p>
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">No me gusta</p>
-                  <p className="text-[10px] mt-0.5">Evita esa receta futura</p>
+                  <p className="font-semibold text-gray-700 dark:text-gray-200">{t.tutmenu_no_gusta}</p>
+                  <p className="text-[10px] mt-0.5">{t.tutmenu_evita}</p>
                 </div>
               </div>
             </div>
@@ -143,7 +145,7 @@ export function TutorialMenu({ onClose }: Props) {
           {p.contenido === 'lista' && (
             <div className="mt-3">
               <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-3 mb-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Del menú esta semana</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">{t.tutmenu_del_menu}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {INGREDIENTES_EJEMPLO.map(ing => (
                     <span key={ing} className="text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded-full">{ing}</span>
@@ -153,18 +155,18 @@ export function TutorialMenu({ onClose }: Props) {
               <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5 text-center">
                   <p className="text-base mb-0.5">🏠</p>
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">En casa</p>
-                  <p className="text-[10px] mt-0.5">Marca lo que ya tienes</p>
+                  <p className="font-semibold text-gray-700 dark:text-gray-200">{t.tutmenu_en_casa_label}</p>
+                  <p className="text-[10px] mt-0.5">{t.tutmenu_marca_tienes}</p>
                 </div>
                 <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5 text-center">
                   <p className="text-base mb-0.5">✓</p>
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Comprado</p>
-                  <p className="text-[10px] mt-0.5">Tachado al comprarlo</p>
+                  <p className="font-semibold text-gray-700 dark:text-gray-200">{t.tutmenu_comprado}</p>
+                  <p className="text-[10px] mt-0.5">{t.tutmenu_tachado}</p>
                 </div>
                 <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl p-2.5 text-center">
                   <p className="text-base mb-0.5">👥</p>
-                  <p className="font-semibold text-gray-700 dark:text-gray-200">Compartida</p>
-                  <p className="text-[10px] mt-0.5">Lista para toda la familia</p>
+                  <p className="font-semibold text-gray-700 dark:text-gray-200">{t.tutmenu_compartida_label}</p>
+                  <p className="text-[10px] mt-0.5">{t.tutmenu_para_familia}</p>
                 </div>
               </div>
             </div>
@@ -177,14 +179,14 @@ export function TutorialMenu({ onClose }: Props) {
                 onClick={() => setPaso(p => p - 1)}
                 className="px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500"
               >
-                ← Atrás
+                {t.btn_volver}
               </button>
             )}
             <button
               onClick={siguiente}
               className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl py-2.5 text-sm font-bold transition-colors"
             >
-              {paso < PASOS.length - 1 ? 'Siguiente →' : '¡Empezar ahora! ✨'}
+              {paso < PASOS.length - 1 ? t.tutmenu_siguiente : t.tutmenu_empezar}
             </button>
           </div>
           <p className="text-center text-[10px] text-gray-400 mt-2">{paso + 1} de {PASOS.length}</p>

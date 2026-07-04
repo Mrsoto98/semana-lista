@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { useNavigate } from 'react-router-dom'
 import { TagInput } from '../components/ui/TagInput'
 import { FeedbackModal } from '../components/FeedbackModal'
@@ -12,27 +13,32 @@ import { usePushNotifications, DIAS_SEMANA, HORAS_DISPONIBLES } from '../hooks/u
 import type { Objetivo, DificultadPreferida, Perfil, Dia } from '../types'
 import { DIAS, DIAS_LABEL } from '../types'
 
-const DIFICULTADES: { value: DificultadPreferida; label: string; emoji: string; desc: string }[] = [
-  { value: 'fácil',     label: 'Fácil',     emoji: '😊', desc: 'Recetas simples, menos de 30 min' },
-  { value: 'media',     label: 'Media',     emoji: '👨‍🍳', desc: 'Equilibrio entre sencillo y elaborado' },
-  { value: 'difícil',   label: 'Difícil',   emoji: '🔥', desc: 'Recetas elaboradas para chefs' },
-  { value: 'combinado', label: 'Combinado', emoji: '🎲', desc: 'Mezcla de todo, variedad máxima' },
-]
-
-const OBJETIVOS: { value: Objetivo; label: string; emoji: string }[] = [
-  { value: 'sin_restriccion', label: 'Sin restricciones', emoji: '🍽️' },
-  { value: 'bajar_peso',      label: 'Bajar peso',        emoji: '⚖️' },
-  { value: 'mas_proteina',    label: 'Más proteína',      emoji: '💪' },
-  { value: 'vegetariano',     label: 'Vegetariano',       emoji: '🥦' },
-  { value: 'vegano',          label: 'Vegano',            emoji: '🌱' },
-  { value: 'sin_gluten',      label: 'Sin gluten',        emoji: '🌾' },
-]
+// Labels built inside component from t.* keys
+type DificultadItem = { value: DificultadPreferida; label: string; emoji: string; desc: string }
+type ObjetivoItem = { value: Objetivo; label: string; emoji: string }
 
 type Draft = Omit<Perfil, 'id' | 'usuario_id'>
 
 const AVATARES = ['🧑', '👩', '👨', '🧑‍🍳', '👩‍🍳', '👨‍🍳', '🧑‍💻', '🦸', '🧙', '🐱', '🐶', '🦊', '🐸', '🦋', '🌟', '🍕', '🥑', '🌮']
 
 export default function Ajustes() {
+  const { t, lang, setLang } = useI18n()
+
+  const DIFICULTADES: DificultadItem[] = [
+    { value: 'fácil',     label: t.dif_facil,     emoji: '😊', desc: t.dif_desc_facil },
+    { value: 'media',     label: t.dif_media,     emoji: '👨‍🍳', desc: t.dif_desc_media },
+    { value: 'difícil',   label: t.dif_dificil,   emoji: '🔥', desc: t.dif_desc_dificil },
+    { value: 'combinado', label: t.dif_combinado, emoji: '🎲', desc: t.dif_desc_combinado },
+  ]
+
+  const OBJETIVOS: ObjetivoItem[] = [
+    { value: 'sin_restriccion', label: t.obj_sin_restriccion, emoji: '🍽️' },
+    { value: 'bajar_peso',      label: t.obj_bajar_peso,      emoji: '⚖️' },
+    { value: 'mas_proteina',    label: t.obj_mas_proteina,    emoji: '💪' },
+    { value: 'vegetariano',     label: t.obj_vegetariano,     emoji: '🥦' },
+    { value: 'vegano',          label: t.obj_vegano,          emoji: '🌱' },
+    { value: 'sin_gluten',      label: t.obj_sin_gluten,      emoji: '🌾' },
+  ]
   const navigate = useNavigate()
   const { user } = useAuth()
   const { perfil, guardarPerfil } = usePerfil()
@@ -238,22 +244,22 @@ export default function Ajustes() {
   return (
     <div className="min-h-screen p-4 max-w-lg mx-auto pb-24 page-enter">
       {modalFeedback && <FeedbackModal onClose={() => setModalFeedback(false)} />}
-      <h1 data-tutorial="ajustes-h1" className="text-2xl font-black tracking-tight mb-6 mt-2">Ajustes</h1>
+      <h1 data-tutorial="ajustes-h1" className="text-2xl font-black tracking-tight mb-6 mt-2">{t.ajustes_titulo}</h1>
 
       {/* ── Perfil de usuario ────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 rounded-card shadow-card p-4 mb-6 space-y-4">
-        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Perfil público</p>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t.ajustes_perfil}</p>
 
         {/* Avatar: foto o emoji */}
         <div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Avatar</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{t.ajustes_avatar}</p>
           <div className="flex items-start gap-4">
             {/* Foto actual / emoji, clic para subir */}
             <div className="relative shrink-0">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="relative group rounded-full overflow-hidden"
-                title="Cambiar foto"
+                title={t.ajustes_cambiar_foto}
               >
                 <Avatar url={avatarUrl} emoji={avatarEmoji} size="xl" />
                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -264,7 +270,7 @@ export default function Ajustes() {
                 <button
                   onClick={async () => { await guardarUsuario({ avatar_url: undefined }); setAvatarUrl(null) }}
                   className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center leading-none"
-                  title="Quitar foto"
+                  title={t.ajustes_quitar_foto}
                 >✕</button>
               )}
             </div>
@@ -281,7 +287,7 @@ export default function Ajustes() {
               ))}
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-1.5">Toca el avatar para subir una foto (se redimensiona automáticamente), o elige un emoji</p>
+          <p className="text-xs text-gray-400 mt-1.5">{t.ajustes_toca_avatar}</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -293,12 +299,12 @@ export default function Ajustes() {
 
         {/* Nombre para mostrar */}
         <div>
-          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Nombre para mostrar</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t.ajustes_nombre}</label>
           <input
             type="text"
             value={nombreDisplay}
             onChange={e => setNombreDisplay(e.target.value)}
-            placeholder="Tu nombre o apodo"
+            placeholder={t.ajustes_nombre_ph}
             maxLength={40}
             className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select"
           />
@@ -306,7 +312,7 @@ export default function Ajustes() {
 
         {/* Email de registro (solo lectura) */}
         <div>
-          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Correo de registro</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t.ajustes_correo}</label>
           <input
             type="text"
             value={user?.email ?? ''}
@@ -322,14 +328,14 @@ export default function Ajustes() {
           disabled={guardandoUsuario || subiendoFoto}
           className="w-full bg-green-select text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
         >
-          {guardadoUsuario ? '✓ Guardado' : guardandoUsuario ? 'Guardando...' : 'Guardar perfil'}
+          {guardadoUsuario ? t.btn_guardado : guardandoUsuario ? t.btn_guardando : t.ajustes_guardar_perfil}
         </button>
       </div>
 
       <section className="space-y-5">
         {/* Personas */}
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Personas en el hogar</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_personas}</p>
           <div className="flex gap-2 flex-wrap">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
               <button
@@ -349,7 +355,7 @@ export default function Ajustes() {
 
         {/* Presupuesto */}
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Presupuesto semanal (€)</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_presupuesto}</p>
           <input
             type="number" min={20} max={500}
             value={draft.presupuesto}
@@ -360,7 +366,7 @@ export default function Ajustes() {
 
         {/* CP */}
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Código postal</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_codigo_postal}</p>
           <input
             type="text" inputMode="numeric" pattern="[0-9]{5}" maxLength={5}
             value={draft.codigo_postal}
@@ -372,7 +378,7 @@ export default function Ajustes() {
 
         {/* Objetivo */}
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Objetivo nutricional</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_objetivo}</p>
           <div className="grid grid-cols-2 gap-2">
             {OBJETIVOS.map(obj => (
               <button
@@ -393,7 +399,7 @@ export default function Ajustes() {
 
         {/* Dificultad de recetas */}
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dificultad de las recetas</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_dificultad}</p>
           <div className="grid grid-cols-2 gap-2">
             {DIFICULTADES.map(d => (
               <button
@@ -414,21 +420,21 @@ export default function Ajustes() {
 
         {/* Ingredientes favoritos */}
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ingredientes favoritos</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_favoritos}</p>
           <TagInput
             tags={draft.ingredientes_si}
             onChange={tags => set('ingredientes_si', tags)}
-            placeholder="pollo, lentejas, tomate..."
+            placeholder={t.ajustes_favoritos_ph}
           />
         </div>
 
         {/* Ingredientes a evitar */}
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ingredientes a evitar</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_evitar}</p>
           <TagInput
             tags={draft.ingredientes_no}
             onChange={tags => set('ingredientes_no', tags)}
-            placeholder="marisco, cilantro..."
+            placeholder={t.ajustes_evitar_ph}
           />
         </div>
 
@@ -437,7 +443,7 @@ export default function Ajustes() {
       {/* Menús recientes */}
       {semanasGuardadas.length > 0 && (
         <div className="pt-2">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">📅 Menús recientes</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t.ajustes_menus_recientes}</p>
           <div className="space-y-2">
             {semanasGuardadas.slice(0, 3).map(s => {
               const recetas = recetasDeUnaSemana(s)
@@ -459,15 +465,15 @@ export default function Ajustes() {
 
       {/* Ajustes del menú semanal */}
       <div className="pt-2">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">⚙️ Ajustes del menú semanal</p>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t.ajustes_menu_titulo}</p>
         <div className="bg-white dark:bg-gray-900 rounded-card border border-gray-100 dark:border-gray-800 p-4 space-y-4">
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">¿Para cuántos días?</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t.modal_para_cuantos_dias}</p>
             <div className="flex gap-2">
               {([
-                { key: 'semana',       label: 'Semana completa' },
-                { key: 'laboral',      label: 'Lun – Vie' },
-                { key: 'personalizado', label: 'Personalizado' },
+                { key: 'semana',       label: t.modal_semana_completa },
+                { key: 'laboral',      label: t.modal_lun_vie },
+                { key: 'personalizado', label: t.modal_personalizado },
               ] as const).map(({ key, label }) => (
                 <button key={key} onClick={() => setDiasConfig(key)}
                   className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
@@ -487,12 +493,12 @@ export default function Ajustes() {
             )}
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">¿Qué comidas?</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t.modal_que_comidas}</p>
             <div className="flex gap-2">
               {([
-                { key: 'ambas',  label: '🍽️ Comida y cena' },
-                { key: 'comida', label: '☀️ Solo comida' },
-                { key: 'cena',   label: '🌙 Solo cena' },
+                { key: 'ambas',  label: t.modal_comida_cena },
+                { key: 'comida', label: t.modal_solo_comida },
+                { key: 'cena',   label: t.modal_solo_cena },
               ] as const).map(({ key, label }) => (
                 <button key={key} onClick={() => setFranjaConfig(key)}
                   className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
@@ -506,12 +512,12 @@ export default function Ajustes() {
 
       {/* Tamaño de la app */}
       <div className="pt-2">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tamaño del texto</p>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_tamano}</p>
         <div className="grid grid-cols-3 gap-2">
           {([
-            { value: 'pequeno', label: 'Pequeño', desc: '88%' },
-            { value: 'normal',  label: 'Normal',  desc: '100%' },
-            { value: 'grande',  label: 'Grande',  desc: '125%' },
+            { value: 'pequeno', label: t.ajustes_pequeno,    desc: '88%' },
+            { value: 'normal',  label: t.ajustes_normal_tam, desc: '100%' },
+            { value: 'grande',  label: t.ajustes_grande,     desc: '125%' },
           ] as const).map(({ value, label, desc }) => (
             <button
               key={value}
@@ -532,18 +538,42 @@ export default function Ajustes() {
 
       {/* Apariencia */}
       <div className="pt-2">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Apariencia</p>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_apariencia}</p>
         <div className="grid grid-cols-3 gap-2">
           {([
-            { value: 'light',  label: 'Claro',   emoji: '☀️' },
-            { value: 'dark',   label: 'Oscuro',  emoji: '🌙' },
-            { value: 'system', label: 'Sistema', emoji: '⚙️' },
+            { value: 'light',  label: t.ajustes_claro,   emoji: '☀️' },
+            { value: 'dark',   label: t.ajustes_oscuro,  emoji: '🌙' },
+            { value: 'system', label: t.ajustes_sistema, emoji: '⚙️' },
           ] as const).map(({ value, label, emoji }) => (
             <button
               key={value}
               onClick={() => aplicarTema(value)}
               className={`flex flex-col items-center gap-1 py-3 rounded-card border-2 text-sm font-medium transition-colors ${
                 tema === value
+                  ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              <span className="text-xl">{emoji}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Idioma */}
+      <div className="pt-2">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_idioma}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { value: 'es', label: 'Español', emoji: '🇪🇸' },
+            { value: 'ca', label: 'Català',  emoji: '🏴' },
+          ] as const).map(({ value, label, emoji }) => (
+            <button
+              key={value}
+              onClick={() => setLang(value)}
+              className={`flex items-center justify-center gap-2 py-3 rounded-card border-2 text-sm font-medium transition-colors ${
+                lang === value
                   ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
                   : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
               }`}
@@ -562,7 +592,7 @@ export default function Ajustes() {
           disabled={guardando}
           className="w-full bg-green-select text-white rounded-card py-3 font-semibold hover:bg-green-600 disabled:opacity-50 transition-colors"
         >
-          {guardado ? '✓ Guardado' : guardando ? 'Guardando...' : 'Guardar cambios'}
+          {guardado ? t.btn_guardado : guardando ? t.btn_guardando : t.ajustes_guardar_cambios}
         </button>
       </div>
 
@@ -574,16 +604,16 @@ export default function Ajustes() {
               <div className="flex items-center gap-2">
                 <span className="text-lg">🔔</span>
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Recordatorio semanal</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t.ajustes_recordatorio}</p>
                   <p className="text-xs text-gray-400">
                     {estadoNotif === 'concedido'
                       ? `${DIAS_SEMANA.find(d => d.value === notifDia)?.label} a las ${notifHora}`
-                      : 'Elige cuándo planificar tu semana'}
+                      : t.ajustes_recordatorio_desc}
                   </p>
                 </div>
               </div>
               {estadoNotif === 'denegado' ? (
-                <span className="text-xs text-gray-400">Bloqueado</span>
+                <span className="text-xs text-gray-400">{t.ajustes_bloqueado}</span>
               ) : (
                 <button
                   onClick={estadoNotif === 'concedido' ? desactivarNotif : () => activarNotif()}
@@ -622,25 +652,25 @@ export default function Ajustes() {
           onClick={() => setModalFeedback(true)}
           className="w-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-card py-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
-          💬 Enviar feedback
+          {t.ajustes_feedback}
         </button>
         <button
           onClick={() => navigate('/privacidad')}
           className="w-full text-sm text-gray-400 hover:text-gray-600 py-2"
         >
-          Política de privacidad
+          {t.ajustes_privacidad}
         </button>
         <button
           onClick={cerrarSesion}
           className="w-full border border-red-200 dark:border-red-900 text-red-500 rounded-card py-3 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
         >
-          Cerrar sesión
+          {t.ajustes_cerrar_sesion}
         </button>
         <button
           onClick={() => setModalEliminar(true)}
           className="w-full text-xs text-gray-400 hover:text-red-500 py-2 transition-colors"
         >
-          Eliminar cuenta
+          {t.ajustes_eliminar_cuenta}
         </button>
         <button
           onClick={async () => {
@@ -656,7 +686,7 @@ export default function Ajustes() {
           }}
           className="w-full text-xs text-gray-400 hover:text-blue-500 py-2 transition-colors"
         >
-          🔄 Forzar actualización de la app
+          {t.ajustes_forzar_update}
         </button>
       </div>
 
@@ -666,28 +696,28 @@ export default function Ajustes() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="text-center">
               <p className="text-4xl mb-2">⚠️</p>
-              <h2 className="text-lg font-black text-red-600 mb-1">Eliminar cuenta</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Esta acción es <strong>permanente e irreversible</strong>. Se eliminarán:</p>
+              <h2 className="text-lg font-black text-red-600 mb-1">{t.ajustes_eliminar_cuenta}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t.eliminar_desc}</p>
             </div>
 
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1.5 bg-red-50 dark:bg-red-950/40 rounded-xl p-4">
-              <li>🗑️ Tu perfil y datos personales</li>
-              <li>📋 Todas las listas compartidas que hayas <strong>creado</strong> (y sus artículos, para todos los miembros)</li>
-              <li>👥 Tus amistades y solicitudes pendientes</li>
-              <li>🍽️ Tu menú semanal y configuración</li>
+              <li>{t.eliminar_item1}</li>
+              <li>{t.eliminar_item2}</li>
+              <li>{t.eliminar_item3}</li>
+              <li>{t.eliminar_item4}</li>
             </ul>
 
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              Las listas compartidas <strong>creadas por otros</strong> donde eras miembro seguirán existiendo.
+              {t.eliminar_nota}
             </p>
 
             <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">Escribe <strong>ELIMINAR</strong> para confirmar</label>
+              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">{t.eliminar_escribe}</label>
               <input
                 type="text"
                 value={confirmTexto}
                 onChange={e => setConfirmTexto(e.target.value)}
-                placeholder="ELIMINAR"
+                placeholder={t.eliminar_confirm_palabra}
                 className="w-full border-2 border-red-200 dark:border-red-800 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:border-red-500"
               />
             </div>
@@ -699,14 +729,14 @@ export default function Ajustes() {
                 onClick={() => { setModalEliminar(false); setConfirmTexto(''); setErrorEliminar('') }}
                 className="flex-1 border border-gray-200 dark:border-gray-700 rounded-xl py-3 text-sm font-medium"
               >
-                Cancelar
+                {t.btn_cancelar}
               </button>
               <button
                 onClick={eliminarCuenta}
                 disabled={confirmTexto !== 'ELIMINAR' || eliminando}
                 className="flex-1 bg-red-500 text-white rounded-xl py-3 text-sm font-bold disabled:opacity-40 transition-opacity"
               >
-                {eliminando ? 'Eliminando...' : 'Eliminar todo'}
+                {eliminando ? t.eliminar_btn_cargando : t.eliminar_btn}
               </button>
             </div>
           </div>

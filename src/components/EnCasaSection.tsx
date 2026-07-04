@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { expandirCatalogo } from '../lib/matchMercadona'
+import { useI18n } from '../hooks/useI18n'
 
 interface Producto { id?: string; nombre: string; precio: number; foto?: string | null; tamaño?: number; unidad?: string }
 
@@ -28,6 +29,7 @@ const CAT_EMOJI: Record<string, string> = {
 }
 
 export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarrito }: Props) {
+  const { t } = useI18n()
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
   const [abierto, setAbierto] = useState(false)
 
@@ -73,13 +75,13 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
           onClick={() => setAbierto(v => !v)}
           className="flex items-center gap-2 w-full text-left mb-2 py-1"
         >
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">🏠 En casa</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.encasa_titulo}</h2>
           <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abierto ? 'rotate-0' : '-rotate-90'}`}>▾</span>
         </button>
         {abierto && (
           <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
             {grupos.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-2">Nada en casa todavía 🏠</p>
+              <p className="text-xs text-gray-400 text-center py-2">{t.encasa_vacio}</p>
             ) : grupos.map(([cat, items]) => (
               <div key={cat}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
@@ -111,7 +113,7 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
                         {onAddToCart && (
                           <button
                             onClick={() => onAddToCart(item)}
-                            title="Añadir al carrito"
+                            title={t.encasa_anadir_carrito}
                             className={`text-xs px-2 py-0.5 border-l border-blue-100 dark:border-blue-800 transition-colors ${yaEnCarrito ? 'bg-green-500 text-white' : 'bg-blue-50 dark:bg-blue-900/40 text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60'}`}
                           >
                             {yaEnCarrito ? '✓' : '🛒'}
@@ -120,7 +122,7 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
                         {/* quitar de en casa */}
                         <button
                           onClick={() => onRemove(item)}
-                          title="Quitar de En casa"
+                          title={t.encasa_quitar}
                           className="text-xs px-2 py-0.5 border-l border-blue-100 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/40 text-blue-300 dark:text-blue-600 hover:bg-red-50 hover:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
                         >
                           ✕

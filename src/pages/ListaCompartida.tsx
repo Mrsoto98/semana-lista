@@ -13,6 +13,7 @@ import {
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
 import { EnCasaSection } from '../components/EnCasaSection'
 import type { MenuSemanal } from '../types'
+import { useI18n } from '../hooks/useI18n'
 
 interface ProductoMercadona {
   id: string; nombre: string; precio: number; tamaño: number; unidad: string; foto?: string | null; precio_kg?: number | null
@@ -40,6 +41,7 @@ function ArticuloPersonalizado({ inputRef, onAñadir }: {
   inputRef: React.RefObject<HTMLInputElement | null>
   onAñadir: (nombre: string) => void
 }) {
+  const { t } = useI18n()
   const [abierto, setAbierto] = useState(false)
   const [valor, setValor] = useState('')
   function confirmar() {
@@ -54,7 +56,7 @@ function ArticuloPersonalizado({ inputRef, onAñadir }: {
         <button
           onClick={() => setAbierto(true)}
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-green-select transition-colors flex items-center gap-1"
-        >✏️ Artículo personalizado</button>
+        >{t.lista_articulo_personalizado}</button>
       ) : (
         <div className="flex gap-2">
           <input
@@ -64,7 +66,7 @@ function ArticuloPersonalizado({ inputRef, onAñadir }: {
             value={valor}
             onChange={e => setValor(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') confirmar(); if (e.key === 'Escape') setAbierto(false) }}
-            placeholder="Nombre del artículo..."
+            placeholder={t.lista_nombre_articulo}
             className="flex-1 min-w-0 text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select"
           />
           <button onClick={confirmar} disabled={!valor.trim()}
@@ -80,6 +82,7 @@ function ArticuloPersonalizado({ inputRef, onAñadir }: {
 function CategoriasSelector({ categorias, catActiva, onSelect }: {
   categorias: string[]; catActiva: string; onSelect: (cat: string) => void
 }) {
+  const { t } = useI18n()
   const [abierto, setAbierto] = useState(false)
   const esActiva = catActiva !== TODO_CAT
   return (
@@ -88,12 +91,12 @@ function CategoriasSelector({ categorias, catActiva, onSelect }: {
         <button
           onClick={() => { onSelect(TODO_CAT); setAbierto(false) }}
           className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${!esActiva ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}
-        >🛒 Todo</button>
+        >{t.lista_todo}</button>
         <button
           onClick={() => setAbierto(v => !v)}
           className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1 ${esActiva ? 'bg-green-select text-white shadow-sm' : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:border-green-select hover:text-green-select'}`}
         >
-          {esActiva ? `${CAT_EMOJI[catActiva] ?? ''} ${catActiva}` : 'Categorías'}
+          {esActiva ? `${CAT_EMOJI[catActiva] ?? ''} ${catActiva}` : t.lista_categorias}
           <span className={`transition-transform duration-200 inline-block ${abierto ? 'rotate-180' : ''}`}>▾</span>
         </button>
       </div>
@@ -112,6 +115,7 @@ function CategoriasSelector({ categorias, catActiva, onSelect }: {
 }
 
 export default function ListaCompartida() {
+  const { t } = useI18n()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -469,7 +473,7 @@ export default function ListaCompartida() {
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
       <p className="text-4xl">😕</p>
       <p className="text-gray-600 dark:text-gray-400 text-center">{error || 'Lista no encontrada'}</p>
-      <button onClick={() => navigate('/lista')} className="text-green-select font-semibold">← Volver</button>
+      <button onClick={() => navigate('/lista')} className="text-green-select font-semibold">{t.btn_volver}</button>
     </div>
   )
 
@@ -501,7 +505,7 @@ export default function ListaCompartida() {
             )}
             <button onClick={copiarCodigo}
               className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/30 border border-green-select/30 text-green-select rounded-full px-3 py-1 text-xs font-bold shrink-0">
-              <span>👥</span><span>{copiado ? '¡Copiado!' : lista.codigo}</span>
+              <span>👥</span><span>{copiado ? t.lc_copiado : lista.codigo}</span>
             </button>
           </div>
 
@@ -519,7 +523,7 @@ export default function ListaCompartida() {
                   {esAdmin && m.usuario_id !== user?.id && (
                     <button
                       onClick={() => expulsarMiembro(m.usuario_id)}
-                      title="Expulsar de la lista"
+                      title={t.lc_expulsar}
                       className="hidden group-hover:flex items-center justify-center w-4 h-4 rounded-full bg-red-100 dark:bg-red-900/40 text-red-400 hover:bg-red-200 hover:text-red-600 text-[10px] transition-colors"
                     >✕</button>
                   )}
@@ -532,7 +536,7 @@ export default function ListaCompartida() {
             {/* Panel de solicitudes pendientes */}
             {esAdmin && solicitudes.length > 0 && (
               <div className="mb-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-2xl p-3">
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">🔔 Solicitudes para unirse</p>
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">{t.lc_solicitudes}</p>
                 <div className="space-y-2">
                   {solicitudes.map(s => (
                     <div key={s.id} className="flex items-center gap-2">
@@ -540,11 +544,11 @@ export default function ListaCompartida() {
                       <p className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{s.nombre_display ?? 'Usuario'}</p>
                       <button onClick={() => rechazarSolicitud(s.id)}
                         className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-500">
-                        Rechazar
+                        {t.btn_rechazar}
                       </button>
                       <button onClick={() => aceptarSolicitud(s.id, s.usuario_id)}
                         className="text-xs px-2.5 py-1.5 rounded-lg bg-green-select text-white font-semibold">
-                        Aceptar
+                        {t.btn_aceptar}
                       </button>
                     </div>
                   ))}
@@ -563,7 +567,7 @@ export default function ListaCompartida() {
                   )}
                   <button onClick={() => { setPresupuestoDraft(lista?.presupuesto?.toString() ?? ''); setEditandoPresupuesto(true) }}
                     className={`text-xs transition-colors mt-0.5 ${pasado ? 'text-red-400' : 'text-gray-400 hover:text-gray-600'}`}>
-                    {pasado ? `⚠️ +${(totalEst - pres).toFixed(2)} € del límite` : pres > 0 ? `de ${pres} €` : '+ límite'}
+                    {pasado ? `⚠️ +${(totalEst - pres).toFixed(2)} ${t.lc_del_limite}` : pres > 0 ? `de ${pres} €` : t.lc_mas_limite}
                   </button>
                 </div>
               )
@@ -577,7 +581,7 @@ export default function ListaCompartida() {
               className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-3 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               <span className={`inline-block transition-transform duration-200 text-base ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
-              {listaColapsada ? `Mostrar lista (${porComprar.length + comprados.length})` : 'Esconder lista'}
+              {listaColapsada ? t.lista_mostrar(porComprar.length + comprados.length) : t.lista_esconder}
             </button>
           )}
 
@@ -614,7 +618,7 @@ export default function ListaCompartida() {
                         {item.precio ? `${(item.precio * (item.cantidad ?? 1)).toFixed(2)} €` : <span className="text-gray-300 font-normal">+ precio</span>}
                       </button>
                     )}
-                    <button onClick={() => toggleEnCasa(item.id, !item.en_casa)} title="Tengo esto en casa"
+                    <button onClick={() => toggleEnCasa(item.id, !item.en_casa)} title={t.lista_tengo_casa}
                       className="text-base shrink-0 opacity-50 hover:opacity-100 transition-opacity">🏠</button>
                     <button onClick={() => eliminarItem(item.id)} className="text-gray-300 hover:text-red-400 shrink-0 transition-colors">✕</button>
                   </div>
@@ -669,16 +673,16 @@ export default function ListaCompartida() {
         {/* ── DEL MENÚ ESTA SEMANA ─────────────────────────────────────────── */}
         <div>
           <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center gap-2 w-full text-left mb-2 py-1">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">📋 Del menú esta semana</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.lista_del_menu}</h2>
             {precioEstimadoMenu > 0 && (
-              <span className="text-xs font-bold text-green-select">~{precioEstimadoMenu.toFixed(2)} €/aprox</span>
+              <span className="text-xs font-bold text-green-select">~{precioEstimadoMenu.toFixed(2)} €{t.lista_aprox}</span>
             )}
             <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abiertoMenu ? 'rotate-0' : '-rotate-90'}`}>▾</span>
           </button>
           {abiertoMenu && (
             <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
               {gruposMenuPorCategoria.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-2">Genera tu menú para ver los ingredientes aquí 📋</p>
+                <p className="text-xs text-gray-400 text-center py-2">{t.lista_vacia_menu}</p>
               ) : gruposMenuPorCategoria.map(([cat, grupos]) => (
                   <div key={cat}>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
@@ -742,7 +746,7 @@ export default function ListaCompartida() {
         {/* ── CATÁLOGO MERCADONA ────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Catálogo Mercadona</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.catalogo_titulo}</h2>
             {catalogo?.actualizado && (
               <span className="text-xs text-gray-400">
                 {new Date(catalogo.actualizado).toLocaleDateString('es-ES')} · {catalogo.total_productos} productos
@@ -752,13 +756,13 @@ export default function ListaCompartida() {
 
           {catalogo === null ? (
             <div className="flex items-center justify-center py-8 text-gray-400 text-sm gap-2">
-              <span className="animate-spin inline-block">⏳</span> Cargando catálogo...
+              <span className="animate-spin inline-block">⏳</span> {t.catalogo_cargando}
             </div>
           ) : (
             <>
               {/* Buscador + selector de categoría */}
               <input type="text"
-                placeholder={`Buscar${catActiva === TODO_CAT ? '' : ` en ${catActiva}`}...`}
+                placeholder={`${t.catalogo_buscar}${catActiva === TODO_CAT ? '' : ` en ${catActiva}`}...`}
                 value={busqueda}
                 onChange={e => { setBusqueda(e.target.value); setLimite(PAGINA) }}
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm mb-3 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select" />
@@ -816,7 +820,7 @@ export default function ListaCompartida() {
                       ) : (
                         <div className="flex items-center gap-1.5 shrink-0">
                           <button onClick={() => añadirItemEnCasa(prod.nombre, prod.precio)}
-                            className="text-base px-1.5 py-0.5 rounded-full border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors" title="Tengo esto en casa">🏠</button>
+                            className="text-base px-1.5 py-0.5 rounded-full border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors" title={t.lista_tengo_casa}>🏠</button>
                           <button onClick={() => añadir(prod.nombre, prod.precio, prod.unidad)}
                             className="text-xs px-2.5 py-1 rounded-full border border-gray-300 text-gray-500 hover:border-green-400 hover:text-green-600 shrink-0 transition-colors">🛒</button>
                         </div>
@@ -828,7 +832,7 @@ export default function ListaCompartida() {
               {limite < productosVisibles.length && (
                 <button onClick={() => setLimite(l => l + PAGINA)}
                   className="w-full mt-2 py-2 text-sm text-gray-500 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900">
-                  Ver más ({productosVisibles.length - limite} restantes)
+                  {t.ver_mas} ({productosVisibles.length - limite} restantes)
                 </button>
               )}
             </>
@@ -837,12 +841,12 @@ export default function ListaCompartida() {
 
         {/* ── COMPARTIR ──────────────────────────────────────────────────────── */}
         <div className="bg-green-50 dark:bg-green-900/20 border border-green-select/20 rounded-xl p-4">
-          <p className="text-sm font-semibold text-green-select mb-1">👥 Compartir esta lista</p>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Comparte el código con quien quieras. Pueden unirse desde "Listas compartidas" en su app.</p>
+          <p className="text-sm font-semibold text-green-select mb-1">{t.lc_compartir}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{t.lc_compartir_desc}</p>
           <button onClick={copiarCodigo}
             className="w-full flex items-center justify-between bg-white dark:bg-gray-800 border border-green-select/30 rounded-xl px-4 py-3">
             <span className="text-2xl font-black tracking-widest text-green-select">{lista.codigo}</span>
-            <span className="text-sm text-green-select font-semibold">{copiado ? '✓ Copiado' : 'Copiar'}</span>
+            <span className="text-sm text-green-select font-semibold">{copiado ? t.btn_copiado : t.lc_copiar_codigo}</span>
           </button>
         </div>
 
@@ -855,8 +859,8 @@ export default function ListaCompartida() {
           <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-t-3xl p-6 pb-10 shadow-2xl"
             onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-6" />
-            <h2 className="text-lg font-black text-gray-800 dark:text-gray-100 mb-1">Presupuesto límite</h2>
-            <p className="text-sm text-gray-400 mb-6">El total se pondrá en rojo si lo superas</p>
+            <h2 className="text-lg font-black text-gray-800 dark:text-gray-100 mb-1">{t.lista_presupuesto}</h2>
+            <p className="text-sm text-gray-400 mb-6">{t.lc_presupuesto_desc}</p>
             <input
               autoFocus
               type="number"
@@ -873,12 +877,12 @@ export default function ListaCompartida() {
               {(lista?.presupuesto ?? 0) > 0 && (
                 <button onClick={() => { setPresupuestoDraft(''); guardarPresupuesto() }}
                   className="flex-1 py-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 text-gray-500 font-semibold text-sm">
-                  Quitar límite
+                  {t.lc_quitar_limite}
                 </button>
               )}
               <button onClick={guardarPresupuesto}
                 className="flex-1 py-4 rounded-2xl bg-green-select text-white font-black text-lg shadow-lg active:scale-95 transition-transform">
-                Guardar
+                {t.btn_guardar}
               </button>
             </div>
           </div>

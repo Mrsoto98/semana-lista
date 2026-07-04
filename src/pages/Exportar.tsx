@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { recuperar } from '../lib/storage'
 import { useListasCompartidas } from '../hooks/useListaCompartida'
+import { useI18n } from '../hooks/useI18n'
 import type { MenuSemanal, Receta } from '../types'
 import { DIAS, DIAS_LABEL, FRANJAS, type ClaveMenu } from '../types'
 
@@ -61,7 +62,7 @@ async function copiar(texto: string, setCopied: (v: boolean) => void) {
   setTimeout(() => setCopied(false), 2000)
 }
 
-function MenuPreview({ menu }: { menu: MenuSemanal }) {
+function MenuPreview({ menu, t }: { menu: MenuSemanal; t: ReturnType<typeof useI18n>['t'] }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({})
   const toggle = (dia: string) => setAbiertos(p => ({ ...p, [dia]: !p[dia] }))
 
@@ -85,7 +86,7 @@ function MenuPreview({ menu }: { menu: MenuSemanal }) {
               <div className="divide-y divide-gray-50 dark:divide-gray-700">
                 {comida && (
                   <div className="px-3 py-2.5">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">🍽️ Comida</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">{t.exp_comida}</p>
                     <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{comida.nombre}</p>
                     <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{comida.descripcion_corta}</p>
                     <div className="flex gap-3 mt-1 flex-wrap">
@@ -99,7 +100,7 @@ function MenuPreview({ menu }: { menu: MenuSemanal }) {
                 )}
                 {cena && (
                   <div className="px-3 py-2.5">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">🌙 Cena</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">{t.exp_cena}</p>
                     <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{cena.nombre}</p>
                     <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{cena.descripcion_corta}</p>
                     <div className="flex gap-3 mt-1 flex-wrap">
@@ -187,6 +188,7 @@ function ActionBtn({
 // ── página principal ───────────────────────────────────────────────────────────
 
 export default function Exportar() {
+  const { t } = useI18n()
   const { listas } = useListasCompartidas()
 
   // Construir menú igual que Menu.tsx: desde estados + seleccion
@@ -250,8 +252,8 @@ export default function Exportar() {
 
   return (
     <div className="min-h-screen p-4 max-w-lg mx-auto pb-24 page-enter">
-      <h1 className="text-2xl font-black tracking-tight mb-1 mt-2">Exportar</h1>
-      <p className="text-sm text-gray-400 mb-6">Comparte o descarga tu menú y listas</p>
+      <h1 className="text-2xl font-black tracking-tight mb-1 mt-2">{t.exp_titulo}</h1>
+      <p className="text-sm text-gray-400 mb-6">{t.exp_subtitulo}</p>
 
       {errorMsg && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-xl flex items-center justify-between gap-2">
@@ -263,34 +265,34 @@ export default function Exportar() {
       <div className="space-y-4">
 
         {/* ── Menú semanal ── */}
-        <ExportCard icon="🥗" title="Menú semanal" subtitle="Tu planificación personal de la semana" accent="green" badge={numRecetas > 0 ? `${numRecetas} recetas` : undefined}>
+        <ExportCard icon="🥗" title={t.exp_menu_titulo} subtitle={t.exp_menu_desc} accent="green" badge={numRecetas > 0 ? `${numRecetas} ${t.exp_menu_recetas}` : undefined}>
           {numRecetas === 0 ? (
-            <p className="text-xs text-gray-400 italic">No hay recetas generadas todavía</p>
+            <p className="text-xs text-gray-400 italic">{t.exp_menu_vacio}</p>
           ) : (
             <>
               <div className="flex flex-wrap gap-2 mb-4">
                 <ActionBtn onClick={() => copiar(buildMenuTexto(menu), setCopiadoMenu)} disabled={copiadoMenu}>
-                  {copiadoMenu ? '✓ Copiado' : '📋 Copiar'}
+                  {copiadoMenu ? t.exp_copiado : t.exp_copiar}
                 </ActionBtn>
                 <a href={`https://wa.me/?text=${encodeURIComponent(buildMenuTexto(menu))}`} target="_blank" rel="noopener noreferrer" className={waClass}>
                   <WaIcon /> WhatsApp
                 </a>
               </div>
               {/* Preview visual del menú */}
-              <MenuPreview menu={menu} />
+              <MenuPreview menu={menu} t={t} />
             </>
           )}
         </ExportCard>
 
         {/* ── Lista personal ── */}
-        <ExportCard icon="🛒" title="Lista de la compra" subtitle="Tu lista personal con cantidades y precios" accent="blue" badge={listaPersonal.length > 0 ? `${listaPersonal.filter(i => !i.comprado).length} pendientes` : undefined}>
+        <ExportCard icon="🛒" title={t.exp_lista_titulo} subtitle={t.exp_lista_desc} accent="blue" badge={listaPersonal.length > 0 ? `${listaPersonal.filter(i => !i.comprado).length} ${t.exp_lista_pendientes}` : undefined}>
           {listaPersonal.length === 0 ? (
-            <p className="text-xs text-gray-400 italic">Tu lista personal está vacía</p>
+            <p className="text-xs text-gray-400 italic">{t.exp_lista_vacia}</p>
           ) : (
             <>
               <div className="flex flex-wrap gap-2 mb-3">
-                <ActionBtn onClick={() => copiar(buildListaTexto(listaPersonal, 'Lista de la compra'), setCopiadoLista)} disabled={copiadoLista}>
-                  {copiadoLista ? '✓ Copiado' : '📋 Copiar'}
+                <ActionBtn onClick={() => copiar(buildListaTexto(listaPersonal, t.exp_lista_titulo), setCopiadoLista)} disabled={copiadoLista}>
+                  {copiadoLista ? t.exp_copiado : t.exp_copiar}
                 </ActionBtn>
                 <a href={`https://wa.me/?text=${encodeURIComponent(buildListaTexto(listaPersonal, 'Lista de la compra'))}`} target="_blank" rel="noopener noreferrer" className={waClass}>
                   <WaIcon /> WhatsApp
@@ -316,18 +318,18 @@ export default function Exportar() {
         {/* ── Listas compartidas ── */}
         {listas.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Listas compartidas</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">{t.exp_compartidas_titulo}</p>
             <div className="space-y-3">
               {listas.map(lista => {
                 const items = listaCompartidaItems[lista.id]
                 const pendientes = items?.filter(i => !i.comprado && !(i as { en_casa?: boolean }).en_casa) ?? []
                 const isCopied = copiadoCompartida[lista.id]
                 return (
-                  <ExportCard key={lista.id} icon="👥" title={lista.nombre} subtitle={`Código: ${lista.codigo}`} accent="purple" badge={items ? `${pendientes.length} pendientes` : undefined}>
+                  <ExportCard key={lista.id} icon="👥" title={lista.nombre} subtitle={`${t.exp_codigo} ${lista.codigo}`} accent="purple" badge={items ? `${pendientes.length} ${t.exp_lista_pendientes}` : undefined}>
                     {!items ? (
-                      <p className="text-xs text-gray-400 animate-pulse">Cargando…</p>
+                      <p className="text-xs text-gray-400 animate-pulse">{t.exp_cargando}</p>
                     ) : items.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">Lista vacía</p>
+                      <p className="text-xs text-gray-400 italic">{t.exp_lista_vacia2}</p>
                     ) : (
                       <>
                         <div className="flex flex-wrap gap-2 mb-3">
@@ -335,7 +337,7 @@ export default function Exportar() {
                             onClick={() => copiar(buildListaTexto(items.filter(i => !(i as { en_casa?: boolean }).en_casa), lista.nombre), (v) => setCopiadoCompartida(p => ({ ...p, [lista.id]: v })))}
                             disabled={isCopied}
                           >
-                            {isCopied ? '✓ Copiado' : '📋 Copiar'}
+                            {isCopied ? t.exp_copiado : t.exp_copiar}
                           </ActionBtn>
                           <a
                             href={`https://wa.me/?text=${encodeURIComponent(buildListaTexto(items.filter(i => !(i as { en_casa?: boolean }).en_casa), lista.nombre))}`}

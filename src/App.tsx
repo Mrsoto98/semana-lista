@@ -2,6 +2,7 @@
 import { lazy, Suspense, useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { I18nProvider, useI18n } from './hooks/useI18n'
 import { usePerfil } from './hooks/usePerfil'
 import { useListasCompartidas, ListasCompartidasProvider, type ListaCompartida } from './hooks/useListaCompartida'
 import { guardar, recuperar } from './lib/storage'
@@ -228,12 +229,13 @@ function Navbar() {
     ),
   }
 
+  const { t } = useI18n()
   const tabs = [
-    { key: 'exportar',   path: '/exportar', label: 'Exportar' },
-    { key: 'ajustes',    path: '/ajustes',  label: 'Ajustes' },
-    { key: 'lista',      path: '/lista',    label: 'Lista' },
-    { key: 'compartida', path: '',          label: 'Compartida' },
-    { key: 'menu',       path: '/menu',     label: 'Menú' },
+    { key: 'exportar',   path: '/exportar', label: t.nav_exportar },
+    { key: 'ajustes',    path: '/ajustes',  label: t.nav_ajustes },
+    { key: 'lista',      path: '/lista',    label: t.nav_lista },
+    { key: 'compartida', path: '',          label: t.nav_compartida },
+    { key: 'menu',       path: '/menu',     label: t.nav_menu },
   ] as const
 
   return (
@@ -450,13 +452,15 @@ function AppRoutes() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <ListasCompartidasProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </ListasCompartidasProvider>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <ListasCompartidasProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </ListasCompartidasProvider>
+        </AuthProvider>
+      </I18nProvider>
     </ErrorBoundary>
   )
 }
