@@ -769,10 +769,10 @@ export default function Menu() {
 
       {/* Modal detalle favorita */}
       {favoritaDetalle && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setFavoritaDetalle(null)}>
-          <div className="bg-white dark:bg-gray-900 rounded-t-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto pb-safe"
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4" onClick={() => setFavoritaDetalle(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl"
             onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white dark:bg-gray-900 px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 flex items-start gap-3">
+            <div className="sticky top-0 bg-white dark:bg-gray-900 px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 flex items-start gap-3 rounded-t-2xl">
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-base leading-tight">{favoritaDetalle.nombre}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{favoritaDetalle.descripcion_corta}</p>
