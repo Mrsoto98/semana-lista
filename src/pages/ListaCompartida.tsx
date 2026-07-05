@@ -11,7 +11,7 @@ import {
   expandirCatalogo, type MatchProducto,
 } from '../lib/matchMercadona'
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
-import { fetchLearnedOptions, saveLearnedOption, mergePickerOptions } from '../lib/pickerLearning'
+import { fetchLearnedOptions, fetchAllLearnedAssocs, saveLearnedOption, mergePickerOptions } from '../lib/pickerLearning'
 import { EnCasaSection } from '../components/EnCasaSection'
 import type { MenuSemanal } from '../types'
 import { useI18n } from '../hooks/useI18n'
@@ -236,6 +236,28 @@ export default function ListaCompartida() {
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
   const [abiertoMenu, setAbiertoMenu] = useState(false)
   const [listaColapsada, setListaColapsada] = useState(false)
+  const [learnedAssocs, setLearnedAssocs] = useState<Map<string, Set<string>>>(new Map())
+  const [menuSplitRatio, setMenuSplitRatio] = useState<number>(() => recuperar<number>('menu_split_ratio') ?? 60)
+  const menuContainerRef = useRef<HTMLDivElement>(null)
+
+  function onDividerPointerDown(e: React.PointerEvent) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startRatio = menuSplitRatio
+    const containerW = menuContainerRef.current?.getBoundingClientRect().width ?? 400
+    let lastRatio = startRatio
+    function onMove(ev: PointerEvent) {
+      lastRatio = Math.min(80, Math.max(25, startRatio + ((ev.clientX - startX) / containerW) * 100))
+      setMenuSplitRatio(lastRatio)
+    }
+    function onUp() {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+      guardar('menu_split_ratio', lastRatio)
+    }
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }
 
   // UI
   const [, setInputCustom] = useState('')
@@ -420,7 +442,7 @@ export default function ListaCompartida() {
   function confirmarPicker(producto: MatchProducto) {
     if (!pickerIngrediente) return
     añadirItem(producto.nombre, { precio: producto.precio }, pickerIngrediente.enCasa)
-    saveLearnedOption(pickerIngrediente.nombre, producto)
+    saveLearnedOption(pickerIngrediente.nombre, producto).then(recargarLearnedAssocs)
     cerrarPicker()
   }
 
@@ -506,13 +528,19 @@ export default function ListaCompartida() {
   const comprarNombres = useMemo(() => new Set(items.filter(i => !i.en_casa).map(i => i.nombre)), [items])
   const enCasaNombres = useMemo(() => new Set(items.filter(i => i.en_casa).map(i => i.nombre)), [items])
 
+  const recargarLearnedAssocs = useCallback(() => {
+    if (ingredientesMenu.length) fetchAllLearnedAssocs(ingredientesMenu).then(setLearnedAssocs)
+  }, [ingredientesMenu])
+
+  useEffect(() => { recargarLearnedAssocs() }, [recargarLearnedAssocs])
+
   const menuEnComprar = useMemo(
-    () => resolverContraSet(ingredientesMenu, comprarNombres, catalogo?.categorias),
-    [ingredientesMenu, comprarNombres, catalogo],
+    () => resolverContraSet(ingredientesMenu, comprarNombres, catalogo?.categorias, learnedAssocs),
+    [ingredientesMenu, comprarNombres, catalogo, learnedAssocs],
   )
   const menuEnCasa = useMemo(
-    () => resolverContraSet(ingredientesMenu, enCasaNombres, catalogo?.categorias),
-    [ingredientesMenu, enCasaNombres, catalogo],
+    () => resolverContraSet(ingredientesMenu, enCasaNombres, catalogo?.categorias, learnedAssocs),
+    [ingredientesMenu, enCasaNombres, catalogo, learnedAssocs],
   )
 
   const precioEstimadoMenu = useMemo(() => {
@@ -671,15 +699,23 @@ export default function ListaCompartida() {
             })()}
           </div>
 
-          {/* Lista a comprar — toggle siempre visible si hay items */}
+          {/* Lista a comprar — botones borrar+toggle */}
           {(porComprar.length > 0 || comprados.length > 0) && (
-            <button
-              onClick={() => setListaColapsada(v => !v)}
-              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-3 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              <span className={`inline-block transition-transform duration-200 text-base ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
-              {listaColapsada ? t.lista_mostrar(porComprar.length + comprados.length) : t.lista_esconder}
-            </button>
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => { if (porComprar.length > 0 && confirm('¿Borrar todos los artículos de la lista?')) { porComprar.forEach(i => eliminarItem(i.id)) } }}
+                className="flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-600 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+              >
+                🗑 Borrar todo
+              </button>
+              <button
+                onClick={() => setListaColapsada(v => !v)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                <span className={`inline-block transition-transform duration-200 text-base ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
+                {listaColapsada ? t.lista_mostrar(porComprar.length + comprados.length) : t.lista_esconder}
+              </button>
+            </div>
           )}
 
           {!listaColapsada && (porComprar.length > 0 || comprados.length > 0) && (
@@ -766,55 +802,110 @@ export default function ListaCompartida() {
 
         {/* ── DEL MENÚ ESTA SEMANA ─────────────────────────────────────────── */}
         <div>
-          <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center gap-2 w-full text-left mb-2 py-1">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.lista_del_menu}</h2>
-            {precioEstimadoMenu > 0 && (
-              <span className="text-xs font-bold text-green-select">~{precioEstimadoMenu.toFixed(2)} €{t.lista_aprox}</span>
-            )}
-            <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abiertoMenu ? 'rotate-0' : '-rotate-90'}`}>▾</span>
-          </button>
+          <div className="flex items-center mb-2 gap-2">
+            <button onClick={() => setAbiertoMenu(v => !v)} className="flex items-center flex-1 text-left gap-2 py-1">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.lista_del_menu}</h2>
+              {precioEstimadoMenu > 0 && (
+                <span className="text-xs font-bold text-green-select">~{precioEstimadoMenu.toFixed(2)} €{t.lista_aprox}</span>
+              )}
+              <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abiertoMenu ? 'rotate-0' : '-rotate-90'}`}>▾</span>
+            </button>
+          </div>
           {abiertoMenu && (
-            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
+            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3">
               {gruposMenuPorCategoria.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-2">{t.lista_vacia_menu}</p>
-              ) : gruposMenuPorCategoria.map(([cat, grupos]) => (
-                  <div key={cat}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                      {CAT_EMOJI[cat] ?? '📦'} {cat}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {grupos.map(({ key, items: grupoItems, etiqueta }) => {
-                        const enC = grupoItems.some(i => menuEnComprar.has(i))
-                        const enN = grupoItems.some(i => menuEnCasa.has(i))
-                        const foto = grupoItems.map(i => infoIngredienteMenu.get(i)?.foto).find(f => f != null) ?? null
+              ) : (
+                <div className="flex items-start" ref={menuContainerRef}>
+                  {/* ── Columna izquierda: pendientes / en lista ── */}
+                  <div style={{ width: `${menuSplitRatio}%` }} className="min-w-0 shrink-0 space-y-3 pr-1">
+                    {gruposMenuPorCategoria.map(([cat, grupos]) => {
+                      const gruposFiltrados = grupos.filter(({ items: gi }) => !gi.some(i => menuEnCasa.has(i)))
+                      if (!gruposFiltrados.length) return null
+                      return (
+                        <div key={cat}>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                            {CAT_EMOJI[cat] ?? '📦'} {cat}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {gruposFiltrados.map(({ key, items: grupoItems, etiqueta }) => {
+                              const enC = grupoItems.some(i => menuEnComprar.has(i))
+                              const foto = grupoItems.map(i => infoIngredienteMenu.get(i)?.foto).find(f => f != null) ?? null
+                              return (
+                                <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                                  {foto && (
+                                    <button onClick={() => setFotoAmpliada(foto)}
+                                      className="flex items-center pl-1 pr-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
+                                      <img src={foto} alt="" loading="lazy"
+                                        className="w-6 h-6 rounded-full object-cover shrink-0 cursor-zoom-in"
+                                        onError={e => { e.currentTarget.parentElement!.style.display = 'none' }} />
+                                    </button>
+                                  )}
+                                  <button onClick={() => enC ? quitarGrupoDeComprar(grupoItems) : abrirPicker(grupoItems, false)}
+                                    className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
+                                    {enC ? '✓' : '🛒'} {etiqueta}
+                                  </button>
+                                  <button onClick={() => abrirPicker(grupoItems, true)}
+                                    className="text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50 transition-colors">
+                                    🏠
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* ── Divisor arrastrable ── */}
+                  {gruposMenu.some(({ items: gi }) => gi.some(i => menuEnCasa.has(i))) && (
+                    <div
+                      onPointerDown={onDividerPointerDown}
+                      className="w-3 shrink-0 self-stretch cursor-col-resize flex items-center justify-center group select-none"
+                      style={{ touchAction: 'none' }}
+                    >
+                      <div className="w-px h-full bg-gray-200 dark:bg-gray-700 group-hover:bg-green-select transition-colors relative">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-6 bg-gray-300 dark:bg-gray-600 group-hover:bg-green-select rounded-full flex flex-col items-center justify-center gap-0.5 transition-colors">
+                          <span className="w-0.5 h-0.5 rounded-full bg-white block" />
+                          <span className="w-0.5 h-0.5 rounded-full bg-white block" />
+                          <span className="w-0.5 h-0.5 rounded-full bg-white block" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Columna derecha: en casa ── */}
+                  {gruposMenu.some(({ items: gi }) => gi.some(i => menuEnCasa.has(i))) && (
+                    <div style={{ width: `${100 - menuSplitRatio}%` }} className="min-w-0 shrink-0 space-y-3 pl-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400 text-right">🏠 En casa</p>
+                      {gruposMenuPorCategoria.map(([cat, grupos]) => {
+                        const gruposCasa = grupos.filter(({ items: gi }) => gi.some(i => menuEnCasa.has(i)))
+                        if (!gruposCasa.length) return null
                         return (
-                          <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                            {foto && (
-                              <button
-                                onClick={() => setFotoAmpliada(foto)}
-                                className="flex items-center pl-1 pr-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700"
-                              >
-                                <img src={foto} alt="" loading="lazy"
-                                  className="w-6 h-6 rounded-full object-cover shrink-0 cursor-zoom-in"
-                                  onError={e => { e.currentTarget.parentElement!.style.display = 'none' }} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => enC ? quitarGrupoDeComprar(grupoItems) : abrirPicker(grupoItems, false)}
-                              className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
-                              {enC ? '✓' : '🛒'} <span className={enN ? 'line-through decoration-2' : ''}>{etiqueta}</span>
-                            </button>
-                            <button
-                              onClick={() => enN ? quitarGrupoDeCasa(grupoItems) : abrirPicker(grupoItems, true)}
-                              className={`text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 transition-colors ${enN ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50'}`}>
-                              {enN ? '✓' : '🏠'}
-                            </button>
+                          <div key={cat}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5 text-right truncate">
+                              {CAT_EMOJI[cat] ?? '📦'} {cat}
+                            </p>
+                            <div className="flex flex-col gap-1 items-end">
+                              {gruposCasa.map(({ key, items: grupoItems, etiqueta }) => (
+                                <button key={key}
+                                  onClick={() => quitarGrupoDeCasa(grupoItems)}
+                                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors max-w-full">
+                                  <span className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate">{etiqueta}</span>
+                                  <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                                    <span className="text-white text-[9px] font-bold">✓</span>
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         )
                       })}
                     </div>
-                  </div>
-              ))}
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
