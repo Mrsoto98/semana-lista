@@ -231,11 +231,11 @@ function Navbar() {
 
   const { t } = useI18n()
   const tabs = [
-    { key: 'exportar',   path: '/exportar', label: t.nav_exportar },
     { key: 'ajustes',    path: '/ajustes',  label: t.nav_ajustes },
+    { key: 'exportar',   path: '/exportar', label: t.nav_exportar },
+    { key: 'menu',       path: '/menu',     label: t.nav_menu },
     { key: 'lista',      path: '/lista',    label: t.nav_lista },
     { key: 'compartida', path: '',          label: t.nav_compartida },
-    { key: 'menu',       path: '/menu',     label: t.nav_menu },
   ] as const
 
   return (
