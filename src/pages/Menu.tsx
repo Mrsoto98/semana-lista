@@ -969,7 +969,7 @@ export default function Menu() {
                 <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">{t.menu_kcal_plato}</p>
               </div>
               <div className="flex-1 py-4 text-center">
-                <p className="text-xl font-black bg-gradient-to-b from-green-400 to-green-600 bg-clip-text text-transparent">{resumenSemanal.numSlots}</p>
+                <p className="text-xl font-black text-green-select">{resumenSemanal.numSlots}</p>
                 <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">{t.menu_platos}</p>
               </div>
             </div>
