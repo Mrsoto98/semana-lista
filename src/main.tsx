@@ -4,6 +4,12 @@ import './index.css'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
+// Aplicar color de acento guardado antes de renderizar
+;(function aplicarColorAcento() {
+  const saved = localStorage.getItem('semana-lista:accent-color')
+  if (saved) document.documentElement.style.setProperty('--accent', saved)
+})()
+
 // Aplicar tamaño de fuente guardado antes de renderizar
 ;(function aplicarTamanoFuente() {
   const t = localStorage.getItem('semana-lista:tamano') as 'pequeno' | 'normal' | 'grande' | null

@@ -8,7 +8,7 @@ export default {
     extend: {
       colors: {
         'warm-white':   '#F8F8F6',
-        'green-select': '#16a34a',   // antes #4CAF50 — más moderno y profundo
+        'green-select': 'rgb(var(--accent) / <alpha-value>)',
         'green-light':  '#86efac',   // acento claro para fondos
         'orange-accent':'#f97316',   // naranja más vivo
       },

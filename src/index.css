@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --accent: 22 163 74; /* verde #16a34a — canales RGB para opacity modifiers de Tailwind */
+}
+
 @layer base {
   html {
     font-feature-settings: 'cv11', 'ss01';

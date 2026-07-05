@@ -188,6 +188,25 @@ export default function Ajustes() {
     localStorage.setItem('semana-lista:tamano', t)
   }
 
+  const COLORES_ACENTO = [
+    { id: 'verde',   rgb: '22 163 74',   hex: '#16a34a', label: 'Verde'   },
+    { id: 'rosa',    rgb: '219 39 119',  hex: '#db2777', label: 'Rosa'    },
+    { id: 'morado',  rgb: '124 58 237',  hex: '#7c3aed', label: 'Morado'  },
+    { id: 'azul',    rgb: '37 99 235',   hex: '#2563eb', label: 'Azul'    },
+    { id: 'naranja', rgb: '234 88 12',   hex: '#ea580c', label: 'Naranja' },
+  ] as const
+
+  const [colorAcento, setColorAcento] = useState<string>(() =>
+    localStorage.getItem('semana-lista:accent-id') ?? 'verde'
+  )
+
+  function aplicarColor(id: string, rgb: string) {
+    setColorAcento(id)
+    document.documentElement.style.setProperty('--accent', rgb)
+    localStorage.setItem('semana-lista:accent-color', rgb)
+    localStorage.setItem('semana-lista:accent-id', id)
+  }
+
   const aplicarTema = useCallback((t: 'light' | 'dark' | 'system') => {
     setTema(t)
     if (t === 'dark') {
@@ -508,6 +527,29 @@ export default function Ajustes() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Color de acento */}
+      <div className="pt-2">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Color de acento</p>
+        <div className="flex gap-3 flex-wrap">
+          {COLORES_ACENTO.map(({ id, rgb, hex, label }) => (
+            <button
+              key={id}
+              onClick={() => aplicarColor(id, rgb)}
+              title={label}
+              className="flex flex-col items-center gap-1.5 group"
+            >
+              <span
+                className={`w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-transform group-hover:scale-110 ${colorAcento === id ? 'ring-4 ring-offset-2 ring-current scale-110' : ''}`}
+                style={{ backgroundColor: hex, color: hex }}
+              >
+                {colorAcento === id && <span className="text-white text-lg font-bold">✓</span>}
+              </span>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">{label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
