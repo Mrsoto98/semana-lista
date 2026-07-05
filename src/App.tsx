@@ -423,6 +423,28 @@ function IosBanner() {
 
 function AppRoutes() {
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const swipeStart = useRef<{ x: number; y: number } | null>(null)
+
+  const NAV_PATHS = ['/ajustes', '/exportar', '/menu', '/lista', '/lista-compartida']
+
+  function onTouchStart(e: React.TouchEvent) {
+    swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    if (!swipeStart.current) return
+    const dx = e.changedTouches[0].clientX - swipeStart.current.x
+    const dy = e.changedTouches[0].clientY - swipeStart.current.y
+    swipeStart.current = null
+    // Only navigate if clearly horizontal (2:1 ratio) and far enough
+    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return
+    const idx = NAV_PATHS.findIndex(p => location.pathname.startsWith(p))
+    if (idx === -1) return
+    if (dx < 0 && idx < NAV_PATHS.length - 1) navigate(NAV_PATHS[idx + 1])
+    else if (dx > 0 && idx > 0) navigate(NAV_PATHS[idx - 1])
+  }
 
   return (
     <>
@@ -430,7 +452,11 @@ function AppRoutes() {
       <IosBanner />
       <Tutorial />
       <Navbar />
-      <div style={{ paddingBottom: user ? 'calc(3.5rem + env(safe-area-inset-bottom))' : '0' }}>
+      <div
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        style={{ paddingBottom: user ? 'calc(3.5rem + env(safe-area-inset-bottom))' : '0' }}
+      >
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/"           element={<Auth />} />
