@@ -103,22 +103,6 @@ function clamp(ctx: CanvasRenderingContext2D, text: string, maxW: number): strin
 
 // ── Per-theme decorations ─────────────────────────────────────────────────────
 
-function decoLeaves(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
-  const leaf = (x: number, y: number, sc: number, rot: number, a: number) => {
-    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sc, sc)
-    for (let i = 0; i < 3; i++) {
-      ctx.save(); ctx.rotate((i * Math.PI) / 5)
-      ctx.beginPath(); ctx.moveTo(0, 0)
-      ctx.bezierCurveTo(-30, -60, -10, -140, 0, -170)
-      ctx.bezierCurveTo(10, -140, 30, -60, 0, 0)
-      ctx.fillStyle = color; ctx.fill(); ctx.restore()
-    }
-    ctx.restore()
-  }
-  leaf(80, 340, 1.4, 0.3, 0.22); leaf(W - 60, 390, 1.1, -0.5, 0.17)
-  leaf(55, H - 200, 1.2, 0.8, 0.15); leaf(W - 80, H - 290, 1.3, -0.9, 0.19)
-  leaf(W / 2 - 420, 190, 0.8, 1.2, 0.12); leaf(W / 2 + 400, 210, 0.9, -1.0, 0.12)
-}
 
 function decoArches(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
   // Mediterranean arched windows at bottom + top decorative tiles
