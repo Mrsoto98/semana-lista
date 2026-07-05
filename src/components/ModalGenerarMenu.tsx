@@ -205,8 +205,8 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl w-full max-w-lg shadow-xl max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm pt-4 sm:pt-0">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-xl max-h-[92vh] flex flex-col mx-4 sm:mx-0">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <h2 className="text-lg font-black tracking-tight">📅 Generar menú semanal</h2>
