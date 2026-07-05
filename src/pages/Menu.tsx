@@ -727,76 +727,82 @@ export default function Menu() {
       )}
 
       {/* Header */}
-      <div className="sticky top-0 bg-warm-white dark:bg-gray-950 pt-2 pb-3 z-10">
-        {/* Fila título + botón generar */}
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight leading-none">{t.menu_tu_semana}</h1>
-            {totalListos > 0 && (
-              <p className="text-xs text-gray-400 mt-0.5">{totalListos}/14 {t.menu_recetas}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('semana-lista:open-tutorial'))}
-              title="Ver tutorial"
-              className="w-9 h-9 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-400 text-xs font-bold hover:border-green-select hover:text-green-select transition-colors flex items-center justify-center"
-            >
-              ?
-            </button>
-            <div className="flex flex-col items-end gap-0.5">
-              <button
-                data-tutorial="generar-btn"
-                onClick={() => setModalGenerar(true)}
-                disabled={generando || !perfil || generacionesMes >= LIMITE_GENERACIONES}
-                className="flex items-center gap-1.5 bg-green-select text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors shadow-sm"
-              >
-                {generando ? (
-                  <span className="animate-pulse">{t.menu_generando}</span>
-                ) : (
-                  <>{t.menu_generar} <span className="text-base">✨</span></>
+      <div className="sticky top-0 z-10 pt-2 pb-3">
+        {/* Glass card */}
+        <div className="relative rounded-2xl overflow-hidden mb-2">
+          <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/80 backdrop-blur-xl border border-white/40 dark:border-white/10" />
+          <div className="relative px-4 pt-3 pb-3">
+            {/* Fila título + botón generar */}
+            <div className="flex items-center justify-between gap-3 mb-2.5">
+              <div>
+                <h1 className="text-2xl font-black tracking-tight leading-none">{t.menu_tu_semana}</h1>
+                {totalListos > 0 && (
+                  <p className="text-xs text-gray-400 mt-0.5">{totalListos}/14 {t.menu_recetas}</p>
                 )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('semana-lista:open-tutorial'))}
+                  title="Ver tutorial"
+                  className="w-9 h-9 rounded-xl border border-white/30 dark:border-white/10 bg-white/50 dark:bg-white/5 text-gray-400 text-xs font-bold hover:border-green-select hover:text-green-select transition-colors flex items-center justify-center backdrop-blur-sm"
+                >
+                  ?
+                </button>
+                <div className="flex flex-col items-end gap-0.5">
+                  <button
+                    data-tutorial="generar-btn"
+                    onClick={() => setModalGenerar(true)}
+                    disabled={generando || !perfil || generacionesMes >= LIMITE_GENERACIONES}
+                    className="flex items-center gap-1.5 bg-green-select text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    {generando ? (
+                      <span className="animate-pulse">{t.menu_generando}</span>
+                    ) : (
+                      <>{t.menu_generar} <span className="text-base">✨</span></>
+                    )}
+                  </button>
+                  <span className={`text-[10px] font-medium ${generacionesMes >= LIMITE_GENERACIONES ? 'text-red-400' : generacionesMes >= 8 ? 'text-orange-400' : 'text-gray-400'}`}>
+                    {LIMITE_GENERACIONES - generacionesMes} {t.menu_gen_restantes}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Barra de progreso */}
+            {totalListos > 0 && (
+              <div className="mb-2.5">
+                <div className="h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-select rounded-full transition-all duration-500"
+                    style={{ width: `${(totalListos / 14) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Botones secundarios */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setMostrarFavoritas(p => !p); setMostrarGuardadas(false) }}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${mostrarFavoritas ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' : 'bg-black/5 dark:bg-white/8 text-gray-500 dark:text-gray-400 hover:bg-black/10 dark:hover:bg-white/12'}`}
+              >
+                {t.menu_favoritas} {favoritas.length > 0 && <span className="bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{favoritas.length}</span>}
               </button>
-              <span className={`text-[10px] font-medium ${generacionesMes >= LIMITE_GENERACIONES ? 'text-red-400' : generacionesMes >= 8 ? 'text-orange-400' : 'text-gray-400'}`}>
-                {LIMITE_GENERACIONES - generacionesMes} {t.menu_gen_restantes}
-              </span>
+              <button
+                onClick={() => { setMostrarGuardadas(p => !p); setMostrarFavoritas(false) }}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${mostrarGuardadas ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' : 'bg-black/5 dark:bg-white/8 text-gray-500 dark:text-gray-400 hover:bg-black/10 dark:hover:bg-white/12'}`}
+              >
+                {t.menu_guardadas} {semanasGuardadas.length > 0 && <span className="bg-blue-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{semanasGuardadas.length}</span>}
+              </button>
+              <button
+                onClick={() => setModalGuardar(true)}
+                disabled={totalListos === 0}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium bg-black/5 dark:bg-white/8 text-gray-500 dark:text-gray-400 hover:bg-black/10 dark:hover:bg-white/12 disabled:opacity-40 transition-colors"
+              >
+                {t.menu_guardar}
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Barra de progreso */}
-        {totalListos > 0 && (
-          <div className="mb-2">
-            <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-green-select rounded-full transition-all duration-500"
-                style={{ width: `${(totalListos / 14) * 100}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Botones secundarios */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => { setMostrarFavoritas(p => !p); setMostrarGuardadas(false) }}
-            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${mostrarFavoritas ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-          >
-            {t.menu_favoritas} {favoritas.length > 0 && <span className="bg-amber-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{favoritas.length}</span>}
-          </button>
-          <button
-            onClick={() => { setMostrarGuardadas(p => !p); setMostrarFavoritas(false) }}
-            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${mostrarGuardadas ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-          >
-            {t.menu_guardadas} {semanasGuardadas.length > 0 && <span className="bg-blue-400 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{semanasGuardadas.length}</span>}
-          </button>
-          <button
-            onClick={() => setModalGuardar(true)}
-            disabled={totalListos === 0}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
-          >
-            {t.menu_guardar}
-          </button>
         </div>
       </div>
 
