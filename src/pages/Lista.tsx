@@ -355,9 +355,8 @@ export default function Lista() {
   }
 
   // ── Del menú esta semana ──────────────────────────────────────────────────
+  const [menuKey, setMenuKey] = useState(0)
   const ingredientesMenu = useMemo(() => {
-    const listaDestino = recuperar<string | null>('menu_lista_destino')
-    if (listaDestino) return [] // el menú va a una lista compartida
     const menu = recuperar<MenuSemanal>('menu_semana')
     if (!menu) return []
     const set = new Set<string>()
@@ -367,7 +366,14 @@ export default function Lista() {
         if (ing.nombre) set.add(ing.nombre.charAt(0).toUpperCase() + ing.nombre.slice(1).toLowerCase())
     }
     return Array.from(set).sort()
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuKey])
+
+  function vaciarMenu() {
+    if (!confirm('¿Vaciar el menú de la semana de la lista?')) return
+    localStorage.removeItem('semana-lista:menu_semana')
+    setMenuKey(k => k + 1)
+  }
 
   // Agrupa variantes del mismo ingrediente base (distintos grados/tipos que
   // pidieron distintas recetas) en un solo elemento con un solo botón.
@@ -858,6 +864,12 @@ export default function Lista() {
               )}
               <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abiertoMenu ? 'rotate-0' : '-rotate-90'}`}>▾</span>
             </button>
+            {ingredientesMenu.length > 0 && (
+              <button onClick={vaciarMenu} title="Vaciar menú de la semana"
+                className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0">
+                🗑
+              </button>
+            )}
           </div>
           {abiertoMenu && (
             <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3">

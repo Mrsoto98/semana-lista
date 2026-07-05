@@ -447,11 +447,10 @@ export default function ListaCompartida() {
   }
 
   // ── Del menú esta semana ──────────────────────────────────────────────────
+  const [menuKey, setMenuKey] = useState(0)
   const ingredientesMenu = useMemo(() => {
     const menu = recuperar<MenuSemanal>('menu_semana')
     if (!menu) return []
-    const destino = recuperar<string>('menu_lista_destino')
-    if (destino !== id) return []
     const nombres = new Set<string>()
     for (const receta of Object.values(menu)) {
       if (!receta) continue
@@ -459,7 +458,14 @@ export default function ListaCompartida() {
         if (ing.nombre) nombres.add(ing.nombre.charAt(0).toUpperCase() + ing.nombre.slice(1).toLowerCase())
     }
     return Array.from(nombres).sort()
-  }, [id])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuKey])
+
+  function vaciarMenu() {
+    if (!confirm('¿Vaciar el menú de la semana de la lista?')) return
+    localStorage.removeItem('semana-lista:menu_semana')
+    setMenuKey(k => k + 1)
+  }
 
   const gruposMenu = useMemo(() => agruparIngredientes(ingredientesMenu), [ingredientesMenu])
 
@@ -810,6 +816,12 @@ export default function ListaCompartida() {
               )}
               <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abiertoMenu ? 'rotate-0' : '-rotate-90'}`}>▾</span>
             </button>
+            {ingredientesMenu.length > 0 && (
+              <button onClick={vaciarMenu} title="Vaciar menú de la semana"
+                className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0">
+                🗑
+              </button>
+            )}
           </div>
           {abiertoMenu && (
             <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3">
