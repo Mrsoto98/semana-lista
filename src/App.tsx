@@ -181,7 +181,8 @@ function Navbar() {
 
   function handleCompartidaClick() {
     if (listas.length === 0) { setModalCrear(true); return }
-    setModalListas(true)
+    const principalId = recuperar<string>('lista_compartida_principal') ?? listas[0]?.id
+    if (principalId) navigate(`/lista-compartida/${principalId}`)
   }
 
   const isCompartidaActive = location.pathname.startsWith('/lista-compartida')
@@ -287,7 +288,7 @@ function Navbar() {
         />
       )}
 
-      {/* Modal selector de listas compartidas */}
+      {/* Modal selector de listas compartidas — ahora solo se usa si no hay lista principal */}
       {modalListas && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center" onClick={() => setModalListas(false)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
@@ -426,8 +427,18 @@ function AppRoutes() {
   const navigate = useNavigate()
   const location = useLocation()
   const swipeStart = useRef<{ x: number; y: number } | null>(null)
+  const { listas } = useListasCompartidas()
 
   const NAV_PATHS = ['/ajustes', '/exportar', '/menu', '/lista', '/lista-compartida']
+
+  function navigateTo(path: string) {
+    if (path === '/lista-compartida') {
+      const principalId = recuperar<string>('lista_compartida_principal') ?? listas[0]?.id
+      if (principalId) navigate(`/lista-compartida/${principalId}`)
+    } else {
+      navigate(path)
+    }
+  }
 
   function onTouchStart(e: React.TouchEvent) {
     swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -438,12 +449,11 @@ function AppRoutes() {
     const dx = e.changedTouches[0].clientX - swipeStart.current.x
     const dy = e.changedTouches[0].clientY - swipeStart.current.y
     swipeStart.current = null
-    // Only navigate if clearly horizontal (2:1 ratio) and far enough
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return
     const idx = NAV_PATHS.findIndex(p => location.pathname.startsWith(p))
     if (idx === -1) return
-    if (dx < 0 && idx < NAV_PATHS.length - 1) navigate(NAV_PATHS[idx + 1])
-    else if (dx > 0 && idx > 0) navigate(NAV_PATHS[idx - 1])
+    if (dx < 0 && idx < NAV_PATHS.length - 1) navigateTo(NAV_PATHS[idx + 1])
+    else if (dx > 0 && idx > 0) navigateTo(NAV_PATHS[idx - 1])
   }
 
   return (

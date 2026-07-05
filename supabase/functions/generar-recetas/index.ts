@@ -63,13 +63,21 @@ function dificultadInstruccion(d?: string): string {
 }
 
 const DESCRIPCION_COCINA: Record<string, string> = {
-  'española y mediterránea': 'cocina española y mediterránea (paellas, potajes, gazpacho, tortilla, pescados al horno, sofrito, pisto...)',
-  'italiana': 'cocina italiana (pasta, risotto, pizza, gnocchi, parmigiana, bruschetta, carpaccio...)',
-  'asiática': 'cocina asiática (wok, curry, ramen, gyozas, yakitori, arroz frito, dim sum, teriyaki...)',
-  'americana': 'cocina americana/tex-mex (hamburguesas, costillas BBQ, fajitas, mac and cheese, hot dogs, coleslaw, pulled pork, burritos, nachos, alitas...)',
-  'mexicana': 'cocina mexicana (tacos, enchiladas, quesadillas, guacamole, chile con carne, tamales, burritos...)',
-  'tradicional española': 'cocina tradicional española (cocido, fabada, callos, gazpacho, salmorejo, croquetas, potaje, pisto...)',
-  'saludable y ligera': 'cocina saludable y ligera (ensaladas, salteados de verduras, proteína a la plancha, batidos, smoothie bowls...)',
+  'española y mediterránea': 'cocina española y mediterránea. Platos posibles: paella de marisco, arroz al horno, fideuà, gazpacho, salmorejo, pisto manchego, tortilla española, merluza a la vasca, bacalao al pil-pil, dorada al horno con patatas, calamares en su tinta, albóndigas en salsa, pollo al ajillo, lentejas con chorizo, garbanzos con espinacas, pimientos rellenos, berenjenas con miel, ensalada catalana.',
+  'italiana': 'cocina italiana AUTÉNTICA. IMPORTANTE: el menú semanal debe incluir máximo 2 recetas de pasta. Usa también: risotto (ai funghi, alla milanese, al limone), gnocchi al gorgonzola, pizza casera, ossobuco, saltimbocca alla romana, pollo alla cacciatora, parmigiana di melanzane, vitello tonnato, fritto misto, zuppa di pesce, ribollita, minestrone, arancini, frittata di verdure, branzino al forno, scaloppine al limone. Varía la forma: platos de pasta, arroces, carnes, pescados, verduras.',
+  'asiática': 'cocina asiática variada. IMPORTANTE: alterna entre cocinas japonesa, tailandesa, china, coreana e india. No repitas la misma técnica. Platos: ramen de pollo, pad thai, curry thai verde, curry japonés katsu, pollo teriyaki, gyozas con caldo, arroz frito con huevo y verduras, yakitori, bibimbap coreano, bulgogi, dumplings al vapor, laksa de coco, pho vietnamita, pollo kung pao, mapo tofu, salmón en miso, udon con gambas.',
+  'americana': 'cocina americana y tex-mex. IMPORTANTE: máximo 1 hamburguesa en todo el menú. Platos: pulled pork con coleslaw, costillas BBQ al horno, mac and cheese gratinado, chili con carne, pollo Nashville hot, alitas de búfalo, burritos de ternera, fajitas de pollo, tacos de pescado, nachos con guacamole, sopa de almejas (clam chowder), lobster roll de gambas, cheesesteak de ternera, hot dog estilo Chicago, quesadillas de pollo, enchiladas verdes.',
+  'mexicana': 'cocina mexicana auténtica. IMPORTANTE: máximo 2 recetas de tacos en todo el menú, alterna con otras preparaciones. Platos: enchiladas verdes, enchiladas rojas, chiles rellenos en nogada, pozole rojo, tostadas de tinga, flautas de pollo, sopa de lima yucateca, tamales de rajas, cochinita pibil, birria de ternera, quesadillas de huitlacoche, molletes, huevos rancheros, chile con carne, carnitas estofadas, camarones a la diabla, aguachile.',
+  'tradicional española': 'cocina tradicional española. IMPORTANTE: varía entre guisos, fritos, asados y platos en salsa. Platos: cocido madrileño, fabada asturiana, pote gallego, callos a la madrileña, menestra de verduras, croquetas caseras de jamón, albóndigas en salsa española, pollo asado con patatas, cordero al chilindrón, rabo de toro, huevos rotos con jamón, migas extremeñas, pisto con huevo, berberecho con tomate, bacalao a la vizcaína, escudella, gazpacho andaluz, olla podrida.',
+  'saludable y ligera': 'cocina saludable y ligera. IMPORTANTE: varía entre ensaladas, proteína magra y platos de verduras. No repitas el mismo tipo de plato. Opciones: bowl de quinoa con salmón, ensalada de lentejas y espinacas, pechuga al horno con verduras asadas, gambas al ajillo con calabacín, tortilla de claras con espárragos, sopa miso con tofu, pollo tikka sin nata, lubina al vapor con brócoli, ensalada de garbanzos y aguacate, revuelto de champiñones y espárragos, tataki de atún, gazpacho, carpaccio de ternera con rúcula.',
+}
+
+// Instrucción extra de variedad por cocina (previene formatos repetitivos)
+const VARIEDAD_COCINA: Record<string, string> = {
+  'italiana': 'VARIEDAD OBLIGATORIA: planifica el menú completo antes de asignarlo. De las recetas italianas, máximo 2 pueden ser de pasta (spaghetti, penne, tagliatelle, etc.). El resto deben ser risotto, gnocchi, pizza, secondi di carne, secondi di pesce o contorni importantes.',
+  'mexicana': 'VARIEDAD OBLIGATORIA: planifica el menú completo antes de asignarlo. De las recetas mexicanas, máximo 2 pueden ser tacos de cualquier tipo. El resto deben ser enchiladas, pozole, chiles rellenos, tostadas, tamales, sopa, etc.',
+  'americana': 'VARIEDAD OBLIGATORIA: planifica el menú completo antes de asignarlo. Máximo 1 hamburguesa en toda la semana. Rota entre pulled pork, costillas, mac&cheese, chili, alitas, burritos, fajitas, chowder, etc.',
+  'asiática': 'VARIEDAD OBLIGATORIA: planifica el menú completo antes de asignarlo. Alterna obligatoriamente entre al menos 3 cocinas asiáticas distintas (japonesa, thai, china, coreana, india, vietnamita). No repitas la misma cocina más de 2 veces.',
 }
 
 const DIA_LABEL: Record<string, string> = {
@@ -83,12 +91,16 @@ function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[]
   }
 
   const desc = cocina ? DESCRIPCION_COCINA[cocina] : undefined
+  const variedadExtra = cocina ? VARIEDAD_COCINA[cocina] : undefined
   const ctx: string[] = [
     `Eres un chef español. Crea un menú para ${personas} persona${personas > 1 ? 's' : ''} (${claves.length} franja${claves.length > 1 ? 's' : ''} de comida en total), objetivo: ${objetivo}.`,
     `SOLO comidas y cenas principales. NO postres, NO desayunos, NO meriendas, NO bebidas.`,
     `CANTIDADES OBLIGATORIAS: las raciones deben ser para ${personas} persona${personas > 1 ? 's' : ''} como plato principal completo y saciante. Para ${personas} persona${personas > 1 ? 's' : ''}: mínimo ${personas * 150}-${personas * 200}g de proteína principal, ${personas * 150}-${personas * 250}g de carbohidrato si lo lleva, verduras y acompañamientos proporcionados. No escatimes — un plato principal no es una tapa.`,
     desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. TODAS las recetas deben pertenecer claramente a este estilo. NO mezcles con otros estilos.` : '',
+    variedadExtra ?? '',
     `VARIEDAD DE PROTEÍNAS: NO pongas pollo en más de la mitad de las recetas. Rota entre: pollo, cerdo, ternera/vacuno, huevos, legumbres, pescado/marisco. Si un mismo día tiene comida y cena, usa proteínas distintas. ${claves.length} nombres de receta distintos en total.`,
+    `ANTI-REPETICIÓN DE FORMATO: antes de asignar cada receta, revisa mentalmente el listado completo del menú. Ningún tipo de plato base (pasta, tacos, curry, hamburguesa, ensalada, wok...) puede aparecer más de 2 veces en toda la semana.`,
+    `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre de la receta menciona una proteína (ternera, pollo, cerdo, salmón, gambas, bacalao, cordero, atún...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo. NUNCA escribas "de pollo" y uses otro animal. El nombre y los ingredientes deben describir exactamente el mismo plato.`,
     dificultadInstruccion(dificultad_recetas),
   ].filter(Boolean)
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
@@ -118,6 +130,7 @@ function promptSlot(dia: string, franja: string, perfil: Record<string, unknown>
     `Eres un chef español. Crea 1 receta para ${franjaLabel} del ${DIA_LABEL[dia] ?? dia}. ${personas} persona${personas > 1 ? 's' : ''}, objetivo: ${objetivo}. SOLO platos principales, NO postres.`,
     `CANTIDADES OBLIGATORIAS: raciones para ${personas} persona${personas > 1 ? 's' : ''} como plato principal completo y saciante. Mínimo ${personas * 150}-${personas * 200}g de proteína principal, carbohidratos y acompañamientos proporcionales. No escatimes — un plato principal no es una tapa.`,
     desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. La receta debe pertenecer claramente a este estilo.` : '',
+    `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre menciona una proteína (ternera, pollo, cerdo, salmón, gambas...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo, ni viceversa.`,
     dificultadInstruccion(dificultad_recetas),
   ].filter(Boolean)
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
@@ -146,6 +159,7 @@ function promptOpcionExtra(dia: string, franja: string, perfil: Record<string, u
     `La nueva receta debe ser claramente distinta de "${recetaExistente}" (proteína o técnica diferente).`,
     `CANTIDADES OBLIGATORIAS: raciones para ${personas} persona${personas > 1 ? 's' : ''} como plato principal completo y saciante. Mínimo ${personas * 150}-${personas * 200}g de proteína principal. No escatimes.`,
     desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. La receta debe pertenecer claramente a este estilo.` : '',
+    `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre menciona una proteína (ternera, pollo, cerdo, salmón, gambas...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo, ni viceversa.`,
     dificultadInstruccion(dificultad_recetas),
   ].filter(Boolean)
   if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)

@@ -1,15 +1,16 @@
 // src/pages/Lista.tsx
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { usePerfil } from '../hooks/usePerfil'
 import { useListasCompartidas } from '../hooks/useListaCompartida'
 import { recuperar, guardar } from '../lib/storage'
 import {
-  topMatchesMercadona, agruparIngredientes, resolverContraSet, etiquetaGrupo,
+  topMatchesMercadona, topMatchConConfianza, agruparIngredientes, resolverContraSet, etiquetaGrupo,
   nombreGuardadoComo as nombreGuardadoComoLib, expandirCatalogo, type MatchProducto,
 } from '../lib/matchMercadona'
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
+import { fetchLearnedOptions, fetchAllLearnedAssocs, saveLearnedOption, mergePickerOptions } from '../lib/pickerLearning'
 import { EnCasaSection } from '../components/EnCasaSection'
 import type { MenuSemanal } from '../types'
 import { useI18n } from '../hooks/useI18n'
@@ -151,6 +152,8 @@ export default function Lista() {
   const [modoModal, setModoModal] = useState<'elegir' | 'crear' | 'unirse'>('elegir')
   const [pickerIngrediente, setPickerIngrediente] = useState<{ nombre: string; enCasa: boolean } | null>(null)
   const [pickerOpciones, setPickerOpciones] = useState<MatchProducto[]>([])
+  const savedScrollY = useRef<number>(0)
+  const [learnedAssocs, setLearnedAssocs] = useState<Map<string, Set<string>>>(new Map())
   const [nombreNueva, setNombreNueva] = useState('')
   const [codigoUnirse, setCodigoUnirse] = useState('')
   const [errorCompartida, setErrorCompartida] = useState('')
@@ -214,6 +217,29 @@ export default function Lista() {
 
   // Lista colapsable
   const [listaColapsada, setListaColapsada] = useState(false)
+
+  // Divisor arrastrable del menú (% columna izquierda, 30-80)
+  const [menuSplitRatio, setMenuSplitRatio] = useState<number>(() => recuperar<number>('menu_split_ratio') ?? 60)
+  const menuContainerRef = useRef<HTMLDivElement>(null)
+
+  function onDividerPointerDown(e: React.PointerEvent) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startRatio = menuSplitRatio
+    const containerW = menuContainerRef.current?.getBoundingClientRect().width ?? 400
+    let lastRatio = startRatio
+    function onMove(ev: PointerEvent) {
+      lastRatio = Math.min(80, Math.max(25, startRatio + ((ev.clientX - startX) / containerW) * 100))
+      setMenuSplitRatio(lastRatio)
+    }
+    function onUp() {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+      guardar('menu_split_ratio', lastRatio)
+    }
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }
 
   // ── Persistencia ──────────────────────────────────────────────────────────
   function saveComprar(next: Set<string>) { setComprar(next); guardar('lista_comprar_v3', Array.from(next)) }
@@ -376,13 +402,24 @@ export default function Lista() {
     })
   }, [gruposMenu, infoIngredienteMenu])
 
+  // Cargar asociaciones aprendidas para todos los ingredientes del menú
+  useEffect(() => {
+    if (!ingredientesMenu.length) return
+    fetchAllLearnedAssocs(ingredientesMenu).then(setLearnedAssocs)
+  }, [ingredientesMenu])
+
+  // También recargar al confirmar picker (para que el tick aparezca al instante)
+  const recargarLearnedAssocs = () => {
+    if (ingredientesMenu.length) fetchAllLearnedAssocs(ingredientesMenu).then(setLearnedAssocs)
+  }
+
   const menuEnCasa = useMemo(
-    () => resolverContraSet(ingredientesMenu, enCasa, MERCADONA?.categorias),
-    [ingredientesMenu, enCasa, MERCADONA],
+    () => resolverContraSet(ingredientesMenu, enCasa, MERCADONA?.categorias, learnedAssocs),
+    [ingredientesMenu, enCasa, MERCADONA, learnedAssocs],
   )
   const menuEnComprar = useMemo(
-    () => resolverContraSet(ingredientesMenu, comprar, MERCADONA?.categorias),
-    [ingredientesMenu, comprar, MERCADONA],
+    () => resolverContraSet(ingredientesMenu, comprar, MERCADONA?.categorias, learnedAssocs),
+    [ingredientesMenu, comprar, MERCADONA, learnedAssocs],
   )
 
   function nombreGuardadoComo(item: string, set: Set<string>): string {
@@ -464,6 +501,7 @@ export default function Lista() {
     })
   }, [comprarArray, infoItem])
 
+
   const totalEstimado = comprarArray.filter(item => !comprado.has(item)).reduce((s, item) => {
     const { modo, precioKg } = getModoInfo(item)
     const precio = modo === 'kg' ? (precioKg ?? precios[item] ?? 0) : (precios[item] ?? 0)
@@ -482,24 +520,44 @@ export default function Lista() {
     return undefined
   }
 
-  function abrirPickerMenu(nombreOGrupo: string | string[], enCasa: boolean) {
+  const PRECIO_MAX_PICKER = 50
+
+  async function abrirPickerMenu(nombreOGrupo: string | string[], enCasa: boolean) {
+    savedScrollY.current = window.scrollY
     const nombres = Array.isArray(nombreOGrupo) ? nombreOGrupo : [nombreOGrupo]
     const etiqueta = nombres.length > 1 ? etiquetaGrupo(nombres) : nombres[0]
-    if (!MERCADONA) { setPickerOpciones([]); setPickerIngrediente({ nombre: etiqueta, enCasa }); return }
-    // Fusiona las coincidencias de cada variante del grupo (ej. "aceite de oliva 0"
-    // y "aceite de oliva virgen") en una sola lista de opciones, sin duplicados.
-    const vistos = new Set<string>()
-    const opciones: MatchProducto[] = []
-    for (const nombre of nombres) {
-      for (const op of topMatchesMercadona(nombre, MERCADONA.categorias, 6)) {
-        const key = `${op.nombre}__${op.precio}`
-        if (vistos.has(key)) continue
-        vistos.add(key)
-        opciones.push(op)
+
+    // Mostrar el picker inmediatamente con opciones IA
+    let opcionesAI: MatchProducto[] = []
+    if (MERCADONA) {
+      const vistos = new Set<string>()
+      for (const nombre of nombres) {
+        for (const op of topMatchesMercadona(nombre, MERCADONA.categorias, 6)) {
+          const key = `${op.nombre}__${op.precio}`
+          if (vistos.has(key)) continue
+          vistos.add(key)
+          opcionesAI.push(op)
+        }
       }
+      const filtradas = opcionesAI.filter(op => op.precio <= PRECIO_MAX_PICKER)
+      if (filtradas.length > 0) opcionesAI = filtradas
     }
-    setPickerOpciones(opciones)
+    setPickerOpciones(opcionesAI)
     setPickerIngrediente({ nombre: etiqueta, enCasa })
+
+    // Enriquecer con opciones aprendidas por la comunidad (en segundo plano)
+    fetchLearnedOptions(etiqueta).then(learned => {
+      if (learned.length > 0) {
+        setPickerOpciones(prev => mergePickerOptions(prev, learned, etiqueta))
+      }
+    })
+  }
+
+  function cerrarPicker() {
+    setPickerIngrediente(null)
+    // Restaurar posición de scroll: el unmount del modal mueve el foco al body
+    // lo que hace que el browser haga scroll al inicio de la página.
+    requestAnimationFrame(() => { window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }) })
   }
 
   function confirmarPicker(producto: MatchProducto) {
@@ -509,7 +567,9 @@ export default function Lista() {
     } else {
       addToComprar(producto.nombre, producto.precio, undefined, producto.precio_kg ?? undefined)
     }
-    setPickerIngrediente(null)
+    // Guardar elección en el sistema de aprendizaje colectivo y recargar para que el tick aparezca
+    saveLearnedOption(pickerIngrediente.nombre, producto).then(recargarLearnedAssocs)
+    cerrarPicker()
   }
 
   const sinCatalogo = MERCADONA !== null && CATEGORIAS_MERCADONA.length === 0
@@ -519,12 +579,16 @@ export default function Lista() {
   const precioEstimadoMenu = useMemo(() => {
     if (!MERCADONA?.categorias || gruposMenu.length === 0) return 0
     let total = 0
+    const PRECIO_MAX_INGREDIENTE = 18 // cap: ningún ingrediente individual supera este precio
+    const CONFIANZA_MIN = 0.4         // solo incluir si el match cubre ≥40% de los tokens
     for (const { items } of gruposMenu) {
-      // Si cualquier variante del grupo coincide con lo que ya hay en casa, no sumamos
       const estaEnCasa = items.some(item => menuEnCasa.has(item))
       if (estaEnCasa) continue
-      const top = topMatchesMercadona(items[0], MERCADONA.categorias, 1)
-      if (top[0]?.precio) total += top[0].precio
+      const res = topMatchConConfianza(items[0], MERCADONA.categorias)
+      if (!res) continue
+      if (res.coverage < CONFIANZA_MIN) continue   // match poco fiable → omitir
+      if (res.match.precio > PRECIO_MAX_INGREDIENTE) continue  // precio anómalo → omitir
+      total += res.match.precio
     }
     return Math.round(total * 100) / 100
   }, [gruposMenu, menuEnCasa, MERCADONA])
@@ -674,13 +738,21 @@ export default function Lista() {
             ? <p className="text-sm text-gray-400 mb-3">Añade productos desde el catálogo o escribe uno abajo</p>
             : (
               <>
-                <button
-                  onClick={() => setListaColapsada(v => !v)}
-                  className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-3 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <span className={`inline-block transition-transform duration-200 text-base ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
-                  {listaColapsada ? t.lista_mostrar(comprarArray.length) : t.lista_esconder}
-                </button>
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    onClick={() => { if (comprar.size > 0 && confirm('¿Borrar todos los artículos de la lista?')) { saveComprar(new Set()) } }}
+                    className="flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-600 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                  >
+                    🗑 Borrar todo
+                  </button>
+                  <button
+                    onClick={() => setListaColapsada(v => !v)}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <span className={`inline-block transition-transform duration-200 text-base ${listaColapsada ? '-rotate-90' : ''}`}>▾</span>
+                    {listaColapsada ? t.lista_mostrar(comprarArray.length) : t.lista_esconder}
+                  </button>
+                </div>
                 {!listaColapsada && (
                 <div className="max-h-72 overflow-y-auto mb-2 space-y-3">
                   {comprarPorCategoria.map(([cat, items]) => (
@@ -715,7 +787,6 @@ export default function Lista() {
                               <span className={`flex-1 text-xs font-medium truncate ${comprado.has(item) ? 'line-through text-gray-300' : 'text-gray-800 dark:text-gray-200'}`}>
                                 {item}
                               </span>
-                              {/* Cantidad */}
                               <div className="flex items-center gap-1 shrink-0">
                                 {precioKg != null && (
                                   <div className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 text-[9px] font-bold">
@@ -729,7 +800,6 @@ export default function Lista() {
                                 </span>
                                 <button onClick={() => incrementarCantidad(item)} className="w-4 h-4 rounded-full border border-green-select text-green-select font-bold text-[10px] flex items-center justify-center leading-none">+</button>
                               </div>
-                              {/* Precio */}
                               {editandoPrecio === item ? (
                                 <form onSubmit={e => { e.preventDefault(); guardarPrecio(item) }} className="flex gap-1 items-center shrink-0">
                                   <input autoFocus type="number" step="0.01" min="0" value={precioEdit}
@@ -790,45 +860,100 @@ export default function Lista() {
             </button>
           </div>
           {abiertoMenu && (
-            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3 space-y-3">
+            <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3">
               {gruposMenuPorCategoria.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-2">{t.lista_vacia_menu}</p>
-              ) : gruposMenuPorCategoria.map(([cat, grupos]) => (
-                  <div key={cat}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
-                      {CAT_EMOJI[cat] ?? '📦'} {cat}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {grupos.map(({ key, items, etiqueta }) => {
-                        const enC = items.some(i => menuEnComprar.has(i))
-                        const enN = items.some(i => menuEnCasa.has(i))
-                        const foto = items.map(i => infoIngredienteMenu.get(i)?.foto).find(f => f != null) ?? null
+              ) : (
+                <div className="flex items-start" ref={menuContainerRef}>
+                  {/* ── Columna izquierda: pendientes / en lista ── */}
+                  <div style={{ width: `${menuSplitRatio}%` }} className="min-w-0 shrink-0 space-y-3 pr-1">
+                    {gruposMenuPorCategoria.map(([cat, grupos]) => {
+                      const gruposFiltrados = grupos.filter(({ items }) => !items.some(i => menuEnCasa.has(i)))
+                      if (!gruposFiltrados.length) return null
+                      return (
+                        <div key={cat}>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                            {CAT_EMOJI[cat] ?? '📦'} {cat}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {gruposFiltrados.map(({ key, items, etiqueta }) => {
+                              const enC = items.some(i => menuEnComprar.has(i))
+                              const foto = items.map(i => infoIngredienteMenu.get(i)?.foto).find(f => f != null) ?? null
+                              return (
+                                <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                                  {foto && (
+                                    <button onClick={() => setFotoAmpliada(foto)}
+                                      className="flex items-center pl-1 pr-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
+                                      <img src={foto} alt="" loading="lazy"
+                                        className="w-6 h-6 rounded-full object-cover shrink-0 cursor-zoom-in"
+                                        onError={e => { e.currentTarget.parentElement!.style.display = 'none' }} />
+                                    </button>
+                                  )}
+                                  <button onClick={() => enC ? quitarGrupoDeComprar(items) : abrirPickerMenu(items, false)}
+                                    className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
+                                    {enC ? '✓' : '🛒'} {etiqueta}
+                                  </button>
+                                  <button data-tutorial="en-casa" onClick={() => abrirPickerMenu(items, true)}
+                                    className="text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50 transition-colors">
+                                    🏠
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* ── Divisor arrastrable ── */}
+                  {gruposMenu.some(({ items }) => items.some(i => menuEnCasa.has(i))) && (
+                    <div
+                      onPointerDown={onDividerPointerDown}
+                      className="w-3 shrink-0 self-stretch cursor-col-resize flex items-center justify-center group select-none"
+                      style={{ touchAction: 'none' }}
+                    >
+                      <div className="w-px h-full bg-gray-200 dark:bg-gray-700 group-hover:bg-green-select transition-colors relative">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-6 bg-gray-300 dark:bg-gray-600 group-hover:bg-green-select rounded-full flex flex-col items-center justify-center gap-0.5 transition-colors">
+                          <span className="w-0.5 h-0.5 rounded-full bg-white block" />
+                          <span className="w-0.5 h-0.5 rounded-full bg-white block" />
+                          <span className="w-0.5 h-0.5 rounded-full bg-white block" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Columna derecha: en casa ── */}
+                  {gruposMenu.some(({ items }) => items.some(i => menuEnCasa.has(i))) && (
+                    <div style={{ width: `${100 - menuSplitRatio}%` }} className="min-w-0 shrink-0 space-y-3 pl-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400 text-right">🏠 En casa</p>
+                      {gruposMenuPorCategoria.map(([cat, grupos]) => {
+                        const gruposCasa = grupos.filter(({ items }) => items.some(i => menuEnCasa.has(i)))
+                        if (!gruposCasa.length) return null
                         return (
-                          <div key={key} className="flex rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                            {foto && (
-                              <button
-                                onClick={() => setFotoAmpliada(foto)}
-                                className="flex items-center pl-1 pr-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700"
-                              >
-                                <img src={foto} alt="" loading="lazy"
-                                  className="w-6 h-6 rounded-full object-cover shrink-0 cursor-zoom-in"
-                                  onError={e => { e.currentTarget.parentElement!.style.display = 'none' }} />
-                              </button>
-                            )}
-                            <button onClick={() => enC ? quitarGrupoDeComprar(items) : abrirPickerMenu(items, false)}
-                              className={`text-xs px-3 py-1.5 font-medium transition-colors ${enC ? 'bg-green-select text-white' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50'}`}>
-                              {enC ? '✓' : '🛒'} <span className={enN ? 'line-through decoration-2' : ''}>{etiqueta}</span>
-                            </button>
-                            <button data-tutorial="en-casa" onClick={() => enN ? quitarGrupoDeCasa(items) : abrirPickerMenu(items, true)}
-                              className={`text-xs px-2.5 py-1.5 border-l border-gray-200 dark:border-gray-700 transition-colors ${enN ? 'bg-blue-100 dark:bg-blue-900 text-blue-600' : 'bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50'}`}>
-                              {enN ? '✓' : '🏠'}
-                            </button>
+                          <div key={cat}>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5 text-right truncate">
+                              {CAT_EMOJI[cat] ?? '📦'} {cat}
+                            </p>
+                            <div className="flex flex-col gap-1 items-end">
+                              {gruposCasa.map(({ key, items, etiqueta }) => (
+                                <button key={key}
+                                  onClick={() => quitarGrupoDeCasa(items)}
+                                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors max-w-full">
+                                  <span className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate">{etiqueta}</span>
+                                  <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                                    <span className="text-white text-[9px] font-bold">✓</span>
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         )
                       })}
                     </div>
-                  </div>
-              ))}
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -951,7 +1076,7 @@ export default function Lista() {
           enCasa={pickerIngrediente.enCasa}
           catalogo={MERCADONA?.categorias}
           onSeleccionar={confirmarPicker}
-          onCancelar={() => setPickerIngrediente(null)}
+          onCancelar={cerrarPicker}
         />
       )}
     </div>

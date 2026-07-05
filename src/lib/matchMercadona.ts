@@ -28,15 +28,51 @@ const SINONIMOS_MULTI: [RegExp, string][] = [
 // Sinónimos de palabra única
 const SINONIMOS_WORD: Record<string, string> = {
   'jugo': 'zumo',
-  'nata': 'crema',
   'palta': 'aguacate',
   'chile': 'guindilla',
   'ternera': 'vacuno',    // Mercadona usa "vacuno" para la carne de ternera
   'res': 'vacuno',
   'vaca': 'vacuno',
-  'cerdo': 'cerdo',
-  'rape': 'rape',
   'boniato': 'batata',
+  'cilantro': 'perejil',  // Mercadona no tiene cilantro fresco, perejil es el sustituto
+  'tahini': 'sesamo',
+  'miso': 'salsa',
+  'gochujang': 'pasta',
+  'kimchi': 'col',
+  'edamame': 'soja',
+  'wakame': 'alga',
+  'dashi': 'caldo',
+  'ghee': 'mantequilla',
+  'pancetta': 'panceta',
+  'prosciutto': 'jamon',
+  'guanciale': 'panceta',
+  'nduja': 'chorizo',
+  'branzino': 'lubina',
+  'camarones': 'gambas',
+  'langostinos': 'gambas',
+  'camarón': 'gambas',
+  'bresaola': 'ternera',
+  'mortadella': 'mortadela',
+  'burrata': 'mozzarella',
+  'pecorino': 'queso',
+  'grana': 'parmesano',
+  'arborio': 'arroz',
+  'fettuccine': 'pasta',
+  'linguine': 'pasta',
+  'pappardelle': 'pasta',
+  'orecchiette': 'pasta',
+  'farfalle': 'pasta',
+  'rigatoni': 'pasta',
+  'enchilada': 'tortilla',
+  'tomatillo': 'tomate',
+  'epazote': 'hierbas',
+  'chipotles': 'guindilla',
+  'ancho': 'pimiento',
+  'guajillo': 'pimiento',
+  'cotija': 'queso',
+  'queso fresco': 'queso',
+  'crema mexicana': 'nata',
+  'poblano': 'pimiento',
 }
 
 function aplicarSinonimos(s: string): string {
@@ -135,6 +171,28 @@ export function topMatchesMercadona(
     .map(({ prod }) => ({ nombre: prod.nombre, precio: prod.precio, foto: prod.foto, precio_kg: prod.precio_kg, tamaño: prod.tamaño, unidad: prod.unidad }))
 }
 
+// Como topMatchesMercadona pero devuelve también el coverage para poder filtrar
+// matches de baja confianza (útil para estimaciones de precio).
+export function topMatchConConfianza(
+  nombre: string,
+  catalogo: Record<string, Producto[]>
+): { match: MatchProducto; coverage: number } | null {
+  const tokensCompletos = tokenizar(nombre, false)
+  const resultadosCompletos = buscarConTokens(tokensCompletos, catalogo)
+  let scored = resultadosCompletos
+  if (!resultadosCompletos.length || resultadosCompletos[0].coverage < 1) {
+    const tokensSinPrep = tokenizar(nombre, true)
+    const resultadosSinPrep = buscarConTokens(tokensSinPrep, catalogo)
+    scored = resultadosSinPrep.length ? resultadosSinPrep : resultadosCompletos
+  }
+  if (!scored.length) return null
+  const { prod, coverage } = scored[0]
+  return {
+    match: { nombre: prod.nombre, precio: prod.precio, foto: prod.foto, precio_kg: prod.precio_kg, tamaño: prod.tamaño, unidad: prod.unidad },
+    coverage,
+  }
+}
+
 export function matchMercadona(
   nombre: string,
   catalogo: Record<string, Producto[]>
@@ -186,14 +244,20 @@ export function agruparIngredientes(items: string[]): GrupoIngrediente[] {
 export function resolverContraSet(
   items: string[],
   set: Set<string>,
-  catalogo: Record<string, Producto[]> | undefined
+  catalogo: Record<string, Producto[]> | undefined,
+  learnedMap?: Map<string, Set<string>>,  // normalizedIngrediente → Set<productoNombre>
 ): Set<string> {
   const resueltos = new Set<string>()
   for (const item of items) {
     if (set.has(item)) { resueltos.add(item); continue }
+    // Comprobar asociaciones aprendidas por la comunidad
+    if (learnedMap) {
+      const key = item.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+      const learned = learnedMap.get(key)
+      if (learned && [...learned].some(p => set.has(p))) { resueltos.add(item); continue }
+    }
     if (catalogo) {
       // Comprobar top 6 matches para cubrir todas las variantes del mismo producto
-      // (Botella, Garrafa, etc.) independientemente de cuál añadió el usuario
       const tops = topMatchesMercadona(item, catalogo, 6)
       if (tops.some(m => set.has(m.nombre))) resueltos.add(item)
     }

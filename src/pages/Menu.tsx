@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CeldaMenu } from '../components/CeldaMenu'
 import { ModalGenerarMenu, type ConfigGeneracion } from '../components/ModalGenerarMenu'
+import { AnuncioRewarded } from '../components/AnuncioRewarded'
 import { usePerfil } from '../hooks/usePerfil'
 import { useListasCompartidas } from '../hooks/useListaCompartida'
 import { usePreferencias } from '../hooks/usePreferencias'
@@ -36,6 +37,18 @@ const CUESTIONARIO_INICIAL: Cuestionario = {
   listaDestinoId: null,
 }
 
+
+function isoWeek(d: Date): number {
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7))
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+  return Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+}
+
+function semanaKey(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-W${isoWeek(now)}`
+}
 
 function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvitar: string[] = [], cocina?: string): object {
   const p = perfil as { nevera?: string[]; ingredientes_no?: string[] }
@@ -85,10 +98,25 @@ export default function Menu() {
   const [mostrarGuardadas, setMostrarGuardadas] = useState(false)
   const [mostrarFavoritas, setMostrarFavoritas] = useState(false)
   const [favoritas, setFavoritas] = useState<Receta[]>(() => recuperar<Receta[]>('recetas_favoritas') ?? [])
+  const [favoritaDetalle, setFavoritaDetalle] = useState<Receta | null>(null)
+  const [favoritaPasos, setFavoritaPasos] = useState<string[] | null>(null)
+  const [favoritaPasosCargando, setFavoritaPasosCargando] = useState(false)
   const [datosSupabaseCargados, setDatosSupabaseCargados] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-  const [generacionesMes, setGeneracionesMes] = useState<number>(0)
-  const LIMITE_GENERACIONES = 12
+  const [generacionesMes, setGeneracionesMes] = useState<number>(() => {
+    const raw = recuperar<string>('gen_semana') ?? ''
+    const [sem, val] = raw.split(':')
+    return sem === semanaKey() ? parseInt(val ?? '0', 10) : 0
+  })
+  const [generacionesAnuncio, setGeneracionesAnuncio] = useState<number>(() => {
+    const hoy = new Date().toISOString().split('T')[0]
+    const raw = recuperar<string>('gen_anuncio_v2') ?? ''
+    const [dia, val] = raw.split(':')
+    return dia === hoy ? parseInt(val ?? '0', 10) : 0
+  })
+  const [modalAnuncio, setModalAnuncio] = useState(false)
+  const LIMITE_GENERACIONES = 2   // generaciones gratuitas por semana
+  const LIMITE_ANUNCIO = 5        // generaciones extra por anuncio al día
 
   // Configuración de días y franjas a generar (persistida en localStorage)
   type DiasConfig = 'semana' | 'laboral' | 'personalizado'
@@ -119,7 +147,7 @@ export default function Menu() {
   useEffect(() => {
     if (!user || datosSupabaseCargados) return
     supabase.from('perfiles').select('recetas_favoritas, semanas_guardadas, generaciones_mes, generaciones_reset').eq('usuario_id', user.id).maybeSingle().then(({ data }) => {
-      if (!data) return
+      if (!data) { setDatosSupabaseCargados(true); return }
       const favs = (data as { recetas_favoritas?: Receta[] }).recetas_favoritas
       const sems = (data as { semanas_guardadas?: SemanaGuardada[] }).semanas_guardadas
       if (Array.isArray(favs) && favs.length > 0) {
@@ -130,15 +158,34 @@ export default function Menu() {
         setSemanasGuardadas(sems)
         guardar('semanas_guardadas', sems)
       }
-      // Contador de generaciones: resetear si es un mes nuevo
+      // Contador de generaciones: resetear solo si es semana nueva en DB Y en localStorage
       const reset = (data as { generaciones_reset?: string }).generaciones_reset
       const gens = (data as { generaciones_mes?: number }).generaciones_mes ?? 0
-      const esNuevoMes = !reset || new Date(reset).getMonth() !== new Date().getMonth() || new Date(reset).getFullYear() !== new Date().getFullYear()
-      if (esNuevoMes) {
+      const semanaActual = semanaKey()
+      // Leer localStorage ANTES de decidir si resetear — actúa como veto anti-reset
+      const rawLS = recuperar<string>('gen_semana') ?? ''
+      const [semLS, valLS] = rawLS.split(':')
+      const gensLS = semLS === semanaActual ? parseInt(valLS ?? '0', 10) : 0
+      // Semana nueva según DB
+      const dbEsNuevaSemana = !reset || isoWeek(new Date(reset)) !== isoWeek(new Date()) || new Date(reset).getFullYear() !== new Date().getFullYear()
+      // Solo resetear si AMBAS fuentes dicen que es semana nueva.
+      // Si localStorage aún tiene conteo de esta semana, el usuario ya generó → no resetear.
+      const esNuevaSemana = dbEsNuevaSemana && semLS !== semanaActual
+      if (esNuevaSemana) {
         supabase.from('perfiles').update({ generaciones_mes: 0, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
         setGeneracionesMes(0)
+        setGeneracionesAnuncio(0)
+        guardar('gen_semana', semanaActual + ':0')
+        guardar('gen_anuncio_v2', semanaActual + ':0')
       } else {
-        setGeneracionesMes(gens)
+        // Tomar el máximo entre DB y localStorage (el más alto es el correcto)
+        const gensFinal = Math.max(gens, gensLS)
+        setGeneracionesMes(gensFinal)
+        // Sincronizar DB si localStorage tiene más (el update anterior falló)
+        if (gensLS > gens) {
+          supabase.from('perfiles').update({ generaciones_mes: gensLS, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
+        }
+        guardar('gen_semana', semanaActual + ':' + gensFinal)
       }
       setDatosSupabaseCargados(true)
     })
@@ -153,6 +200,19 @@ export default function Menu() {
     guardar('recetas_favoritas', next)
     if (user) supabase.from('perfiles').update({ recetas_favoritas: next }).eq('usuario_id', user.id).then(({ error }) => { if (error) console.error('guardar favoritas:', error.message) })
     if (!yaEsta) track('receta_favorita', { receta: receta.nombre })
+  }
+
+  async function abrirFavoritaDetalle(r: Receta) {
+    setFavoritaDetalle(r)
+    setFavoritaPasos(null)
+    setFavoritaPasosCargando(true)
+    try {
+      const { data } = await supabase.functions.invoke('generar-recetas', {
+        body: { action: 'pasos', nombre: r.nombre, ingredientes: r.ingredientes, descripcion: r.descripcion_corta, lang },
+      })
+      setFavoritaPasos((data as { pasos: string[] })?.pasos ?? [])
+    } catch { setFavoritaPasos(null) }
+    setFavoritaPasosCargando(false)
   }
 
   function handleDislike(receta: Receta, ingredientes: string[], motivo: string) {
@@ -190,8 +250,8 @@ export default function Menu() {
   // Pone todos los slots en cargando, luego hace una sola llamada a la API
   async function generarSemanaCompleta(extraPrompt?: string, cocina?: string) {
     if (!perfil || generando) return
-    if (generacionesMes >= LIMITE_GENERACIONES) {
-      setErrorMsg(`Has alcanzado el límite de ${LIMITE_GENERACIONES} generaciones este mes. El contador se reinicia el 1 del mes que viene.`)
+    if (generacionesMes >= LIMITE_GENERACIONES && generacionesAnuncio >= LIMITE_ANUNCIO) {
+      setErrorMsg('Has usado todas las generaciones de esta semana. Vuelve el lunes 🗓️')
       return
     }
     setGenerando(true)
@@ -257,10 +317,17 @@ export default function Menu() {
         .flatMap(e => (e as { datos?: OpcionesSlot }).datos?.opciones ?? []) as Receta[]
       if (todasRecetas.length) guardarRecetasEnCache(todasRecetas)
       track('menu_generado', { slots: Object.keys(nuevosEstados).filter(k => nuevosEstados[k as ClaveMenu]?.estado === 'listo').length })
-      // Incrementar contador de generaciones
-      const nuevasGens = generacionesMes + 1
-      setGeneracionesMes(nuevasGens)
-      if (user) supabase.from('perfiles').update({ generaciones_mes: nuevasGens, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
+      // Incrementar contador de generaciones (libre o bonus anuncio)
+      if (generacionesMes < LIMITE_GENERACIONES) {
+        const nuevasGens = generacionesMes + 1
+        setGeneracionesMes(nuevasGens)
+        guardar('gen_semana', `${semanaKey()}:${nuevasGens}`)
+        if (user) supabase.from('perfiles').update({ generaciones_mes: nuevasGens, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
+      } else {
+        const nuevasGensAnuncio = generacionesAnuncio + 1
+        setGeneracionesAnuncio(nuevasGensAnuncio)
+        guardar('gen_anuncio_v2', `${new Date().toISOString().split('T')[0]}:${nuevasGensAnuncio}`)
+      }
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Error desconocido'
       const msg = raw.includes('429') || raw.includes('rate') || raw.includes('TPM')
@@ -686,7 +753,7 @@ export default function Menu() {
 
       {/* Modal Guardar */}
       {modalGuardar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]">
           <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm shadow-xl mx-4">
             <h2 className="text-lg font-bold mb-4">{t.menu_guardar_titulo}</h2>
             <input type="text" value={nombreGuardar} onChange={e => setNombreGuardar(e.target.value)}
@@ -695,6 +762,55 @@ export default function Menu() {
             <div className="flex gap-3">
               <button onClick={() => setModalGuardar(false)} className="flex-1 border border-gray-300 rounded-xl py-2.5 text-sm">{t.btn_cancelar}</button>
               <button onClick={guardarSemana} className="flex-1 bg-green-500 text-white rounded-xl py-2.5 text-sm font-bold">{t.btn_guardar}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal detalle favorita */}
+      {favoritaDetalle && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => setFavoritaDetalle(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-t-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto pb-safe"
+            onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white dark:bg-gray-900 px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-base leading-tight">{favoritaDetalle.nombre}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{favoritaDetalle.descripcion_corta}</p>
+                <p className="text-xs text-gray-400 mt-1">⏱ {favoritaDetalle.tiempo_prep} min · 🔥 {favoritaDetalle.calorias_aprox} kcal · {favoritaDetalle.dificultad}</p>
+              </div>
+              <button onClick={() => setFavoritaDetalle(null)} className="text-gray-400 text-2xl leading-none shrink-0">×</button>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              {favoritaDetalle.ingredientes?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold mb-2">Ingredientes</p>
+                  <ul className="space-y-1">
+                    {favoritaDetalle.ingredientes.map((ing, i) => (
+                      <li key={i} className="text-sm text-gray-600 dark:text-gray-300 flex items-start gap-2">
+                        <span className="text-green-500 mt-0.5">•</span>{ing}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-semibold mb-2">Preparación</p>
+                {favoritaPasosCargando ? (
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <span className="animate-spin">⏳</span> Cargando pasos...
+                  </div>
+                ) : favoritaPasos && favoritaPasos.length > 0 ? (
+                  <ol className="space-y-2">
+                    {favoritaPasos.map((paso, i) => (
+                      <li key={i} className="text-sm text-gray-600 dark:text-gray-300 flex gap-2">
+                        <span className="font-bold text-green-500 shrink-0">{i + 1}.</span>{paso}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-sm text-gray-400">No se pudieron cargar los pasos.</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -714,6 +830,17 @@ export default function Menu() {
           onFranjaConfigChange={setFranjaConfig}
           onConfirmar={generarDesdeModal}
           onCancelar={() => setModalGenerar(false)}
+        />
+      )}
+
+      {/* Modal anuncio recompensado */}
+      {modalAnuncio && (
+        <AnuncioRewarded
+          onRecompensa={() => {
+            setModalAnuncio(false)
+            setModalGenerar(true)
+          }}
+          onCancelar={() => setModalAnuncio(false)}
         />
       )}
 
@@ -749,21 +876,39 @@ export default function Menu() {
                   ?
                 </button>
                 <div className="flex flex-col items-end gap-0.5">
-                  <button
-                    data-tutorial="generar-btn"
-                    onClick={() => setModalGenerar(true)}
-                    disabled={generando || !perfil || generacionesMes >= LIMITE_GENERACIONES}
-                    className="flex items-center gap-1.5 bg-green-select text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors shadow-sm"
-                  >
-                    {generando ? (
-                      <span className="animate-pulse">{t.menu_generando}</span>
-                    ) : (
-                      <>{t.menu_generar} <span className="text-base">✨</span></>
-                    )}
-                  </button>
-                  <span className={`text-[10px] font-medium ${generacionesMes >= LIMITE_GENERACIONES ? 'text-red-400' : generacionesMes >= 8 ? 'text-orange-400' : 'text-gray-400'}`}>
-                    {LIMITE_GENERACIONES - generacionesMes} {t.menu_gen_restantes}
-                  </span>
+                  {generacionesMes >= LIMITE_GENERACIONES && generacionesAnuncio < LIMITE_ANUNCIO ? (
+                    // Cupo gratuito agotado → botón de ver anuncio
+                    <button
+                      data-tutorial="generar-btn"
+                      onClick={() => setModalAnuncio(true)}
+                      disabled={generando || !perfil}
+                      className="flex items-center gap-1.5 bg-amber-500 text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-amber-600 disabled:opacity-50 transition-colors shadow-sm"
+                    >
+                      <span className="text-base">📺</span> +1 extra
+                    </button>
+                  ) : (
+                    <button
+                      data-tutorial="generar-btn"
+                      onClick={() => setModalGenerar(true)}
+                      disabled={generando || !perfil || (generacionesMes >= LIMITE_GENERACIONES && generacionesAnuncio >= LIMITE_ANUNCIO)}
+                      className="flex items-center gap-1.5 bg-green-select text-white rounded-xl px-4 py-2 font-semibold text-sm hover:bg-green-600 disabled:opacity-50 transition-colors shadow-sm"
+                    >
+                      {generando ? (
+                        <span className="animate-pulse">{t.menu_generando}</span>
+                      ) : (
+                        <>{t.menu_generar} <span className="text-base">✨</span></>
+                      )}
+                    </button>
+                  )}
+                  {generacionesMes >= LIMITE_GENERACIONES && generacionesAnuncio >= LIMITE_ANUNCIO ? (
+                    <span className="text-[10px] font-medium text-red-400">Límite diario de anuncios</span>
+                  ) : generacionesMes >= LIMITE_GENERACIONES ? (
+                    <span className="text-[10px] font-medium text-amber-500">{LIMITE_ANUNCIO - generacionesAnuncio} extra por anuncio</span>
+                  ) : (
+                    <span className={`text-[10px] font-medium ${generacionesMes >= LIMITE_GENERACIONES - 1 ? 'text-orange-400' : 'text-gray-400'}`}>
+                      {LIMITE_GENERACIONES - generacionesMes} {t.menu_gen_restantes}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -919,14 +1064,15 @@ export default function Menu() {
             : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-80 overflow-y-auto">
                 {favoritas.map(r => (
-                  <div key={r.nombre} className="flex items-center gap-3 px-4 py-3">
+                  <div key={r.nombre} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 active:bg-gray-100 dark:active:bg-gray-800 transition-colors"
+                    onClick={() => abrirFavoritaDetalle(r)}>
                     <span className="text-lg shrink-0">⭐</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{r.nombre}</p>
                       <p className="text-xs text-gray-400 truncate">{r.descripcion_corta}</p>
                       <p className="text-xs text-gray-400">⏱ {r.tiempo_prep} min · 🔥 {r.calorias_aprox} kcal · {r.dificultad}</p>
                     </div>
-                    <button onClick={() => toggleFavorita(r)} className="text-yellow-400 hover:text-gray-400 text-lg shrink-0" title="Quitar de favoritas">★</button>
+                    <button onClick={e => { e.stopPropagation(); toggleFavorita(r) }} className="text-yellow-400 hover:text-gray-400 text-lg shrink-0" title="Quitar de favoritas">★</button>
                   </div>
                 ))}
               </div>

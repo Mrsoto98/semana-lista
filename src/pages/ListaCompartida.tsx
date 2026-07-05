@@ -5,12 +5,13 @@ import { useListaCompartida, useListasCompartidas } from '../hooks/useListaCompa
 import { useAuth } from '../hooks/useAuth'
 import { Avatar } from '../components/Avatar'
 import { supabase } from '../lib/supabase'
-import { recuperar } from '../lib/storage'
+import { recuperar, guardar } from '../lib/storage'
 import {
-  topMatchesMercadona, agruparIngredientes, resolverContraSet, etiquetaGrupo, nombreGuardadoComo as nombreGuardadoComoLib,
+  topMatchesMercadona, topMatchConConfianza, agruparIngredientes, resolverContraSet, etiquetaGrupo, nombreGuardadoComo as nombreGuardadoComoLib,
   expandirCatalogo, type MatchProducto,
 } from '../lib/matchMercadona'
 import { PickerProductoMercadona } from '../components/PickerProductoMercadona'
+import { fetchLearnedOptions, saveLearnedOption, mergePickerOptions } from '../lib/pickerLearning'
 import { EnCasaSection } from '../components/EnCasaSection'
 import type { MenuSemanal } from '../types'
 import { useI18n } from '../hooks/useI18n'
@@ -130,7 +131,37 @@ export default function ListaCompartida() {
   // Solicitudes pendientes (solo visible para admins)
   const [solicitudes, setSolicitudes] = useState<{ id: string; usuario_id: string; nombre_display?: string; avatar_emoji?: string }[]>([])
   const esAdmin = miembros.find(m => m.usuario_id === user?.id)?.rol === 'admin'
-  const { recargar: recargarListas } = useListasCompartidas()
+  const { listas, recargar: recargarListas, abandonarLista, crearLista, unirseConCodigo } = useListasCompartidas()
+  const [modalGestionar, setModalGestionar] = useState(false)
+  const [sheetVisible, setSheetVisible] = useState(false)
+  const [confirmEliminarLista, setConfirmEliminarLista] = useState<string | null>(null)
+  const [modoCrear, setModoCrear] = useState<'crear' | 'unirse' | null>(null)
+  const [nombreNuevaLista, setNombreNuevaLista] = useState('')
+  const [codigoUnirse, setCodigoUnirse] = useState('')
+  const [errorCrear, setErrorCrear] = useState('')
+  const [cargandoCrear, setCargandoCrear] = useState(false)
+  const listaActivaId = recuperar<string>('lista_compartida_principal') ?? listas[0]?.id
+
+  function abrirGestionar() { setModalGestionar(true); setTimeout(() => setSheetVisible(true), 10) }
+  function cerrarGestionar() { setSheetVisible(false); setTimeout(() => { setModalGestionar(false); setConfirmEliminarLista(null); setModoCrear(null); setErrorCrear('') }, 320) }
+
+  async function handleCrearLista() {
+    if (!nombreNuevaLista.trim()) return
+    setCargandoCrear(true); setErrorCrear('')
+    const { lista: nueva, error } = await crearLista(nombreNuevaLista.trim())
+    setCargandoCrear(false)
+    if (error) { setErrorCrear(error); return }
+    if (nueva) { cerrarGestionar(); navigate(`/lista-compartida/${nueva.id}`) }
+  }
+
+  async function handleUnirse() {
+    if (!codigoUnirse.trim()) return
+    setCargandoCrear(true); setErrorCrear('')
+    const { ok, error } = await unirseConCodigo(codigoUnirse.trim())
+    setCargandoCrear(false)
+    if (!ok) { setErrorCrear(error ?? 'Error desconocido'); return }
+    setErrorCrear(''); cerrarGestionar()
+  }
 
   const cargarSolicitudes = useCallback(async () => {
     if (!id || !esAdmin) { setSolicitudes([]); return }
@@ -217,6 +248,7 @@ export default function ListaCompartida() {
   const [presupuestoDraft, setPresupuestoDraft] = useState('')
   const [pickerIngrediente, setPickerIngrediente] = useState<{ nombre: string; enCasa: boolean } | null>(null)
   const [pickerOpciones, setPickerOpciones] = useState<MatchProducto[]>([])
+  const savedScrollY = useRef<number>(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -348,29 +380,48 @@ export default function ListaCompartida() {
   const comprados  = items.filter(i => i.comprado)
   const enCasa     = items.filter(i => i.en_casa)
 
+  const PRECIO_MAX_PICKER = 50
+
   // ── Picker de producto Mercadona ──────────────────────────────────────────
-  function abrirPicker(nombreOGrupo: string | string[], enCasa: boolean) {
+  async function abrirPicker(nombreOGrupo: string | string[], enCasa: boolean) {
+    savedScrollY.current = window.scrollY
     const nombres = Array.isArray(nombreOGrupo) ? nombreOGrupo : [nombreOGrupo]
     const etiqueta = nombres.length > 1 ? etiquetaGrupo(nombres) : nombres[0]
-    if (!catalogo) { setPickerOpciones([]); setPickerIngrediente({ nombre: etiqueta, enCasa }); return }
-    const vistos = new Set<string>()
-    const opciones: MatchProducto[] = []
-    for (const nombre of nombres) {
-      for (const op of topMatchesMercadona(nombre, catalogo.categorias, 6)) {
-        const key = `${op.nombre}__${op.precio}`
-        if (vistos.has(key)) continue
-        vistos.add(key)
-        opciones.push(op)
+
+    let opcionesAI: MatchProducto[] = []
+    if (catalogo) {
+      const vistos = new Set<string>()
+      for (const nombre of nombres) {
+        for (const op of topMatchesMercadona(nombre, catalogo.categorias, 6)) {
+          const key = `${op.nombre}__${op.precio}`
+          if (vistos.has(key)) continue
+          vistos.add(key)
+          opcionesAI.push(op)
+        }
       }
+      const filtradas = opcionesAI.filter(op => op.precio <= PRECIO_MAX_PICKER)
+      if (filtradas.length > 0) opcionesAI = filtradas
     }
-    setPickerOpciones(opciones)
+    setPickerOpciones(opcionesAI)
     setPickerIngrediente({ nombre: etiqueta, enCasa })
+
+    fetchLearnedOptions(etiqueta).then(learned => {
+      if (learned.length > 0) {
+        setPickerOpciones(prev => mergePickerOptions(prev, learned, etiqueta))
+      }
+    })
+  }
+
+  function cerrarPicker() {
+    setPickerIngrediente(null)
+    requestAnimationFrame(() => { window.scrollTo({ top: savedScrollY.current, behavior: 'instant' }) })
   }
 
   function confirmarPicker(producto: MatchProducto) {
     if (!pickerIngrediente) return
     añadirItem(producto.nombre, { precio: producto.precio }, pickerIngrediente.enCasa)
-    setPickerIngrediente(null)
+    saveLearnedOption(pickerIngrediente.nombre, producto)
+    cerrarPicker()
   }
 
   // ── Del menú esta semana ──────────────────────────────────────────────────
@@ -467,11 +518,16 @@ export default function ListaCompartida() {
   const precioEstimadoMenu = useMemo(() => {
     if (!catalogo?.categorias || gruposMenu.length === 0) return 0
     let total = 0
+    const PRECIO_MAX_INGREDIENTE = 18
+    const CONFIANZA_MIN = 0.4
     for (const { items: grupoItems } of gruposMenu) {
       const estaEnCasa = grupoItems.some(i => menuEnCasa.has(i))
       if (estaEnCasa) continue
-      const top = topMatchesMercadona(grupoItems[0], catalogo.categorias, 1)
-      if (top[0]?.precio) total += top[0].precio
+      const res = topMatchConConfianza(grupoItems[0], catalogo.categorias)
+      if (!res) continue
+      if (res.coverage < CONFIANZA_MIN) continue
+      if (res.match.precio > PRECIO_MAX_INGREDIENTE) continue
+      total += res.match.precio
     }
     return Math.round(total * 100) / 100
   }, [gruposMenu, menuEnCasa, catalogo])
@@ -533,6 +589,16 @@ export default function ListaCompartida() {
                 onClick={() => { setNombreDraft(lista.nombre); setEditandoNombre(true) }}>
                 {lista.nombre}
               </h1>
+            )}
+            {listas.length > 0 && (
+              <button onClick={abrirGestionar}
+                className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-full px-2.5 py-1 text-xs font-semibold shrink-0 hover:border-green-select/50 hover:text-green-select transition-colors">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+                {listas.length > 1 ? `${listas.findIndex(l => l.id === id) + 1}/${listas.length}` : 'Listas'}
+              </button>
             )}
             <button onClick={copiarCodigo}
               className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/30 border border-green-select/30 text-green-select rounded-full px-3 py-1 text-xs font-bold shrink-0">
@@ -925,8 +991,149 @@ export default function ListaCompartida() {
           enCasa={pickerIngrediente.enCasa}
           catalogo={catalogo?.categorias}
           onSeleccionar={confirmarPicker}
-          onCancelar={() => setPickerIngrediente(null)}
+          onCancelar={cerrarPicker}
         />
+      )}
+
+      {/* ── BOTTOM SHEET GESTIONAR LISTAS ─────────────────────────────────── */}
+      {modalGestionar && createPortal(
+        <div className="fixed inset-0 z-[70] flex items-end justify-center">
+          {/* Backdrop */}
+          <div
+            className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${sheetVisible ? 'opacity-100' : 'opacity-0'}`}
+            onClick={cerrarGestionar}
+          />
+          {/* Sheet */}
+          <div
+            className={`relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out ${sheetVisible ? 'translate-y-0' : 'translate-y-full'}`}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+            </div>
+
+            <div className="px-6 pb-safe">
+              <div className="flex items-center justify-between mb-4 pt-2">
+                <div>
+                  <h2 className="text-lg font-black text-gray-800 dark:text-gray-100">Listas compartidas</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Toca para cambiar · Mantén para hacer principal</p>
+                </div>
+                <button onClick={cerrarGestionar} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors text-sm">✕</button>
+              </div>
+
+              {/* Lista de listas */}
+              <div className="space-y-2 mb-4">
+                {listas.map(l => {
+                  const esPrincipal = l.id === listaActivaId
+                  const esActual = l.id === id
+                  const confirmando = confirmEliminarLista === l.id
+                  return (
+                    <div key={l.id} className={`rounded-2xl border-2 overflow-hidden transition-colors ${esActual ? 'border-green-select/50 bg-green-50/50 dark:bg-green-950/30' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'}`}>
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <button onClick={() => setConfirmEliminarLista(confirmando ? null : l.id)}
+                          className="text-red-400 hover:text-red-600 transition-colors p-1 shrink-0">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6"/><path d="M14 11v6"/>
+                          </svg>
+                        </button>
+                        <button
+                          className="flex-1 flex items-center gap-3 text-left min-w-0"
+                          onClick={() => { cerrarGestionar(); if (!esActual) navigate(`/lista-compartida/${l.id}`) }}
+                          onContextMenu={e => { e.preventDefault(); guardar('lista_compartida_principal', l.id); recargarListas() }}
+                        >
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${esActual ? 'bg-green-100 dark:bg-green-900/40' : 'bg-gray-100 dark:bg-gray-700'}`}>👥</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{l.nombre}</p>
+                            <p className="text-xs text-gray-400">{l.codigo} {esActual && '· actual'}</p>
+                          </div>
+                          {esPrincipal && (
+                            <span className="text-[10px] text-green-select font-bold bg-green-50 dark:bg-green-900/30 border border-green-select/20 px-2 py-0.5 rounded-full shrink-0">
+                              Principal
+                            </span>
+                          )}
+                        </button>
+                        {!esPrincipal && (
+                          <button
+                            onClick={() => { guardar('lista_compartida_principal', l.id); recargarListas() }}
+                            className="text-[10px] text-gray-400 hover:text-green-select border border-gray-200 dark:border-gray-600 hover:border-green-select/40 px-2 py-1 rounded-full transition-colors shrink-0"
+                          >Hacer principal</button>
+                        )}
+                      </div>
+                      {confirmando && (
+                        <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3 bg-red-50 dark:bg-red-900/20">
+                          <p className="text-xs text-red-600 dark:text-red-400 mb-2">¿Salir de esta lista? Perderás el acceso.</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => setConfirmEliminarLista(null)}
+                              className="flex-1 text-xs py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-500">Cancelar</button>
+                            <button onClick={async () => {
+                              await abandonarLista(l.id)
+                              setConfirmEliminarLista(null)
+                              if (esActual) { cerrarGestionar(); navigate('/lista') }
+                              else cerrarGestionar()
+                            }} className="flex-1 text-xs py-1.5 rounded-xl bg-red-500 text-white font-semibold">Salir</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Crear / unirse */}
+              {modoCrear === null ? (
+                <div className="flex gap-2 mb-6">
+                  {listas.length < 2 && (
+                    <button onClick={() => setModoCrear('crear')}
+                      className="flex-1 flex items-center justify-center gap-1.5 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl py-3 text-sm text-gray-400 hover:border-green-select/50 hover:text-green-select transition-colors">
+                      + Nueva lista
+                    </button>
+                  )}
+                  <button onClick={() => setModoCrear('unirse')}
+                    className="flex-1 flex items-center justify-center gap-1.5 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl py-3 text-sm text-gray-400 hover:border-green-select/50 hover:text-green-select transition-colors">
+                    🔑 Unirme con código
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-6 bg-gray-50 dark:bg-gray-800 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-bold text-gray-700 dark:text-gray-200">
+                      {modoCrear === 'crear' ? 'Nueva lista' : 'Unirse con código'}
+                    </p>
+                    <button onClick={() => { setModoCrear(null); setErrorCrear('') }} className="text-gray-400 text-sm">✕</button>
+                  </div>
+                  {modoCrear === 'crear' ? (
+                    <>
+                      <input autoFocus type="text" value={nombreNuevaLista} onChange={e => setNombreNuevaLista(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleCrearLista()}
+                        placeholder="Nombre de la lista…"
+                        className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select mb-2" />
+                      {errorCrear && <p className="text-xs text-red-500 mb-2">{errorCrear}</p>}
+                      <button onClick={handleCrearLista} disabled={!nombreNuevaLista.trim() || cargandoCrear}
+                        className="w-full py-2.5 rounded-xl bg-green-select text-white font-bold text-sm disabled:opacity-40 transition-opacity">
+                        {cargandoCrear ? 'Creando…' : 'Crear lista'}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <input autoFocus type="text" value={codigoUnirse} onChange={e => setCodigoUnirse(e.target.value.toUpperCase())}
+                        onKeyDown={e => e.key === 'Enter' && handleUnirse()}
+                        placeholder="Código de 6 letras…"
+                        className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-green-select mb-2 uppercase tracking-widest" />
+                      {errorCrear && <p className="text-xs text-red-500 mb-2">{errorCrear}</p>}
+                      <button onClick={handleUnirse} disabled={!codigoUnirse.trim() || cargandoCrear}
+                        className="w-full py-2.5 rounded-xl bg-green-select text-white font-bold text-sm disabled:opacity-40 transition-opacity">
+                        {cargandoCrear ? 'Uniéndome…' : 'Unirme'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )
