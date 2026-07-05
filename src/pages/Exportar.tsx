@@ -101,32 +101,165 @@ function clamp(ctx: CanvasRenderingContext2D, text: string, maxW: number): strin
   return s + '…'
 }
 
-function drawLeaves(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
-  const draw = (x: number, y: number, scale: number, rot: number, alpha: number) => {
-    ctx.save()
-    ctx.globalAlpha = alpha
-    ctx.translate(x, y)
-    ctx.rotate(rot)
-    ctx.scale(scale, scale)
+// ── Per-theme decorations ─────────────────────────────────────────────────────
+
+function decoLeaves(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
+  const leaf = (x: number, y: number, sc: number, rot: number, a: number) => {
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sc, sc)
     for (let i = 0; i < 3; i++) {
-      ctx.save()
-      ctx.rotate((i * Math.PI) / 5)
-      ctx.beginPath()
-      ctx.moveTo(0, 0)
+      ctx.save(); ctx.rotate((i * Math.PI) / 5)
+      ctx.beginPath(); ctx.moveTo(0, 0)
       ctx.bezierCurveTo(-30, -60, -10, -140, 0, -170)
       ctx.bezierCurveTo(10, -140, 30, -60, 0, 0)
-      ctx.fillStyle = color
-      ctx.fill()
-      ctx.restore()
+      ctx.fillStyle = color; ctx.fill(); ctx.restore()
     }
     ctx.restore()
   }
-  draw(80, 320, 1.4, 0.3, 0.20)
-  draw(W - 60, 380, 1.1, -0.5, 0.16)
-  draw(50, H - 200, 1.2, 0.8, 0.14)
-  draw(W - 80, H - 280, 1.3, -0.9, 0.18)
-  draw(W / 2 - 420, 180, 0.8, 1.2, 0.11)
-  draw(W / 2 + 400, 200, 0.9, -1.0, 0.11)
+  leaf(80, 340, 1.4, 0.3, 0.22); leaf(W - 60, 390, 1.1, -0.5, 0.17)
+  leaf(55, H - 200, 1.2, 0.8, 0.15); leaf(W - 80, H - 290, 1.3, -0.9, 0.19)
+  leaf(W / 2 - 420, 190, 0.8, 1.2, 0.12); leaf(W / 2 + 400, 210, 0.9, -1.0, 0.12)
+}
+
+function decoArches(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
+  // Mediterranean arched windows at bottom + top decorative tiles
+  ctx.save()
+  ctx.strokeStyle = color; ctx.lineWidth = 3
+  const arch = (cx: number, baseY: number, aw: number, ah: number, a: number) => {
+    ctx.globalAlpha = a
+    ctx.beginPath()
+    ctx.moveTo(cx - aw / 2, baseY)
+    ctx.lineTo(cx - aw / 2, baseY - ah + aw / 2)
+    ctx.arc(cx, baseY - ah + aw / 2, aw / 2, Math.PI, 0)
+    ctx.lineTo(cx + aw / 2, baseY)
+    ctx.stroke()
+  }
+  // Large arches at bottom
+  arch(W * 0.2, H + 20, 280, 460, 0.18)
+  arch(W * 0.5, H + 20, 320, 520, 0.22)
+  arch(W * 0.8, H + 20, 280, 440, 0.16)
+  // Smaller arches at top
+  arch(W * 0.15, 560, 140, 220, 0.10)
+  arch(W * 0.85, 540, 140, 210, 0.10)
+  // Small decorative tile dots grid at header area
+  ctx.globalAlpha = 0.12
+  ctx.fillStyle = color
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 6; col++) {
+      ctx.beginPath()
+      ctx.arc(col * 190 + 55, row * 30 + H - 140, 3, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  ctx.restore()
+}
+
+function decoStars(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
+  // Starfield + crescent moon
+  ctx.save()
+  const rng = (seed: number) => { let x = Math.sin(seed) * 10000; return x - Math.floor(x) }
+  for (let i = 0; i < 90; i++) {
+    const x = rng(i * 3.1) * W
+    const y = rng(i * 7.3) * H * 0.75
+    const r = rng(i * 2.7) * 2.2 + 0.4
+    ctx.globalAlpha = rng(i * 5.1) * 0.55 + 0.15
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.fillStyle = 'white'; ctx.fill()
+  }
+  // A few larger star sparkles
+  for (let i = 0; i < 8; i++) {
+    const x = rng(i * 11.3 + 1) * W
+    const y = rng(i * 4.7 + 2) * H * 0.5
+    ctx.globalAlpha = 0.35
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 1
+    const s = 5
+    ctx.beginPath()
+    ctx.moveTo(x - s, y); ctx.lineTo(x + s, y)
+    ctx.moveTo(x, y - s); ctx.lineTo(x, y + s)
+    ctx.stroke()
+  }
+  // Crescent moon top right
+  ctx.globalAlpha = 0.14
+  ctx.fillStyle = color
+  ctx.beginPath(); ctx.arc(W - 140, 220, 110, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = '#07071a'
+  ctx.beginPath(); ctx.arc(W - 96, 196, 104, 0, Math.PI * 2); ctx.fill()
+  ctx.restore()
+}
+
+function decoPetals(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
+  // Soft watercolor petal circles
+  ctx.save()
+  const petals = [
+    [W * 0.08, H * 0.07, 300, 0.13], [W * 0.92, H * 0.04, 240, 0.11],
+    [W * 0.04, H * 0.5, 220, 0.09], [W * 0.96, H * 0.42, 260, 0.10],
+    [W * 0.5, H * 0.12, 180, 0.09], [W * 0.18, H * 0.88, 200, 0.08],
+    [W * 0.82, H * 0.86, 190, 0.08],
+  ]
+  for (const [px, py, pr, a] of petals) {
+    const g = ctx.createRadialGradient(px, py, 0, px, py, pr)
+    g.addColorStop(0, color.replace('rgb(', 'rgba(').replace(')', `, ${(a as number) * 2})`))
+    g.addColorStop(0.5, color.replace('rgb(', 'rgba(').replace(')', `, ${a as number})`))
+    g.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = g
+    ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill()
+  }
+  // Thin petal outlines
+  ctx.globalAlpha = 0.08; ctx.strokeStyle = color; ctx.lineWidth = 1.5
+  const drawPetal = (cx: number, cy: number, r: number, rot: number) => {
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot)
+    ctx.beginPath()
+    ctx.moveTo(0, 0); ctx.bezierCurveTo(-r * 0.4, -r * 0.6, -r * 0.15, -r, 0, -r * 1.1)
+    ctx.bezierCurveTo(r * 0.15, -r, r * 0.4, -r * 0.6, 0, 0)
+    ctx.stroke(); ctx.restore()
+  }
+  for (let i = 0; i < 8; i++) drawPetal(W * 0.08, H * 0.07, 120, (i * Math.PI) / 4)
+  for (let i = 0; i < 6; i++) drawPetal(W * 0.92, H * 0.86, 90, (i * Math.PI) / 3)
+  ctx.restore()
+}
+
+function decoArtDeco(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
+  ctx.save()
+  // Sun rays from top center
+  ctx.strokeStyle = color; ctx.lineWidth = 1
+  const cx = W / 2, cy = -300
+  for (let i = 0; i < 24; i++) {
+    const angle = (i / 24) * Math.PI * 2
+    ctx.globalAlpha = 0.07
+    ctx.beginPath()
+    ctx.moveTo(cx + Math.cos(angle) * 200, cy + Math.sin(angle) * 200)
+    ctx.lineTo(cx + Math.cos(angle) * H * 1.6, cy + Math.sin(angle) * H * 1.6)
+    ctx.stroke()
+  }
+  // Double border frame
+  ctx.globalAlpha = 0.13; ctx.lineWidth = 2
+  const m1 = 30, m2 = 44
+  ctx.strokeRect(m1, m1, W - m1 * 2, H - m1 * 2)
+  ctx.strokeRect(m2, m2, W - m2 * 2, H - m2 * 2)
+  // Corner ornaments
+  ctx.globalAlpha = 0.18; ctx.lineWidth = 2
+  const co = (x: number, y: number, fx: number, fy: number) => {
+    ctx.beginPath()
+    ctx.moveTo(x + fx * 80, y); ctx.lineTo(x, y); ctx.lineTo(x, y + fy * 80); ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(x + fx * 50, y + fy * 12); ctx.lineTo(x + fx * 12, y + fy * 12)
+    ctx.lineTo(x + fx * 12, y + fy * 50); ctx.stroke()
+  }
+  co(m2, m2, 1, 1); co(W - m2, m2, -1, 1); co(m2, H - m2, 1, -1); co(W - m2, H - m2, -1, -1)
+  // Chevron strips at top and bottom
+  ctx.globalAlpha = 0.10; ctx.lineWidth = 1.5
+  for (let i = 0; i < 5; i++) {
+    const yy = 90 + i * 14
+    ctx.beginPath(); ctx.moveTo(W * 0.25, yy); ctx.lineTo(W / 2, yy - 10); ctx.lineTo(W * 0.75, yy); ctx.stroke()
+  }
+  ctx.restore()
+}
+
+function drawDecoration(ctx: CanvasRenderingContext2D, W: number, H: number, theme: StoriesTheme) {
+  if (theme.id === 'bosque')     decoLeaves(ctx, W, H, theme.leafColor)
+  else if (theme.id === 'terracota') decoArches(ctx, W, H, theme.leafColor)
+  else if (theme.id === 'medianoche') decoStars(ctx, W, H, theme.accent)
+  else if (theme.id === 'rosa')  decoPetals(ctx, W, H, theme.leafColor)
+  else if (theme.id === 'carbon') decoArtDeco(ctx, W, H, theme.accent)
 }
 
 async function generarStoriesBlob(menu: MenuSemanal, theme: StoriesTheme): Promise<Blob> {
@@ -135,23 +268,35 @@ async function generarStoriesBlob(menu: MenuSemanal, theme: StoriesTheme): Promi
   canvas.width = W; canvas.height = H
   const ctx = canvas.getContext('2d')!
 
-  // Background gradient
-  const bg = ctx.createLinearGradient(0, 0, W * 0.3, H)
+  // Background — each theme has its own gradient direction
+  let bg: CanvasGradient
+  if (theme.id === 'terracota') {
+    bg = ctx.createLinearGradient(0, 0, 0, H)           // vertical warm
+  } else if (theme.id === 'medianoche') {
+    bg = ctx.createLinearGradient(W / 2, 0, W / 2, H)   // straight vertical
+  } else if (theme.id === 'rosa') {
+    bg = ctx.createLinearGradient(0, 0, W, H)            // diagonal
+  } else if (theme.id === 'carbon') {
+    bg = ctx.createLinearGradient(W / 2, 0, W / 2, H)   // vertical dark
+  } else {
+    bg = ctx.createLinearGradient(0, 0, W * 0.3, H)     // bosque diagonal
+  }
   bg.addColorStop(0, theme.bg[0])
   bg.addColorStop(0.45, theme.bg[1])
   bg.addColorStop(1, theme.bg[2])
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, W, H)
 
-  // Soft glow top center
-  const glow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 700)
+  // Glow — positioned differently per theme
+  const glowY = theme.id === 'rosa' ? H * 0.3 : 0
+  const glow = ctx.createRadialGradient(W / 2, glowY, 0, W / 2, glowY, 700)
   glow.addColorStop(0, theme.glowColor)
   glow.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, W, H)
 
-  // Botanical leaves
-  drawLeaves(ctx, W, H, theme.leafColor)
+  // Theme-specific decoration
+  drawDecoration(ctx, W, H, theme)
 
   // ── Header ──
   ctx.textAlign = 'center'
