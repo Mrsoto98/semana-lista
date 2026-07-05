@@ -115,7 +115,7 @@ export default function Onboarding() {
                   onClick={() => { setLang(value); setPaso(2) }}
                   className={`flex items-center justify-center gap-2 py-4 rounded-card border-2 text-base font-semibold transition-colors ${
                     lang === value
-                      ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
+                      ? 'border-green-select bg-accent-light text-green-select'
                       : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-green-select'
                   }`}
                 >

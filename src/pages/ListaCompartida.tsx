@@ -635,7 +635,7 @@ export default function ListaCompartida() {
               </button>
             )}
             <button onClick={copiarCodigo}
-              className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/30 border border-green-select/30 text-green-select rounded-full px-3 py-1 text-xs font-bold shrink-0">
+              className="flex items-center gap-1.5 bg-accent-light border border-green-select/30 text-green-select rounded-full px-3 py-1 text-xs font-bold shrink-0">
               <span>👥</span><span>{copiado ? t.lc_copiado : lista.codigo}</span>
             </button>
           </div>
@@ -1037,7 +1037,7 @@ export default function ListaCompartida() {
         </div>
 
         {/* ── COMPARTIR ──────────────────────────────────────────────────────── */}
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-select/20 rounded-xl p-4">
+        <div className="bg-accent-light border border-green-select/20 rounded-xl p-4">
           <p className="text-sm font-semibold text-green-select mb-1">{t.lc_compartir}</p>
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">{t.lc_compartir_desc}</p>
           <button onClick={copiarCodigo}
@@ -1152,7 +1152,7 @@ export default function ListaCompartida() {
                             <p className="text-xs text-gray-400">{l.codigo} {esActual && '· actual'}</p>
                           </div>
                           {esPrincipal && (
-                            <span className="text-[10px] text-green-select font-bold bg-green-50 dark:bg-green-900/30 border border-green-select/20 px-2 py-0.5 rounded-full shrink-0">
+                            <span className="text-[10px] text-green-select font-bold bg-accent-light border border-green-select/20 px-2 py-0.5 rounded-full shrink-0">
                               Principal
                             </span>
                           )}

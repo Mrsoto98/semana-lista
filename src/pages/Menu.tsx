@@ -639,7 +639,7 @@ export default function Menu() {
                       { key: 'personalizado', label: t.modal_personalizado },
                     ] as const).map(({ key, label }) => (
                       <button key={key} onClick={() => setDiasConfig(key)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
                         {label}
                       </button>
                     ))}
@@ -649,7 +649,7 @@ export default function Menu() {
                       {DIAS.map(d => (
                         <button key={d}
                           onClick={() => setDiasPersonalizados(prev => { const next = new Set(prev); next.has(d) ? next.delete(d) : next.add(d); return next })}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
                           {DIAS_LABEL[d].slice(0, 3)}
                         </button>
                       ))}
@@ -665,7 +665,7 @@ export default function Menu() {
                       { key: 'cena',   label: t.modal_solo_cena },
                     ] as const).map(({ key, label }) => (
                       <button key={key} onClick={() => setFranjaConfig(key)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
                         {label}
                       </button>
                     ))}
@@ -679,14 +679,14 @@ export default function Menu() {
                   <p className="text-xs text-gray-400 mb-1.5">{t.modal_lista_desc}</p>
                   <div className="space-y-1.5">
                     <button onClick={() => setCuestionario(p => ({ ...p, listaDestinoId: null }))}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${!cuestionario.listaDestinoId ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${!cuestionario.listaDestinoId ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
                       <span className="text-lg">👤</span>
                       <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100">{t.modal_mi_lista}</span>
                       {!cuestionario.listaDestinoId && <span className="text-green-select">✓</span>}
                     </button>
                     {listasCompartidas.map(lista => (
                       <button key={lista.id} onClick={() => setCuestionario(p => ({ ...p, listaDestinoId: lista.id }))}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${cuestionario.listaDestinoId === lista.id ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${cuestionario.listaDestinoId === lista.id ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
                         <span className="text-lg">👥</span>
                         <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</span>
                         {cuestionario.listaDestinoId === lista.id && <span className="text-green-select">✓</span>}
@@ -1010,7 +1010,7 @@ export default function Menu() {
                 <button
                   key={key}
                   onClick={() => setDiasConfig(key)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
                 >
                   {label}
                 </button>
@@ -1026,7 +1026,7 @@ export default function Menu() {
                       next.has(d) ? next.delete(d) : next.add(d)
                       return next
                     })}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}
                   >
                     {DIAS_LABEL[d].slice(0, 3)}
                   </button>
@@ -1045,7 +1045,7 @@ export default function Menu() {
                 <button
                   key={key}
                   onClick={() => setFranjaConfig(key)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
                 >
                   {label}
                 </button>

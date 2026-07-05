@@ -84,7 +84,7 @@ export function TutorialMenu({ onClose }: Props) {
               {MENU_EJEMPLO.map(({ dia, comida, cena }) => (
                 <div key={dia} className="flex gap-1.5 items-stretch">
                   <div className="w-8 flex items-center justify-center text-[10px] font-bold text-gray-400 uppercase shrink-0">{dia}</div>
-                  <div className="flex-1 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-xl px-2.5 py-1.5">
+                  <div className="flex-1 bg-accent-light border border-green-100 dark:border-green-800 rounded-xl px-2.5 py-1.5">
                     <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">{comida.emoji} {comida.nombre}</p>
                     <p className="text-[10px] text-gray-400">🔥 {comida.kcal} kcal</p>
                   </div>
@@ -101,7 +101,7 @@ export function TutorialMenu({ onClose }: Props) {
           {/* PASO 2 — Opciones por celda */}
           {p.contenido === 'opciones' && (
             <div className="mt-3 space-y-3">
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-3">
+              <div className="bg-accent-light border border-green-200 dark:border-green-800 rounded-2xl p-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Lunes · Comida</p>
                 <div className="flex items-start justify-between mb-2">
                   <p className="text-sm font-bold">🍗 Pollo al ajillo</p>

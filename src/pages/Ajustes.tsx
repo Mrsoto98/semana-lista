@@ -300,7 +300,7 @@ export default function Ajustes() {
                 <button
                   key={e}
                   onClick={() => setAvatarEmoji(e)}
-                  className={`text-xl w-9 h-9 rounded-xl border-2 transition-colors ${avatarEmoji === e && !avatarUrl ? 'border-green-select bg-green-50 dark:bg-green-900/30' : 'border-gray-200 dark:border-gray-700'}`}
+                  className={`text-xl w-9 h-9 rounded-xl border-2 transition-colors ${avatarEmoji === e && !avatarUrl ? 'border-green-select bg-accent-light' : 'border-gray-200 dark:border-gray-700'}`}
                 >
                   {e}
                 </button>
@@ -496,7 +496,7 @@ export default function Ajustes() {
                 { key: 'personalizado', label: t.modal_personalizado },
               ] as const).map(({ key, label }) => (
                 <button key={key} onClick={() => setDiasConfig(key)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
                   {label}
                 </button>
               ))}
@@ -505,7 +505,7 @@ export default function Ajustes() {
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {DIAS.map(d => (
                   <button key={d} onClick={() => setDiasPersonalizados(prev => { const next = new Set(prev); next.has(d) ? next.delete(d) : next.add(d); return next })}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
                     {DIAS_LABEL[d].slice(0, 3)}
                   </button>
                 ))}
@@ -521,7 +521,7 @@ export default function Ajustes() {
                 { key: 'cena',   label: t.modal_solo_cena },
               ] as const).map(({ key, label }) => (
                 <button key={key} onClick={() => setFranjaConfig(key)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
                   {label}
                 </button>
               ))}
@@ -567,7 +567,7 @@ export default function Ajustes() {
               onClick={() => aplicarTamano(value)}
               className={`flex flex-col items-center gap-1 py-3 rounded-card border-2 text-sm font-medium transition-colors ${
                 tamano === value
-                  ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
+                  ? 'border-green-select bg-accent-light text-green-select'
                   : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
               }`}
             >
@@ -593,7 +593,7 @@ export default function Ajustes() {
               onClick={() => aplicarTema(value)}
               className={`flex flex-col items-center gap-1 py-3 rounded-card border-2 text-sm font-medium transition-colors ${
                 tema === value
-                  ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
+                  ? 'border-green-select bg-accent-light text-green-select'
                   : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
               }`}
             >
@@ -636,7 +636,7 @@ export default function Ajustes() {
               onClick={() => setLang(value)}
               className={`flex items-center justify-center gap-2 py-3 rounded-card border-2 text-sm font-medium transition-colors ${
                 lang === value
-                  ? 'border-green-select bg-green-50 dark:bg-green-900/30 text-green-select'
+                  ? 'border-green-select bg-accent-light text-green-select'
                   : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300'
               }`}
             >

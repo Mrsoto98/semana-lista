@@ -145,7 +145,7 @@ function ModalCrearLista({ onClose, onCreada, modoInicial = 'crear', crearLista,
 
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Código para compartir</p>
             <button onClick={copiarCodigo}
-              className="w-full flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-select/30 rounded-2xl px-4 py-3.5 mb-6">
+              className="w-full flex items-center justify-between bg-accent-light border border-green-select/30 rounded-2xl px-4 py-3.5 mb-6">
               <span className="text-2xl font-black tracking-widest text-green-select">{listaCreada?.codigo}</span>
               <span className="text-sm text-green-select font-semibold">{copiado ? '✓ Copiado' : 'Copiar'}</span>
             </button>
@@ -320,7 +320,7 @@ function Navbar() {
                           <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</p>
                           <p className="text-xs text-gray-400">{lista.codigo}</p>
                         </div>
-                        {esPrincipal && <span className="text-xs text-green-select font-bold bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">Principal</span>}
+                        {esPrincipal && <span className="text-xs text-green-select font-bold bg-accent-light px-2 py-0.5 rounded-full">Principal</span>}
                       </button>
                     </div>
                     {confirmando && (

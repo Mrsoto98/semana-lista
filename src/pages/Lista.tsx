@@ -635,7 +635,7 @@ export default function Lista() {
                     <p className="text-xs text-gray-400 uppercase tracking-wider">{t.compartidas_tus_listas}</p>
                     {listas.map(l => (
                       <button key={l.id} onClick={() => { setModalCompartida(false); navigate(`/lista-compartida/${l.id}`) }}
-                        className="w-full flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-select/20 rounded-xl px-4 py-3 hover:border-green-select transition-colors">
+                        className="w-full flex items-center justify-between bg-accent-light border border-green-select/20 rounded-xl px-4 py-3 hover:border-green-select transition-colors">
                         <span className="font-semibold text-sm text-gray-800 dark:text-gray-100">{l.nombre}</span>
                         <span className="text-xs font-bold text-green-select tracking-widest">{l.codigo}</span>
                       </button>
@@ -650,7 +650,7 @@ export default function Lista() {
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setModoModal('crear')} disabled={listas.length >= 2}
-                    className="flex flex-col items-center gap-1.5 border-2 border-green-select bg-green-50 dark:bg-green-900/20 rounded-xl py-4 font-semibold text-sm text-green-select hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="flex flex-col items-center gap-1.5 border-2 border-green-select bg-accent-light rounded-xl py-4 font-semibold text-sm text-green-select hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed">
                     <span className="text-2xl">✨</span>
                     {t.compartidas_crear}
                   </button>

@@ -8,6 +8,13 @@
   --accent: 22 163 74; /* verde #16a34a — canales RGB para opacity modifiers de Tailwind */
 }
 
+.bg-accent-light {
+  background-color: rgb(var(--accent) / 0.08);
+}
+.dark .bg-accent-light {
+  background-color: rgb(var(--accent) / 0.15);
+}
+
 @layer base {
   html {
     font-feature-settings: 'cv11', 'ss01';
