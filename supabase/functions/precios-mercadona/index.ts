@@ -25,12 +25,17 @@ function corsHeaders(req: Request) {
   }
 }
 
-async function verificarJWT(req: Request): Promise<boolean> {
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) return false
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  const { data: { user }, error } = await admin.auth.getUser(authHeader.replace('Bearer ', ''))
-  return !error && !!user
+function verificarJWT(req: Request): boolean {
+  try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) return false
+    const parts = authHeader.slice(7).split('.')
+    if (parts.length !== 3) return false
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    if (!payload?.sub) return false
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return false
+    return true
+  } catch { return false }
 }
 
 const MERCADONA_BASE = 'https://tienda.mercadona.es/api'
@@ -90,7 +95,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors })
 
   // Verificar JWT — endpoint solo para usuarios autenticados
-  const autenticado = await verificarJWT(req)
+  const autenticado = verificarJWT(req)
   if (!autenticado) {
     return new Response(JSON.stringify({ error: 'No autorizado' }), {
       status: 401, headers: { ...cors, 'Content-Type': 'application/json' },

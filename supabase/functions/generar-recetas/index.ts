@@ -1,11 +1,7 @@
 // supabase/functions/generar-recetas/index.ts
 import INGREDIENTES_JSON from './ingredientes.json' with { type: 'json' }
 import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'json' }
-import { createClient } from 'npm:@supabase/supabase-js'
-
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
 
@@ -37,13 +33,23 @@ function sanitizarParaPrompt(s: string, maxLen = 200): string {
     .trim()
 }
 
-async function verificarJWT(req: Request): Promise<{ user: { id: string } | null; error: string | null }> {
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) return { user: null, error: 'Token requerido' }
-  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
-  if (error || !user) return { user: null, error: 'Token inválido' }
-  return { user, error: null }
+// Verifica el JWT localmente (sin red): decodifica el payload y comprueba
+// que tiene sub (user ID) y que no ha expirado.
+function verificarJWT(req: Request): { userId: string | null; error: string | null } {
+  try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) return { userId: null, error: 'Token requerido' }
+    const token = authHeader.slice(7)
+    const parts = token.split('.')
+    if (parts.length !== 3) return { userId: null, error: 'Token malformado' }
+    // Decodificar payload (base64url → JSON)
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    if (!payload?.sub) return { userId: null, error: 'Token sin usuario' }
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return { userId: null, error: 'Token expirado' }
+    return { userId: payload.sub as string, error: null }
+  } catch {
+    return { userId: null, error: 'Token inválido' }
+  }
 }
 
 // Mapea el valor de "cocina" que elige el usuario en la UI al código de
@@ -237,8 +243,8 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors })
 
   // Verificar JWT — endpoint no disponible sin sesión activa
-  const { user, error: authErr } = await verificarJWT(req)
-  if (!user) {
+  const { userId, error: authErr } = verificarJWT(req)
+  if (!userId) {
     return new Response(JSON.stringify({ error: 'No autorizado', detail: authErr }), {
       status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
     })
