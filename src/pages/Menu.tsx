@@ -1,5 +1,6 @@
 // src/pages/Menu.tsx
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { CeldaMenu } from '../components/CeldaMenu'
 import { ModalGenerarMenu, type ConfigGeneracion } from '../components/ModalGenerarMenu'
@@ -768,7 +769,7 @@ export default function Menu() {
       )}
 
       {/* Modal detalle favorita */}
-      {favoritaDetalle && (
+      {favoritaDetalle && createPortal(
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4" onClick={() => setFavoritaDetalle(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl"
             onClick={e => e.stopPropagation()}>
@@ -815,7 +816,7 @@ export default function Menu() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Modal Generar menú */}
       {modalGenerar && perfil && (
