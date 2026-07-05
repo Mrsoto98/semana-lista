@@ -803,18 +803,22 @@ export default function Menu() {
       {/* Widget nutricional — solo cuando hay recetas */}
       {resumenSemanal.numSlots >= 2 && (
         <div className="mb-4">
-          <div className="flex gap-2">
-            <div className="flex-1 bg-orange-50 dark:bg-orange-950/30 rounded-xl p-3 text-center">
-              <p className="text-lg font-black text-orange-500">{resumenSemanal.totalKcal.toLocaleString('es')}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t.menu_kcal_semana}</p>
-            </div>
-            <div className="flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-xl p-3 text-center">
-              <p className="text-lg font-black text-blue-500">{resumenSemanal.mediaKcal}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t.menu_kcal_plato}</p>
-            </div>
-            <div className="flex-1 bg-green-50 dark:bg-green-950/30 rounded-xl p-3 text-center">
-              <p className="text-lg font-black text-green-select">{resumenSemanal.numSlots}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t.menu_platos}</p>
+          <div className="relative rounded-2xl overflow-hidden">
+            {/* Glass background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 dark:from-white/8 dark:to-white/3 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-2xl" />
+            <div className="relative flex divide-x divide-white/15 dark:divide-white/10">
+              <div className="flex-1 py-4 text-center">
+                <p className="text-xl font-black bg-gradient-to-b from-orange-400 to-orange-600 bg-clip-text text-transparent">{resumenSemanal.totalKcal.toLocaleString('es')}</p>
+                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">{t.menu_kcal_semana}</p>
+              </div>
+              <div className="flex-1 py-4 text-center">
+                <p className="text-xl font-black bg-gradient-to-b from-blue-400 to-blue-600 bg-clip-text text-transparent">{resumenSemanal.mediaKcal}</p>
+                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">{t.menu_kcal_plato}</p>
+              </div>
+              <div className="flex-1 py-4 text-center">
+                <p className="text-xl font-black bg-gradient-to-b from-green-400 to-green-600 bg-clip-text text-transparent">{resumenSemanal.numSlots}</p>
+                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">{t.menu_platos}</p>
+              </div>
             </div>
           </div>
           <p className="text-[10px] text-gray-400 mt-1.5 text-center">{t.menu_estimaciones}</p>
