@@ -1,20 +1,49 @@
 // supabase/functions/generar-recetas/index.ts
 import INGREDIENTES_JSON from './ingredientes.json' with { type: 'json' }
 import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'json' }
+import { createClient } from 'npm:@supabase/supabase-js'
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
 
+const ALLOWED_ORIGINS = new Set([
+  ALLOWED_ORIGIN,
+  'http://localhost:5173',
+  'http://localhost:4173',
+])
+
 function corsHeaders(req: Request) {
   const origin = req.headers.get('origin') ?? ''
-  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') || origin.startsWith('http://localhost') ? origin : ALLOWED_ORIGIN
+  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : ALLOWED_ORIGIN
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
   }
+}
+
+// Sanitiza campos de usuario antes de incluirlos en el prompt
+// para prevenir prompt injection
+function sanitizarParaPrompt(s: string, maxLen = 200): string {
+  return s
+    .slice(0, maxLen)
+    .replace(/[<>{}`]/g, '')   // caracteres de template/markup
+    .replace(/[\n\r]/g, ' ')   // saltos de línea
+    .replace(/\binstrucci[oó]n\b|\bsystem\b|\brole\b|\bignora\b|\bolvida\b|\bignore\b|\bforget\b/gi, '') // palabras de jailbreak
+    .trim()
+}
+
+async function verificarJWT(req: Request): Promise<{ user: { id: string } | null; error: string | null }> {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return { user: null, error: 'Token requerido' }
+  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+  if (error || !user) return { user: null, error: 'Token inválido' }
+  return { user, error: null }
 }
 
 // Mapea el valor de "cocina" que elige el usuario en la UI al código de
@@ -103,10 +132,10 @@ function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[]
     `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre de la receta menciona una proteína (ternera, pollo, cerdo, salmón, gambas, bacalao, cordero, atún...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo. NUNCA escribas "de pollo" y uses otro animal. El nombre y los ingredientes deben describir exactamente el mismo plato.`,
     dificultadInstruccion(dificultad_recetas),
   ].filter(Boolean)
-  if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
-  if (nevera?.length) ctx.push(`Ingredientes a usar: ${nevera.join(', ')}.`)
-  if (recetasYaUsadas?.length) ctx.push(`No repetir estas recetas: ${recetasYaUsadas.slice(0, 8).join(', ')}.`)
-  if (extra_instrucciones) ctx.push(extra_instrucciones)
+  if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.slice(0, 30).map((s: string) => sanitizarParaPrompt(s, 50)).join(', ')}.`)
+  if (nevera?.length) ctx.push(`Ingredientes a usar: ${nevera.slice(0, 30).map((s: string) => sanitizarParaPrompt(s, 50)).join(', ')}.`)
+  if (recetasYaUsadas?.length) ctx.push(`No repetir estas recetas: ${recetasYaUsadas.slice(0, 8).map((s: string) => sanitizarParaPrompt(s, 80)).join(', ')}.`)
+  if (extra_instrucciones) ctx.push(sanitizarParaPrompt(extra_instrucciones, 200))
   const idiomaStr = idiomaInstruccion(lang)
   if (idiomaStr) ctx.push(idiomaStr)
 
@@ -133,9 +162,9 @@ function promptSlot(dia: string, franja: string, perfil: Record<string, unknown>
     `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre menciona una proteína (ternera, pollo, cerdo, salmón, gambas...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo, ni viceversa.`,
     dificultadInstruccion(dificultad_recetas),
   ].filter(Boolean)
-  if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
-  if (nevera?.length) ctx.push(`En casa: ${nevera.join(', ')}.`)
-  if (extra_instrucciones) ctx.push(extra_instrucciones)
+  if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.slice(0, 30).map((s: string) => sanitizarParaPrompt(s, 50)).join(', ')}.`)
+  if (nevera?.length) ctx.push(`En casa: ${nevera.slice(0, 30).map((s: string) => sanitizarParaPrompt(s, 50)).join(', ')}.`)
+  if (extra_instrucciones) ctx.push(sanitizarParaPrompt(extra_instrucciones, 200))
   const idiomaStrSlot = idiomaInstruccion(lang)
   if (idiomaStrSlot) ctx.push(idiomaStrSlot)
   ctx.push(ingredientesParaPrompt(cocina))
@@ -162,9 +191,9 @@ function promptOpcionExtra(dia: string, franja: string, perfil: Record<string, u
     `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre menciona una proteína (ternera, pollo, cerdo, salmón, gambas...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo, ni viceversa.`,
     dificultadInstruccion(dificultad_recetas),
   ].filter(Boolean)
-  if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.join(', ')}.`)
-  if (nevera?.length) ctx.push(`En casa: ${nevera.join(', ')}.`)
-  if (extra_instrucciones) ctx.push(extra_instrucciones)
+  if (ingredientes_no?.length) ctx.push(`Ingredientes prohibidos: ${ingredientes_no.slice(0, 30).map((s: string) => sanitizarParaPrompt(s, 50)).join(', ')}.`)
+  if (nevera?.length) ctx.push(`En casa: ${nevera.slice(0, 30).map((s: string) => sanitizarParaPrompt(s, 50)).join(', ')}.`)
+  if (extra_instrucciones) ctx.push(sanitizarParaPrompt(extra_instrucciones, 200))
   const idiomaStrExtra = idiomaInstruccion(lang)
   if (idiomaStrExtra) ctx.push(idiomaStrExtra)
   ctx.push(ingredientesParaPrompt(cocina))
@@ -207,6 +236,14 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors })
 
+  // Verificar JWT — endpoint no disponible sin sesión activa
+  const { user, error: authErr } = await verificarJWT(req)
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'No autorizado', detail: authErr }), {
+      status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const body = await req.json()
     const { perfil, recetas_ya_usadas = [], dia, franja, accion, receta_existente, dias: diasReq, franjas: franjasReq, lang = 'es' } = body
@@ -218,9 +255,14 @@ Deno.serve(async (req: Request) => {
         ingredientes: Array<{ nombre: string; cantidad: number; unidad: string }>
         descripcion: string
       }
-      const ingStr = ingredientes.map((i: { nombre: string; cantidad: number; unidad: string }) => `${i.cantidad} ${i.unidad} ${i.nombre}`).join(', ')
+      const nombreSafe = sanitizarParaPrompt(nombre ?? '', 100)
+      const descSafe = sanitizarParaPrompt(descripcion ?? '', 200)
+      const ingStr = (Array.isArray(ingredientes) ? ingredientes.slice(0, 20) : [])
+        .map((i: { nombre: string; cantidad: number; unidad: string }) =>
+          `${Number(i.cantidad) || 0} ${sanitizarParaPrompt(String(i.unidad ?? ''), 10)} ${sanitizarParaPrompt(String(i.nombre ?? ''), 50)}`)
+        .join(', ')
       const idiomaStr = idiomaInstruccion(lang)
-      const prompt = `Escribe los pasos de cocina numerados para: ${nombre}. Ingredientes: ${ingStr}. ${descripcion}. Solo JSON: {"pasos":["1. ...","2. ...",...]}. Máximo 6 pasos concisos.${idiomaStr ? ' ' + idiomaStr : ''}`
+      const prompt = `Escribe los pasos de cocina numerados para: ${nombreSafe}. Ingredientes: ${ingStr}. ${descSafe}. Solo JSON: {"pasos":["1. ...","2. ...",...]}. Máximo 6 pasos concisos.${idiomaStr ? ' ' + idiomaStr : ''}`
       const raw = await llamarClaude(prompt, 1000)
       const parsed = JSON.parse(raw)
       return new Response(
@@ -280,8 +322,11 @@ Deno.serve(async (req: Request) => {
       { headers: { ...cors, 'Content-Type': 'application/json' } },
     )
   } catch (err: unknown) {
-    const mensaje = err instanceof Error ? err.message : 'Error interno'
-    console.error('Error en generar-recetas:', mensaje)
+    const raw = err instanceof Error ? err.message : 'Error interno'
+    console.error('Error en generar-recetas:', raw)
+    // No exponer detalles internos al cliente
+    const esLimite = raw.includes('límite') || raw.includes('limite') || raw.includes('generaciones')
+    const mensaje = esLimite ? raw : 'Error al generar recetas. Inténtalo de nuevo.'
     return new Response(
       JSON.stringify({ error: true, mensaje }),
       { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } },

@@ -1,22 +1,36 @@
 // supabase/functions/precios-mercadona/index.ts
 import { createClient } from 'npm:@supabase/supabase-js'
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-)
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
 
+const ALLOWED_ORIGINS = new Set([
+  ALLOWED_ORIGIN,
+  'http://localhost:5173',
+  'http://localhost:4173',
+])
+
 function corsHeaders(req: Request) {
   const origin = req.headers.get('origin') ?? ''
-  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') ? origin : ALLOWED_ORIGIN
+  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : ALLOWED_ORIGIN
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
   }
+}
+
+async function verificarJWT(req: Request): Promise<boolean> {
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return false
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  const { data: { user }, error } = await admin.auth.getUser(authHeader.replace('Bearer ', ''))
+  return !error && !!user
 }
 
 const MERCADONA_BASE = 'https://tienda.mercadona.es/api'
@@ -74,6 +88,14 @@ Deno.serve(async (req: Request) => {
   const cors = corsHeaders(req)
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors })
+
+  // Verificar JWT — endpoint solo para usuarios autenticados
+  const autenticado = await verificarJWT(req)
+  if (!autenticado) {
+    return new Response(JSON.stringify({ error: 'No autorizado' }), {
+      status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+    })
+  }
 
   try {
     const body = await req.json()

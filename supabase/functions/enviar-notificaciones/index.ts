@@ -130,7 +130,8 @@ const supabase = createClient(
 Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization')
   const cronKey = Deno.env.get('CRON_SECRET')
-  if (cronKey && authHeader !== `Bearer ${cronKey}`) {
+  // CRON_SECRET es obligatorio — rechazar si no está configurado o no coincide
+  if (!cronKey || authHeader !== `Bearer ${cronKey}`) {
     return new Response('Unauthorized', { status: 401 })
   }
 
