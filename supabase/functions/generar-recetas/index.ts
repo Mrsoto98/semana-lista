@@ -5,15 +5,9 @@ const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
 
 const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
 
-const ALLOWED_ORIGINS = new Set([
-  ALLOWED_ORIGIN,
-  'http://localhost:5173',
-  'http://localhost:4173',
-])
-
 function corsHeaders(req: Request) {
   const origin = req.headers.get('origin') ?? ''
-  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : ALLOWED_ORIGIN
+  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') || origin.startsWith('http://localhost') ? origin : ALLOWED_ORIGIN
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
