@@ -857,6 +857,12 @@ export default function Lista() {
         {/* ── DEL MENÚ ESTA SEMANA ──────────────────────────────────────────── */}
         <div>
           <div className="flex items-center mb-2 gap-2">
+            {ingredientesMenu.length > 0 && (
+              <button onClick={vaciarMenu} title="Vaciar menú de la semana"
+                className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0">
+                🗑
+              </button>
+            )}
             <button data-tutorial="menu-semana-btn" onClick={() => setAbiertoMenu(v => !v)} className="flex items-center flex-1 text-left gap-2 py-1">
               <h2 data-tutorial="menu-semana" className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.lista_del_menu}</h2>
               {precioEstimadoMenu > 0 && (
@@ -864,12 +870,6 @@ export default function Lista() {
               )}
               <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abiertoMenu ? 'rotate-0' : '-rotate-90'}`}>▾</span>
             </button>
-            {ingredientesMenu.length > 0 && (
-              <button onClick={vaciarMenu} title="Vaciar menú de la semana"
-                className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors shrink-0">
-                🗑
-              </button>
-            )}
           </div>
           {abiertoMenu && (
             <div className="bg-white dark:bg-gray-900 shadow-card rounded-card p-3">
