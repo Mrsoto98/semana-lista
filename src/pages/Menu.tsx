@@ -787,7 +787,8 @@ export default function Menu() {
                   <ul className="space-y-1">
                     {favoritaDetalle.ingredientes.map((ing, i) => (
                       <li key={i} className="text-sm text-gray-600 dark:text-gray-300 flex items-start gap-2">
-                        <span className="text-green-500 mt-0.5">•</span>{ing}
+                        <span className="text-green-500 mt-0.5">•</span>
+                        {ing.cantidad} {ing.unidad} {ing.nombre}
                       </li>
                     ))}
                   </ul>
