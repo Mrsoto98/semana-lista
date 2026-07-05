@@ -40,7 +40,8 @@ export function TagInput({ tags, onChange, placeholder = 'Escribe y pulsa Enter.
       {tags.map(tag => (
         <span
           key={tag}
-          className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full px-2.5 py-0.5 text-sm"
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm"
+          style={{ backgroundColor: 'rgb(var(--accent) / 0.15)', color: 'rgb(var(--accent))' }}
         >
           {tag}
           <button type="button" onClick={() => remove(tag)} className="hover:text-red-500 leading-none">&times;</button>
