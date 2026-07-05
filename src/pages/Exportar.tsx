@@ -24,15 +24,15 @@ type StoriesTheme = {
 
 const STORIES_THEMES: StoriesTheme[] = [
   {
-    id: 'bosque', name: 'Bosque', emoji: '🌿',
-    swatch: ['#071912', '#163d26'],
-    bg: ['#071912', '#0c2b1a', '#163d26'],
-    glowColor: 'rgba(100,200,120,0.10)',
-    leafColor: '#4a9e5c',
-    accent: '#7dcea0', accentMuted: 'rgba(125,206,160,0.22)',
-    text: '#f2ede4', subtext: 'rgba(242,237,228,0.42)',
-    appName: 'rgba(160,220,160,0.68)',
-    cardBg: 'rgba(255,255,255,0.058)', cardBorder: 'rgba(255,255,255,0.09)',
+    id: 'gym', name: 'Power', emoji: '💪',
+    swatch: ['#060609', '#0f0f1a'],
+    bg: ['#040407', '#09090f', '#0f0f1a'],
+    glowColor: 'rgba(212,255,0,0.07)',
+    leafColor: '#d4ff00',
+    accent: '#d4ff00', accentMuted: 'rgba(212,255,0,0.18)',
+    text: '#ffffff', subtext: 'rgba(255,255,255,0.42)',
+    appName: 'rgba(212,255,0,0.80)',
+    cardBg: 'rgba(255,255,255,0.04)', cardBorder: 'rgba(212,255,0,0.18)',
   },
   {
     id: 'terracota', name: 'Terracota', emoji: '🪴',
@@ -254,8 +254,51 @@ function decoArtDeco(ctx: CanvasRenderingContext2D, W: number, H: number, color:
   ctx.restore()
 }
 
+function decoGym(ctx: CanvasRenderingContext2D, W: number, H: number, color: string) {
+  ctx.save()
+  // Hexagon grid full canvas
+  ctx.strokeStyle = color; ctx.lineWidth = 1
+  const R = 48, hW = R * Math.sqrt(3)
+  for (let row = -1; row < H / (R * 1.5) + 2; row++) {
+    for (let col = -1; col < W / hW + 2; col++) {
+      ctx.globalAlpha = 0.052
+      const cx = col * hW + (row % 2) * (hW / 2)
+      const cy = row * R * 1.5
+      ctx.beginPath()
+      for (let j = 0; j < 6; j++) {
+        const a = (j * Math.PI) / 3
+        j === 0 ? ctx.moveTo(cx + R * Math.cos(a), cy + R * Math.sin(a))
+                : ctx.lineTo(cx + R * Math.cos(a), cy + R * Math.sin(a))
+      }
+      ctx.closePath(); ctx.stroke()
+    }
+  }
+  // Diagonal speed lines right side
+  ctx.lineWidth = 2.5
+  for (let i = 0; i < 6; i++) {
+    ctx.globalAlpha = 0.07 + i * 0.012
+    const x = W * 0.55 + i * 90
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 440, H); ctx.stroke()
+  }
+  // Bold neon left bar
+  ctx.globalAlpha = 1
+  ctx.fillStyle = color
+  ctx.fillRect(0, 0, 6, H)
+  // Neon top bar
+  ctx.fillRect(0, 0, W, 4)
+  // Neon bottom bar
+  ctx.fillRect(0, H - 4, W, 4)
+  // Small corner accent squares
+  ctx.globalAlpha = 0.6
+  ctx.fillRect(6, 6, 40, 6); ctx.fillRect(6, 6, 6, 40)
+  ctx.fillRect(W - 46, 6, 40, 6); ctx.fillRect(W - 12, 6, 6, 40)
+  ctx.fillRect(6, H - 12, 40, 6); ctx.fillRect(6, H - 46, 6, 40)
+  ctx.fillRect(W - 46, H - 12, 40, 6); ctx.fillRect(W - 12, H - 46, 6, 40)
+  ctx.restore()
+}
+
 function drawDecoration(ctx: CanvasRenderingContext2D, W: number, H: number, theme: StoriesTheme) {
-  if (theme.id === 'bosque')     decoLeaves(ctx, W, H, theme.leafColor)
+  if (theme.id === 'gym')        decoGym(ctx, W, H, theme.accent)
   else if (theme.id === 'terracota') decoArches(ctx, W, H, theme.leafColor)
   else if (theme.id === 'medianoche') decoStars(ctx, W, H, theme.accent)
   else if (theme.id === 'rosa')  decoPetals(ctx, W, H, theme.leafColor)
@@ -646,7 +689,7 @@ export default function Exportar() {
   const [copiadoLista, setCopiadoLista] = useState(false)
   const [copiadoCompartida, setCopiadoCompartida] = useState<Record<string, boolean>>({})
   const [generandoStories, setGenerandoStories] = useState(false)
-  const [storiesThemeId, setStoriesThemeId] = useState('bosque')
+  const [storiesThemeId, setStoriesThemeId] = useState('gym')
 
   async function compartirStories() {
     const theme = STORIES_THEMES.find(t => t.id === storiesThemeId) ?? STORIES_THEMES[0]
