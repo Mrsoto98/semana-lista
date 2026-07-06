@@ -1,8 +1,14 @@
-// src/lib/ads.ts — Servicio de anuncios unificado (web/simulado + Android/AdMob)
+// src/lib/ads.ts — Servicio de anuncios unificado (web/AdSense + Android/AdMob)
 import { Capacitor } from '@capacitor/core'
 
+declare global {
+  interface Window {
+    adBreak?: (config: Record<string, unknown>) => void
+  }
+}
+
 // ── IDs de prueba de Google — reemplazar por los reales cuando tengas AdMob ──
-const ADMOB_REWARDED_ID_ANDROID = 'ca-app-pub-3940256099942544/5224354917'
+const ADMOB_REWARDED_ID_ANDROID = 'ca-app-pub-4112362316379237/1190824552'
 
 export const esNativo = () => Capacitor.isNativePlatform()
 
@@ -17,6 +23,26 @@ async function getAdMob() {
   } catch {
     return null
   }
+}
+
+export function mostrarAnuncioRewardedWeb(): Promise<'recompensa' | 'cancelado' | 'error'> {
+  return new Promise((resolve) => {
+    if (!window.adBreak) { resolve('error'); return }
+    window.adBreak({
+      type: 'reward',
+      name: 'generacion-menu',
+      adDismissed: () => resolve('cancelado'),
+      adViewed: () => resolve('recompensa'),
+      beforeAd: () => {},
+      afterAd: () => {},
+      adBreakDone: (placementInfo: unknown) => {
+        const info = placementInfo as { breakStatus?: string }
+        if (info?.breakStatus && info.breakStatus !== 'viewed' && info.breakStatus !== 'dismissed') {
+          resolve('error')
+        }
+      },
+    })
+  })
 }
 
 export async function inicializarAdMob() {

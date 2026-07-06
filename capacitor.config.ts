@@ -6,8 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     AdMob: {
-      // IDs de prueba — reemplazar con los reales cuando tengas la cuenta AdMob
-      appId: 'ca-app-pub-3940256099942544~3347511713', // TEST ID Android
+      appId: 'ca-app-pub-4112362316379237~9605712649',
     },
   },
   android: {
