@@ -84,6 +84,17 @@ function idiomaInstruccion(lang: string): string {
   return ''
 }
 
+function restriccionDieta(objetivo: string): string {
+  const obj = objetivo.toLowerCase()
+  if (obj.includes('vegano')) {
+    return 'DIETA VEGANA — PROHIBICIÓN ABSOLUTA: NINGUNA receta puede contener carne, pescado, marisco, huevos, lácteos (leche, queso, mantequilla, yogur) ni ningún producto de origen animal. Proteínas SOLO de: legumbres (lentejas, garbanzos, alubias, tofu, tempeh), frutos secos, semillas, cereales. Si incluyes cualquier ingrediente animal, el menú es incorrecto.'
+  }
+  if (obj.includes('vegetar')) {
+    return 'DIETA VEGETARIANA — PROHIBICIÓN ABSOLUTA: NINGUNA receta puede contener carne (pollo, cerdo, ternera, cordero, pavo...), pescado (bacalao, merluza, salmón, atún, dorada...) ni marisco (gambas, mejillones, almejas, calamares...). Proteínas permitidas SOLO: huevos, queso, legumbres (lentejas, garbanzos, alubias), tofu, frutos secos. Revisa cada receta antes de responder — si cualquier receta contiene carne, pescado o marisco, el menú es incorrecto.'
+  }
+  return ''
+}
+
 function dificultadInstruccion(d?: string): string {
   if (d === 'fácil')   return 'Todas las recetas deben ser fáciles (≤30 min, técnicas simples).'
   if (d === 'media')   return 'Recetas de dificultad media (30-60 min, técnicas habituales).'
@@ -127,7 +138,8 @@ function promptSemana(perfil: Record<string, unknown>, recetasYaUsadas: string[]
     `CANTIDADES OBLIGATORIAS: las raciones deben ser para ${personas} persona${personas > 1 ? 's' : ''} como plato principal completo y saciante. Para ${personas} persona${personas > 1 ? 's' : ''}: mínimo ${personas * 150}-${personas * 200}g de proteína principal, ${personas * 150}-${personas * 250}g de carbohidrato si lo lleva, verduras y acompañamientos proporcionados. No escatimes — un plato principal no es una tapa.`,
     desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. TODAS las recetas deben pertenecer claramente a este estilo. NO mezcles con otros estilos.` : '',
     variedadExtra ?? '',
-    `VARIEDAD DE PROTEÍNAS: NO pongas pollo en más de la mitad de las recetas. Rota entre: pollo, cerdo, ternera/vacuno, huevos, legumbres, pescado/marisco. Si un mismo día tiene comida y cena, usa proteínas distintas. ${claves.length} nombres de receta distintos en total.`,
+    restriccionDieta(objetivo),
+    restriccionDieta(objetivo) ? '' : `VARIEDAD DE PROTEÍNAS: NO pongas pollo en más de la mitad de las recetas. Rota entre: pollo, cerdo, ternera/vacuno, huevos, legumbres, pescado/marisco. Si un mismo día tiene comida y cena, usa proteínas distintas. ${claves.length} nombres de receta distintos en total.`,
     `ANTI-REPETICIÓN DE FORMATO: antes de asignar cada receta, revisa mentalmente el listado completo del menú. Ningún tipo de plato base (pasta, tacos, curry, hamburguesa, ensalada, wok...) puede aparecer más de 2 veces en toda la semana.`,
     `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre de la receta menciona una proteína (ternera, pollo, cerdo, salmón, gambas, bacalao, cordero, atún...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo. NUNCA escribas "de pollo" y uses otro animal. El nombre y los ingredientes deben describir exactamente el mismo plato.`,
     dificultadInstruccion(dificultad_recetas),
@@ -159,6 +171,7 @@ function promptSlot(dia: string, franja: string, perfil: Record<string, unknown>
     `Eres un chef español. Crea 1 receta para ${franjaLabel} del ${DIA_LABEL[dia] ?? dia}. ${personas} persona${personas > 1 ? 's' : ''}, objetivo: ${objetivo}. SOLO platos principales, NO postres.`,
     `CANTIDADES OBLIGATORIAS: raciones para ${personas} persona${personas > 1 ? 's' : ''} como plato principal completo y saciante. Mínimo ${personas * 150}-${personas * 200}g de proteína principal, carbohidratos y acompañamientos proporcionales. No escatimes — un plato principal no es una tapa.`,
     desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. La receta debe pertenecer claramente a este estilo.` : '',
+    restriccionDieta(objetivo),
     `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre menciona una proteína (ternera, pollo, cerdo, salmón, gambas...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo, ni viceversa.`,
     dificultadInstruccion(dificultad_recetas),
   ].filter(Boolean)
@@ -188,6 +201,7 @@ function promptOpcionExtra(dia: string, franja: string, perfil: Record<string, u
     `La nueva receta debe ser claramente distinta de "${recetaExistente}" (proteína o técnica diferente).`,
     `CANTIDADES OBLIGATORIAS: raciones para ${personas} persona${personas > 1 ? 's' : ''} como plato principal completo y saciante. Mínimo ${personas * 150}-${personas * 200}g de proteína principal. No escatimes.`,
     desc ? `ESTILO DE COCINA OBLIGATORIO: ${desc}. La receta debe pertenecer claramente a este estilo.` : '',
+    restriccionDieta(objetivo),
     `CONSISTENCIA NOMBRE-INGREDIENTES OBLIGATORIA: si el nombre menciona una proteína (ternera, pollo, cerdo, salmón, gambas...), ESA proteína DEBE ser el ingrediente principal. NUNCA escribas "de ternera" y uses cerdo, ni viceversa.`,
     dificultadInstruccion(dificultad_recetas),
   ].filter(Boolean)
