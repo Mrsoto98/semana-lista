@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { inicializarAdMob } from './lib/ads'
+
+// Inicializar AdMob en Android nativo (no-op en web)
+inicializarAdMob().catch(() => {})
 
 // Aplicar color de acento guardado antes de renderizar
 ;(function aplicarColorAcento() {
