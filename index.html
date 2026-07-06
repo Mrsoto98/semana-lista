@@ -26,14 +26,25 @@
     } catch {}
 
     if ('serviceWorker' in navigator) {
-      // Registrar SW con updateViaCache:'none' para que el navegador siempre
-      // descargue sw.js fresco desde la red, sin que el SW actual lo intercepte
       navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
         .then(function(reg) {
-          // Comprobar actualizaciones inmediatamente y al volver al foco
           reg.update()
           document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') reg.update()
+          })
+          // Cuando hay un SW esperando, forzarlo a activarse ya
+          function activarSWEsperando(r) {
+            if (r.waiting) {
+              r.waiting.postMessage({ type: 'SKIP_WAITING' })
+            }
+          }
+          activarSWEsperando(reg)
+          reg.addEventListener('updatefound', function() {
+            var nuevo = reg.installing
+            if (!nuevo) return
+            nuevo.addEventListener('statechange', function() {
+              if (nuevo.state === 'installed') activarSWEsperando(reg)
+            })
           })
         })
 
