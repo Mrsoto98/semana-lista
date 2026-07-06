@@ -717,7 +717,7 @@ export default function Lista() {
           {/* Cabecera */}
           <div data-tutorial="lista-cabecera" className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black tracking-tight">Lista</h1>
+              <h1 className="text-2xl font-black tracking-tight">Lista Personal</h1>
             </div>
             <button data-tutorial="presupuesto" className="text-right" onClick={() => { setPresupuestoDraft(presupuesto > 0 ? presupuesto.toString() : ''); setEditandoPresupuesto(true) }}>
               {totalEstimado > 0 && (
