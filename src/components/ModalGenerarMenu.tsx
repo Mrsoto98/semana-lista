@@ -303,12 +303,6 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
             <PillSelector opciones={OPCIONES_TIEMPO} value={config.tiempo} onChange={v => set('tiempo', v)} />
           </div>
 
-          {/* Ocasión */}
-          <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_ocasion}</p>
-            <PillSelector opciones={OPCIONES_OCASION} value={config.ocasion} onChange={v => set('ocasion', v)} />
-          </div>
-
           {/* Preferencias libres */}
           <div className="space-y-3">
             <div>
