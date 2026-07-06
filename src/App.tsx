@@ -572,8 +572,8 @@ function AppRoutes() {
         <Suspense fallback={<PageLoader />}>
           <div key={location.pathname} className="page-enter">
           <Routes>
-            <Route path="/"           element={<Landing />} />
-            <Route path="/login"      element={<Auth />} />
+            <Route path="/"           element={user ? <Navigate to="/menu" replace /> : <Landing />} />
+            <Route path="/login"      element={user ? <Navigate to="/menu" replace /> : <Auth />} />
             <Route path="/onboarding" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
             <Route path="/menu"       element={<ProtectedConPerfil><Menu /></ProtectedConPerfil>} />
             <Route path="/lista"      element={<ProtectedConPerfil><Lista /></ProtectedConPerfil>} />
