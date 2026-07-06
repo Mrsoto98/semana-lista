@@ -26,7 +26,6 @@ function ModalCrear({ onClose, onCreada }: { onClose: () => void; onCreada: () =
   const [tipo, setTipo] = useState<'foto' | 'receta_personal'>('foto')
   const [titulo, setTitulo] = useState('')
   const [descripcion, setDescripcion] = useState('')
-  const [recetaNombre, setRecetaNombre] = useState('')
   const [visibilidad, setVisibilidad] = useState<'publico' | 'amigos' | 'privado'>('publico')
   const [fotos, setFotos] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
@@ -71,7 +70,7 @@ function ModalCrear({ onClose, onCreada }: { onClose: () => void; onCreada: () =
       tipo,
       titulo: titulo.trim(),
       descripcion: descripcion.trim() || undefined,
-      receta_nombre: recetaNombre.trim() || undefined,
+      receta_nombre: tipo === 'receta_personal' ? titulo.trim() : undefined,
       ingredientes: ings,
       pasos: ps,
       fotos,
