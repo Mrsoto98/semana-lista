@@ -412,43 +412,65 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Almacena el prompt de instalación globalmente para accederlo desde Ajustes
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _installPrompt: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getInstallPrompt(): any { return _installPrompt }
+export function clearInstallPrompt() { _installPrompt = null }
+
 function AndroidInstallBanner() {
   const [prompt, setPrompt] = useState<Event | null>(null)
   const [visible, setVisible] = useState(false)
-  const [instalado, setInstalado] = useState(false)
 
   useEffect(() => {
-    const yaInstalado = localStorage.getItem('android-install-visto')
     const esStandalone = window.matchMedia('(display-mode: standalone)').matches
-    if (yaInstalado || esStandalone) return
+    if (esStandalone) return
+
+    // Solo ocultar permanentemente si ya está instalada, no si solo cerró el banner
+    const yaInstalada = localStorage.getItem('pwa-instalada')
+    if (yaInstalada) return
 
     const handler = (e: Event) => {
       e.preventDefault()
+      _installPrompt = e
       setPrompt(e)
-      // Mostrar el banner 3s después de que el evento esté disponible
-      setTimeout(() => setVisible(true), 3000)
+      // Solo mostrar banner si no lo cerró en esta sesión
+      const cerradoEnSesion = sessionStorage.getItem('install-banner-cerrado')
+      if (!cerradoEnSesion) {
+        setTimeout(() => setVisible(true), 3000)
+      }
     }
     window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+
+    // Detectar instalación exitosa
+    const instaladoHandler = () => {
+      localStorage.setItem('pwa-instalada', '1')
+      _installPrompt = null
+      setVisible(false)
+    }
+    window.addEventListener('appinstalled', instaladoHandler)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler)
+      window.removeEventListener('appinstalled', instaladoHandler)
+    }
   }, [])
 
   async function instalar() {
     if (!prompt) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (prompt as any).prompt()
-    if (result?.outcome === 'accepted' || result === undefined) {
-      setInstalado(true)
-      localStorage.setItem('android-install-visto', '1')
-    }
+    await (prompt as any).prompt()
     setVisible(false)
   }
 
   function cerrar() {
     setVisible(false)
-    localStorage.setItem('android-install-visto', '1')
+    // Solo bloquear en esta sesión, no permanentemente
+    sessionStorage.setItem('install-banner-cerrado', '1')
   }
 
-  if (!visible || instalado) return null
+  if (!visible) return null
 
   return (
     <div className="fixed bottom-24 left-0 right-0 z-[90] flex justify-center px-4 pointer-events-none">

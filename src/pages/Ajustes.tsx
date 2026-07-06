@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { getInstallPrompt } from '../App'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../hooks/useI18n'
 import { useNavigate } from 'react-router-dom'
@@ -722,6 +723,17 @@ export default function Ajustes() {
         >
           {t.ajustes_privacidad}
         </button>
+        {!window.matchMedia('(display-mode: standalone)').matches && getInstallPrompt() && (
+          <button
+            onClick={async () => {
+              const p = getInstallPrompt()
+              if (p) await p.prompt()
+            }}
+            className="w-full flex items-center justify-center gap-2 border border-green-400/40 dark:border-green-600/40 text-green-600 dark:text-green-400 rounded-card py-3 text-sm font-semibold hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors"
+          >
+            📲 Instalar app en este dispositivo
+          </button>
+        )}
         <button
           onClick={cerrarSesion}
           className="w-full border border-red-200 dark:border-red-900 text-red-500 rounded-card py-3 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
