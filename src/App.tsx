@@ -11,6 +11,7 @@ import { OfflineBanner } from './components/OfflineBanner'
 import { Tutorial } from './components/Tutorial'
 
 
+const Landing    = lazy(() => import('./pages/Landing'))
 const Auth       = lazy(() => import('./pages/Auth'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
 const Menu       = lazy(() => import('./pages/Menu'))
@@ -174,7 +175,7 @@ function Navbar() {
   const [modoModalCrear, setModoModalCrear] = useState<'crear' | 'unirse'>('crear')
   const [confirmEliminar, setConfirmEliminar] = useState<string | null>(null)
 
-  const hidden = ['/', '/onboarding', '/privacidad'].includes(location.pathname) || location.pathname.startsWith('/menu/')
+  const hidden = ['/', '/login', '/onboarding', '/privacidad'].includes(location.pathname) || location.pathname.startsWith('/menu/')
   if (!user || hidden) return null
 
   const listaActivaId = recuperar<string>('lista_compartida_principal')
@@ -387,7 +388,7 @@ function PageSkeleton() {
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return <PageSkeleton />
-  if (!user) return <Navigate to="/" replace />
+  if (!user) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
@@ -396,7 +397,7 @@ function ProtectedConPerfil({ children }: { children: React.ReactNode }) {
   const { perfil, loading: perfilLoading } = usePerfil()
 
   if (authLoading || perfilLoading) return <PageSkeleton />
-  if (!user) return <Navigate to="/" replace />
+  if (!user) return <Navigate to="/login" replace />
   if (!perfil) return <Navigate to="/onboarding" replace />
   return <>{children}</>
 }
@@ -406,34 +407,118 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { perfil, loading: perfilLoading } = usePerfil()
 
   if (authLoading || perfilLoading) return <PageSkeleton />
-  if (!user) return <Navigate to="/" replace />
+  if (!user) return <Navigate to="/login" replace />
   if (perfil) return <Navigate to="/menu" replace />
   return <>{children}</>
 }
 
-function IosBanner() {
+function IosTutorial() {
   const [visible, setVisible] = useState(false)
+  const [paso, setPaso] = useState(0)
+
   useEffect(() => {
     const esIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
     const esStandalone = ('standalone' in navigator) && (navigator as { standalone?: boolean }).standalone
-    const yaVisto = localStorage.getItem('ios-install-banner-visto')
-    if (esIos && !esStandalone && !yaVisto) setVisible(true)
+    const yaVisto = localStorage.getItem('ios-install-visto')
+    // Mostrar 3s después de cargar para no interrumpir
+    if (esIos && !esStandalone && !yaVisto) {
+      const t = setTimeout(() => setVisible(true), 3000)
+      return () => clearTimeout(t)
+    }
   }, [])
+
+  function cerrar() {
+    setVisible(false)
+    localStorage.setItem('ios-install-visto', '1')
+  }
+
+  const pasos = [
+    {
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
+          <polyline points="16 6 12 2 8 6"/>
+          <line x1="12" y1="2" x2="12" y2="15"/>
+        </svg>
+      ),
+      title: 'Toca el botón compartir',
+      desc: 'Pulsa el icono de compartir en la barra inferior de Safari',
+      hint: '⬆️ El cuadrado con la flecha hacia arriba',
+    },
+    {
+      icon: <span className="text-5xl">➕</span>,
+      title: 'Añadir a pantalla de inicio',
+      desc: 'Desplázate hacia abajo en el menú y toca "Añadir a pantalla de inicio"',
+      hint: '📱 Aparece con un icono de + en un cuadrado',
+    },
+    {
+      icon: <span className="text-5xl">🥗</span>,
+      title: '¡Ya está instalada!',
+      desc: 'Semana Lista aparecerá en tu pantalla de inicio como una app nativa',
+      hint: '✅ Sin navegador, sin barra de URL',
+    },
+  ]
+
   if (!visible) return null
+
+  const p = pasos[paso]
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3 shadow-xl">
-      <div className="flex items-start gap-3 max-w-lg mx-auto">
-        <span className="text-2xl shrink-0">📲</span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Instalar Semana Lista</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Toca <strong>compartir</strong> <span className="inline-block">⎋</span> y luego <strong>"Añadir a pantalla de inicio"</strong>
-          </p>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center" onClick={cerrar}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-t-3xl pb-10 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mt-4 mb-5" />
+
+        {/* Cerrar */}
+        <button onClick={cerrar} className="absolute top-4 right-4 text-gray-400 text-xl leading-none">✕</button>
+
+        {/* Encabezado */}
+        <div className="px-6 mb-6">
+          <p className="text-xs font-bold text-green-500 uppercase tracking-widest mb-1">Instala la app</p>
+          <h2 className="text-xl font-black text-gray-900 dark:text-gray-100">Añádela a tu pantalla de inicio</h2>
+          <p className="text-xs text-gray-400 mt-1">Paso {paso + 1} de {pasos.length}</p>
         </div>
-        <button
-          onClick={() => { setVisible(false); localStorage.setItem('ios-install-banner-visto', '1') }}
-          className="text-gray-400 hover:text-gray-600 text-lg shrink-0 leading-none"
-        >✕</button>
+
+        {/* Paso actual */}
+        <div className="mx-5 bg-gray-50 dark:bg-gray-800 rounded-3xl p-6 flex flex-col items-center text-center gap-3 mb-5">
+          <div className="flex items-center justify-center w-20 h-20 rounded-3xl bg-white dark:bg-gray-700 shadow-md">
+            {p.icon}
+          </div>
+          <p className="text-lg font-black text-gray-900 dark:text-gray-100">{p.title}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{p.desc}</p>
+          <p className="text-xs text-gray-400 bg-white dark:bg-gray-700 px-3 py-1.5 rounded-full">{p.hint}</p>
+        </div>
+
+        {/* Dots */}
+        <div className="flex justify-center gap-2 mb-5">
+          {pasos.map((_, i) => (
+            <div key={i} className={`h-1.5 rounded-full transition-all ${i === paso ? 'w-6 bg-green-500' : 'w-1.5 bg-gray-300 dark:bg-gray-700'}`} />
+          ))}
+        </div>
+
+        {/* Botones */}
+        <div className="px-5 flex gap-3">
+          {paso > 0 && (
+            <button onClick={() => setPaso(p => p - 1)}
+              className="flex-1 py-3 rounded-2xl border-2 border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-500">
+              Anterior
+            </button>
+          )}
+          {paso < pasos.length - 1 ? (
+            <button onClick={() => setPaso(p => p + 1)}
+              className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-black text-sm shadow-lg shadow-green-500/30">
+              Siguiente →
+            </button>
+          ) : (
+            <button onClick={cerrar}
+              className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-black text-sm shadow-lg shadow-green-500/30">
+              ¡Entendido!
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -476,7 +561,7 @@ function AppRoutes() {
   return (
     <>
       <OfflineBanner />
-      <IosBanner />
+      <IosTutorial />
       <Tutorial />
       <Navbar />
       <div
@@ -487,7 +572,8 @@ function AppRoutes() {
         <Suspense fallback={<PageLoader />}>
           <div key={location.pathname} className="page-enter">
           <Routes>
-            <Route path="/"           element={<Auth />} />
+            <Route path="/"           element={<Landing />} />
+            <Route path="/login"      element={<Auth />} />
             <Route path="/onboarding" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
             <Route path="/menu"       element={<ProtectedConPerfil><Menu /></ProtectedConPerfil>} />
             <Route path="/lista"      element={<ProtectedConPerfil><Lista /></ProtectedConPerfil>} />
