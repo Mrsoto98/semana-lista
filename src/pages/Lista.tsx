@@ -765,19 +765,24 @@ export default function Lista() {
                           const enKg = modo === 'kg'
                           const foto = infoItem.get(item)?.foto ?? null
                           return (
-                            <div key={item} className={`flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors ${
-                              comprado.has(item) ? 'bg-gray-50 dark:bg-gray-900 opacity-60' : 'bg-green-50 dark:bg-green-950/50'
+                            <div key={item} className={`item-enter flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all duration-300 ${
+                              comprado.has(item) ? 'bg-gray-50 dark:bg-gray-900 opacity-50 scale-[0.99]' : 'bg-green-50 dark:bg-green-950/50'
                             }`}>
                               <input
                                 data-tutorial="list-checkbox"
                                 type="checkbox"
                                 checked={comprado.has(item)}
-                                onChange={() => {
+                                onChange={e => {
                                   const cp = new Set(comprado)
                                   if (cp.has(item)) cp.delete(item); else cp.add(item)
                                   saveComprado(cp)
+                                  // bounce en el checkbox
+                                  const el = e.currentTarget
+                                  el.classList.remove('item-check-anim')
+                                  void el.offsetWidth
+                                  el.classList.add('item-check-anim')
                                 }}
-                                className="shrink-0 accent-green-select w-4 h-4"
+                                className="shrink-0 accent-green-select w-4 h-4 cursor-pointer"
                               />
                               {foto
                                 ? <img src={foto} alt="" loading="lazy" onClick={() => setFotoAmpliada(foto)} className="w-7 h-7 rounded-lg object-cover shrink-0 cursor-zoom-in bg-gray-100 dark:bg-gray-800" onError={e => { e.currentTarget.style.display = 'none' }} />

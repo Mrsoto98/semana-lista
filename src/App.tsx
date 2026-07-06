@@ -262,7 +262,7 @@ function Navbar() {
                 }`}
                 style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
               >
-                <span className={`relative inline-block transition-transform duration-200 ${active ? 'scale-110' : ''} ${active ? 'text-green-select' : 'text-gray-400 dark:text-gray-500'}`}>
+                <span className={`relative inline-block ${active ? 'tab-active-icon text-green-select' : 'text-gray-400 dark:text-gray-500'}`}>
                   {TAB_ICONS[key](active)}
                   {key === 'compartida' && solicitudesPendientes > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
@@ -369,9 +369,24 @@ function Navbar() {
 }
 
 
+function PageSkeleton() {
+  return (
+    <div className="skeleton-page px-4 pt-6 space-y-4 max-w-lg mx-auto">
+      <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded-2xl skeleton-pulse" />
+      <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded-3xl skeleton-pulse" />
+      <div className="grid grid-cols-2 gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-28 bg-gray-200 dark:bg-gray-700 rounded-3xl skeleton-pulse" style={{ animationDelay: `${i * 0.08}s` }} />
+        ))}
+      </div>
+      <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-3xl skeleton-pulse" style={{ animationDelay: '0.3s' }} />
+    </div>
+  )
+}
+
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return null
+  if (loading) return <PageSkeleton />
   if (!user) return <Navigate to="/" replace />
   return <>{children}</>
 }
@@ -380,7 +395,7 @@ function ProtectedConPerfil({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
   const { perfil, loading: perfilLoading } = usePerfil()
 
-  if (authLoading || perfilLoading) return null
+  if (authLoading || perfilLoading) return <PageSkeleton />
   if (!user) return <Navigate to="/" replace />
   if (!perfil) return <Navigate to="/onboarding" replace />
   return <>{children}</>
@@ -390,7 +405,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth()
   const { perfil, loading: perfilLoading } = usePerfil()
 
-  if (authLoading || perfilLoading) return null
+  if (authLoading || perfilLoading) return <PageSkeleton />
   if (!user) return <Navigate to="/" replace />
   if (perfil) return <Navigate to="/menu" replace />
   return <>{children}</>
@@ -470,6 +485,7 @@ function AppRoutes() {
         style={{ paddingBottom: user ? 'calc(3.5rem + env(safe-area-inset-bottom))' : '0' }}
       >
         <Suspense fallback={<PageLoader />}>
+          <div key={location.pathname} className="page-enter">
           <Routes>
             <Route path="/"           element={<Auth />} />
             <Route path="/onboarding" element={<OnboardingGuard><Onboarding /></OnboardingGuard>} />
@@ -481,6 +497,7 @@ function AppRoutes() {
             <Route path="/menu/:semanaId" element={<MenuPublico />} />
             <Route path="/lista-compartida/:id" element={<Protected><ListaCompartida /></Protected>} />
           </Routes>
+          </div>
         </Suspense>
       </div>
     </>
