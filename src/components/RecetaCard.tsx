@@ -211,7 +211,7 @@ export function RecetaCard({
           <button
             data-tutorial="ver-receta"
             onClick={verReceta}
-            className="text-xs text-green-select hover:text-green-700 font-medium transition-colors"
+            className="text-xs text-green-select hover:opacity-75 font-medium transition-colors"
           >
             📖 Ver receta
           </button>
@@ -264,7 +264,7 @@ export function RecetaCard({
               <ol className="space-y-3">
                 {pasos.map((paso, i) => (
                   <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex gap-3">
-                    <span className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="w-5 h-5 rounded-full bg-accent-light text-green-select text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                     <span className="leading-relaxed">{paso.replace(/^\d+\.?\s*/, '')}</span>
                   </li>
                 ))}

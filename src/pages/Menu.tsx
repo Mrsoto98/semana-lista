@@ -740,7 +740,7 @@ export default function Menu() {
               className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm mb-4 bg-white dark:bg-gray-800" />
             <div className="flex gap-3">
               <button onClick={() => setModalGuardar(false)} className="flex-1 border border-gray-300 rounded-xl py-2.5 text-sm">{t.btn_cancelar}</button>
-              <button onClick={guardarSemana} className="flex-1 bg-green-500 text-white rounded-xl py-2.5 text-sm font-bold">{t.btn_guardar}</button>
+              <button onClick={guardarSemana} className="flex-1 bg-green-select text-white rounded-xl py-2.5 text-sm font-bold">{t.btn_guardar}</button>
             </div>
           </div>
         </div>
@@ -766,7 +766,7 @@ export default function Menu() {
                   <ul className="space-y-1">
                     {favoritaDetalle.ingredientes.map((ing, i) => (
                       <li key={i} className="text-sm text-gray-600 dark:text-gray-300 flex items-start gap-2">
-                        <span className="text-green-500 mt-0.5">•</span>
+                        <span className="text-green-select mt-0.5">•</span>
                         {ing.cantidad} {ing.unidad} {ing.nombre}
                       </li>
                     ))}
@@ -783,7 +783,7 @@ export default function Menu() {
                   <ol className="space-y-2">
                     {favoritaPasos.map((paso, i) => (
                       <li key={i} className="text-sm text-gray-600 dark:text-gray-300 flex gap-2">
-                        <span className="font-bold text-green-500 shrink-0">{i + 1}.</span>{paso}
+                        <span className="font-bold text-green-select shrink-0">{i + 1}.</span>{paso}
                       </li>
                     ))}
                   </ol>
@@ -959,7 +959,7 @@ export default function Menu() {
 
       {/* Empty state: primera vez o menú vacío */}
       {menuVacio && (
-        <div className="mb-4 bg-green-50 dark:bg-green-950 border border-green-100 dark:border-green-900 rounded-xl p-5 text-center">
+        <div className="mb-4 bg-accent-light border border-green-select/20 rounded-xl p-5 text-center">
           <p className="text-3xl mb-3">🥗</p>
           <h2 className="font-bold text-base mb-1">{t.menu_vacio}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -1078,7 +1078,7 @@ export default function Menu() {
                       <p className="text-sm font-medium truncate">{s.nombre}</p>
                       <p className="text-xs text-gray-400">{s.fecha}</p>
                     </div>
-                    <button onClick={() => cargarSemana(s)} className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1.5 rounded-lg font-medium">{t.menu_cargar}</button>
+                    <button onClick={() => cargarSemana(s)} className="text-xs bg-accent-light text-green-select px-3 py-1.5 rounded-lg font-medium">{t.menu_cargar}</button>
                     <button onClick={() => eliminarSemana(s.id)} className="text-gray-400 hover:text-red-500 text-sm">✕</button>
                   </div>
                 ))}

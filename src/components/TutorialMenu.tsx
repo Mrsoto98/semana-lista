@@ -24,6 +24,9 @@ export function TutorialMenu({ onClose }: Props) {
   const { t } = useI18n()
   const [paso, setPaso] = useState(0)
   const [saliendo, setSaliendo] = useState(false)
+  const [slideDir, setSlideDir] = useState<1 | -1>(1)
+  const [animando, setAnimando] = useState(false)
+  const [visible, setVisible] = useState(true)
 
   const PASOS = [
     {
@@ -43,8 +46,20 @@ export function TutorialMenu({ onClose }: Props) {
     },
   ]
 
+  function irA(next: number) {
+    if (animando) return
+    setAnimando(true)
+    setSlideDir(next > paso ? 1 : -1)
+    setVisible(false)
+    setTimeout(() => {
+      setPaso(next)
+      setVisible(true)
+      setAnimando(false)
+    }, 220)
+  }
+
   function siguiente() {
-    if (paso < PASOS.length - 1) { setPaso(p => p + 1) } else { cerrar() }
+    if (paso < PASOS.length - 1) { irA(paso + 1) } else { cerrar() }
   }
   function cerrar() {
     setSaliendo(true)
@@ -60,7 +75,7 @@ export function TutorialMenu({ onClose }: Props) {
         {/* Barra de progreso */}
         <div className="flex gap-1.5 p-4 pb-0">
           {PASOS.map((_, i) => (
-            <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-500 ${i <= paso ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'}`} />
+            <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-500 ${i <= paso ? 'bg-green-select' : 'bg-gray-200 dark:bg-gray-700'}`} />
           ))}
         </div>
 
@@ -76,7 +91,14 @@ export function TutorialMenu({ onClose }: Props) {
         </div>
 
         {/* Contenido dinámico */}
-        <div className="px-5 pb-5">
+        <div
+          className="px-5 pb-5"
+          style={{
+            transition: 'opacity 200ms ease, transform 200ms ease',
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateX(0)' : `translateX(${slideDir * 18}px)`,
+          }}
+        >
 
           {/* PASO 1 — Menú de ejemplo */}
           {p.contenido === 'menu' && (
@@ -112,12 +134,12 @@ export function TutorialMenu({ onClose }: Props) {
                 </div>
                 <p className="text-xs text-gray-400 mb-2">Tierno pollo en salsa de ajo y vino blanco. Listo en 25 min.</p>
                 <div className="flex gap-2">
-                  <span className="text-[10px] bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">Fácil</span>
+                  <span className="text-[10px] bg-accent-light text-green-select px-2 py-0.5 rounded-full font-medium">Fácil</span>
                   <span className="text-xs text-gray-400">⏱ 25 min</span>
                   <span className="text-xs text-gray-400">🔥 420 kcal/p</span>
                 </div>
                 <div className="mt-2 flex gap-2 border-t border-green-100 dark:border-green-800 pt-2">
-                  <button className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-lg font-medium flex-1 text-center">Opción 1</button>
+                  <button className="text-xs bg-green-select text-white px-2 py-0.5 rounded-lg font-medium flex-1 text-center">Opción 1</button>
                   <button className="text-xs text-gray-400 px-2 py-0.5 rounded-lg flex-1 text-center">Opción 2</button>
                 </div>
               </div>
@@ -176,15 +198,15 @@ export function TutorialMenu({ onClose }: Props) {
           <div className="flex gap-2 mt-4">
             {paso > 0 && (
               <button
-                onClick={() => setPaso(p => p - 1)}
-                className="px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500"
+                onClick={() => irA(paso - 1)}
+                className="px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 {t.btn_volver}
               </button>
             )}
             <button
               onClick={siguiente}
-              className="flex-1 bg-green-500 hover:bg-green-600 text-white rounded-xl py-2.5 text-sm font-bold transition-colors"
+              className="flex-1 bg-green-select hover:opacity-90 text-white rounded-xl py-2.5 text-sm font-bold transition-all"
             >
               {paso < PASOS.length - 1 ? t.tutmenu_siguiente : t.tutmenu_empezar}
             </button>

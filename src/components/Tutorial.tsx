@@ -69,17 +69,17 @@ export function Tutorial() {
   const PASOS: Paso[] = [
     {
       ruta: '/menu',
-      emoji: '👋',
+      emoji: '🍽️',
       titulo: t.tut_paso1_titulo,
       desc: t.tut_desc,
-      chips: ['🤖 IA', '🛒 Mercadona', '👨‍👩‍👧 Familiar', '📱 Fácil'],
+      chips: ['🤖 IA', '🛒 Mercadona', '🎯 Objetivos', '📱 Fácil'],
     },
     {
       ruta: '/menu',
       emoji: '✨',
       titulo: t.tut_paso2_titulo,
       desc: t.tut_paso2_desc,
-      chips: ['🍽️ Cocina a elegir', '📅 Días flexibles', '🎁 15 gratis/mes'],
+      chips: ['🍽️ Cocina a elegir', '🎯 Objetivo nutricional', '📅 Días flexibles'],
       selector: '[data-tutorial="generar-btn"]',
     },
     {
@@ -87,7 +87,7 @@ export function Tutorial() {
       emoji: '⭐',
       titulo: t.tut_paso3_titulo,
       desc: t.tut_paso3_desc,
-      chips: ['⭐ Favoritas', '➕ Alternativa', '👎 No me gusta', '📖 Pasos'],
+      chips: ['⭐ Favoritas', '➕ Otra opción', '👎 No me gusta', '📖 Ver receta'],
       selector: '[data-tutorial="receta-acciones"]',
     },
     {
@@ -95,7 +95,7 @@ export function Tutorial() {
       emoji: '🛒',
       titulo: t.tut_paso4_titulo,
       desc: t.tut_paso4_desc,
-      chips: ['📋 Auto-generada', '☑️ Toca para comprar', '💰 Presupuesto'],
+      chips: ['📋 Auto-generada', '☑️ Toca para comprar', '💶 Precio Mercadona'],
       selector: '[data-tutorial="lista-cabecera"]',
     },
     {
@@ -130,7 +130,7 @@ export function Tutorial() {
       emoji: '⚙️',
       titulo: t.tut_paso8_titulo,
       desc: t.tut_paso8_desc,
-      chips: ['👥 Personas', '💵 Presupuesto', '🔥 Calorías'],
+      chips: ['👥 Personas', '💵 Presupuesto', '🎨 Color de acento'],
       selector: '[data-tutorial="ajustes-h1"]',
     },
   ]
@@ -140,6 +140,7 @@ export function Tutorial() {
   const [cardSide, setCardSide] = useState<'top' | 'bottom'>('bottom')
   const [arrowX, setArrowX] = useState(50)
   const [fadeCard, setFadeCard] = useState(true)
+  const [slideDir, setSlideDir] = useState<1 | -1>(1)
   const [transitioning, setTransitioning] = useState(false)
   const findRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scheduledRef = useRef(false)
@@ -279,9 +280,10 @@ export function Tutorial() {
     if (transitioning) return
     resetElevation()
     setTransitioning(true)
+    setSlideDir(next > paso ? 1 : -1)
     setFadeCard(false)
     setSpotRect(null)
-    setTimeout(() => { setPaso(next); setTransitioning(false) }, 300)
+    setTimeout(() => { setPaso(next); setTransitioning(false) }, 280)
   }
 
   function avanzar() {
@@ -306,9 +308,11 @@ export function Tutorial() {
     zIndex: 52,
     maxWidth: 500,
     margin: '0 auto',
-    transition: `opacity ${DUR} ${EASE}, transform ${DUR} ${EASE}`,
+    transition: `opacity 260ms ${EASE}, transform 260ms ${EASE}`,
     opacity: fadeCard ? 1 : 0,
-    transform: fadeCard ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.98)',
+    transform: fadeCard
+      ? 'translateX(0) translateY(0) scale(1)'
+      : `translateX(${slideDir * 24}px) translateY(6px) scale(0.97)`,
   }
 
   if (!spotRect || esWelcome) {
@@ -436,15 +440,15 @@ export function Tutorial() {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
               {/* Emoji con fondo glass */}
               <div style={{
-                width: esWelcome ? 68 : 52, height: esWelcome ? 68 : 52,
-                borderRadius: esWelcome ? 22 : 17,
+                width: esWelcome ? 72 : 54, height: esWelcome ? 72 : 54,
+                borderRadius: esWelcome ? 24 : 18,
                 background: 'rgba(255,255,255,0.22)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: esWelcome ? 34 : 26, flexShrink: 0,
+                fontSize: esWelcome ? 36 : 28, flexShrink: 0,
                 backdropFilter: 'blur(12px)',
-                border: '1.5px solid rgba(255,255,255,0.3)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                animation: esWelcome ? 'tut-bob 3s ease-in-out infinite' : undefined,
+                border: '1.5px solid rgba(255,255,255,0.35)',
+                boxShadow: '0 6px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.4)',
+                animation: esWelcome ? 'tut-bob 3.5s ease-in-out infinite' : 'tut-pop 0.4s cubic-bezier(0.34,1.56,0.64,1)',
               }}>
                 {pasoActual.emoji}
               </div>
@@ -559,17 +563,19 @@ export function Tutorial() {
                 </button>
               )}
               <button
+                className="tut-btn-primary"
                 onClick={avanzar}
                 style={{
                   background: themeFor(pasoActual.ruta).grad,
-                  border: 'none', borderRadius: 10, padding: '8px 16px',
+                  border: 'none', borderRadius: 11, padding: '9px 18px',
                   fontSize: 13, color: 'white', cursor: 'pointer',
-                  fontWeight: 700, boxShadow: `0 4px 14px ${theme.glow}`,
-                  transition: 'all 0.2s',
+                  fontWeight: 700, boxShadow: `0 4px 16px ${theme.glow}`,
+                  transition: 'all 0.18s cubic-bezier(0.34,1.56,0.64,1)',
                   whiteSpace: 'nowrap',
+                  display: 'flex', alignItems: 'center', gap: 5,
                 }}
               >
-                {esUltimo ? t.tut_empezar : t.tut_siguiente}
+                {esUltimo ? t.tut_empezar : <>{t.tut_siguiente} <span style={{ fontSize: 14 }}>→</span></>}
               </button>
             </div>
           </div>
@@ -580,13 +586,26 @@ export function Tutorial() {
 
       <style>{`
         @keyframes tut-glow {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.65; }
+          0%, 100% { opacity: 1; box-shadow: 0 0 0 4px rgba(255,255,255,0.1), 0 0 20px rgba(255,255,255,0.15); }
+          50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(255,255,255,0.15), 0 0 32px rgba(255,255,255,0.25); }
         }
         @keyframes tut-bob {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-4px); }
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          33% { transform: translateY(-5px) rotate(-2deg); }
+          66% { transform: translateY(-3px) rotate(1deg); }
         }
+        @keyframes tut-pop {
+          0% { transform: scale(0.85); opacity: 0; }
+          60% { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes tut-shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .tut-btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        .tut-btn-primary:active { transform: scale(0.97); }
+        .tut-dot-active { animation: tut-pop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
       `}</style>
     </>,
     document.body,
