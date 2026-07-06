@@ -37,18 +37,26 @@ async function getAdMob() {
 
 export function mostrarAnuncioRewardedWeb(): Promise<'recompensa' | 'cancelado' | 'error'> {
   return new Promise((resolve) => {
-    if (!window.adBreak) { resolve('error'); return }
+    // Timeout de seguridad: si adBreak no responde en 6s, cancelar
+    const timeout = setTimeout(() => resolve('cancelado'), 6000)
+    const done = (result: 'recompensa' | 'cancelado' | 'error') => {
+      clearTimeout(timeout)
+      resolve(result)
+    }
+
+    if (!window.adBreak) { done('error'); return }
     window.adBreak({
       type: 'reward',
       name: 'generacion-menu',
-      adDismissed: () => resolve('cancelado'),
-      adViewed: () => resolve('recompensa'),
+      adDismissed: () => done('cancelado'),
+      adViewed: () => done('recompensa'),
       beforeAd: () => {},
       afterAd: () => {},
       adBreakDone: (placementInfo: unknown) => {
         const info = placementInfo as { breakStatus?: string }
+        // Si no hay anuncio disponible (cuenta pendiente de aprobación, etc.) cancelar
         if (info?.breakStatus && info.breakStatus !== 'viewed' && info.breakStatus !== 'dismissed') {
-          resolve('error')
+          done('cancelado')
         }
       },
     })
