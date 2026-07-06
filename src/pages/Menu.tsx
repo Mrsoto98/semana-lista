@@ -51,7 +51,7 @@ function semanaKey(): string {
   return `${now.getFullYear()}-W${isoWeek(now)}`
 }
 
-function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvitar: string[] = [], cocina?: string): object {
+function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvitar: string[] = [], cocina?: string, objetivo?: string): object {
   const p = perfil as { nevera?: string[]; ingredientes_no?: string[] }
   return {
     ...perfil,
@@ -65,6 +65,7 @@ function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvita
     ].filter((v, i, a) => a.indexOf(v) === i),
     ...(extraPrompt ? { extra_instrucciones: extraPrompt } : {}),
     ...(cocina ? { cocina } : {}),
+    ...(objetivo ? { objetivo } : {}),
   }
 }
 
@@ -249,7 +250,7 @@ export default function Menu() {
   }
 
   // Pone todos los slots en cargando, luego hace una sola llamada a la API
-  async function generarSemanaCompleta(extraPrompt?: string, cocina?: string) {
+  async function generarSemanaCompleta(extraPrompt?: string, cocina?: string, objetivo?: string) {
     if (!perfil || generando) return
     if (generacionesMes >= LIMITE_GENERACIONES && generacionesAnuncio >= LIMITE_ANUNCIO) {
       setErrorMsg('Has usado todas las generaciones de esta semana. Vuelve el lunes 🗓️')
@@ -282,7 +283,7 @@ export default function Menu() {
       const { supabase } = await import('../lib/supabase')
       const { data, error: fnError } = await supabase.functions.invoke('generar-recetas', {
         body: {
-          perfil: perfilConNevera(perfil, extraPrompt, ingredientesEvitar, cocina),
+          perfil: perfilConNevera(perfil, extraPrompt, ingredientesEvitar, cocina, objetivo),
           recetas_ya_usadas: recetasYaUsadas,
           dias: activeDias,
           franjas: activeFranjas,
@@ -507,7 +508,6 @@ export default function Menu() {
         : `COCINA OBLIGATORIA: TODAS las recetas deben ser de ${estiloDesc}. Nada fuera de este estilo.`,
       DIFICULTAD_PROMPT[config.dificultad] ?? '',
       TIEMPO_PROMPT[config.tiempo] ?? '',
-      OCASION_PROMPT[config.ocasion] ?? '',
       config.extra ? `EL USUARIO QUIERE: ${config.extra}.` : '',
       config.no_quiero ? `EXCLUIR COMPLETAMENTE: ${config.no_quiero}.` : '',
     ].filter(Boolean)
@@ -521,7 +521,7 @@ export default function Menu() {
       partes.push(`USA ESTOS INGREDIENTES: diseña las recetas usando principalmente: ${config.ingredientesPersonalizados.join(', ')}. Adapta las combinaciones a lo disponible.`)
     }
 
-    await generarSemanaCompleta(partes.join(' '), esVariada ? undefined : config.cocina)
+    await generarSemanaCompleta(partes.join(' '), esVariada ? undefined : config.cocina, config.objetivo !== 'sin_restriccion' ? config.objetivo : undefined)
   }
 
 
@@ -800,6 +800,7 @@ export default function Menu() {
       {modalGenerar && perfil && (
         <ModalGenerarMenu
           dificultadPerfil={(perfil as { dificultad_recetas?: string })?.dificultad_recetas as import('../types').DificultadPreferida ?? 'combinado'}
+          objetivoPerfil={(perfil as { objetivo?: string })?.objetivo ?? 'sin_restriccion'}
           ingredientesNevera={[...((perfil as { nevera?: string[] }).nevera ?? []), ...(recuperar<string[]>('lista_nevera') ?? [])].filter((v, i, a) => a.indexOf(v) === i)}
           listasCompartidas={listasCompartidas.map(l => ({ id: l.id, nombre: l.nombre }))}
           diasConfig={diasConfig}

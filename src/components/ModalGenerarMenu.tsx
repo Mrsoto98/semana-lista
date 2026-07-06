@@ -17,6 +17,7 @@ export interface ConfigGeneracion {
   dificultad: string
   tiempo: string
   ocasion: string
+  objetivo: string
   extra: string
   no_quiero: string
   modoIngredientes: 'libre' | 'nevera' | 'personalizada'
@@ -35,6 +36,7 @@ type FranjaConfig = 'ambas' | 'comida' | 'cena'
 
 interface Props {
   dificultadPerfil: DificultadPreferida
+  objetivoPerfil?: string
   ingredientesNevera: string[]
   listasCompartidas?: ListaFuenteNevera[]
   diasConfig: DiasConfig
@@ -72,13 +74,13 @@ const OPCIONES_TIEMPO = [
   { value: 'sin prisa (más de 1 hora)', emoji: '🍲', label: 'Sin prisa' },
 ]
 
-const OPCIONES_OCASION = [
-  { value: 'semana normal',             emoji: '📅', label: 'Semana normal' },
-  { value: 'visita de amigos o familia', emoji: '👨‍👩‍👧', label: 'Con familia/amigos' },
-  { value: 'cena romántica',            emoji: '🕯️', label: 'Romántica' },
-  { value: 'comida con niños',          emoji: '👶', label: 'Con niños' },
-  { value: 'semana de dieta',           emoji: '⚖️', label: 'Dieta' },
-  { value: 'semana de caprichos',       emoji: '🎉', label: 'Caprichos' },
+const OPCIONES_OBJETIVO = [
+  { value: 'sin_restriccion', emoji: '🍽️', label: 'Sin restricciones' },
+  { value: 'bajar_peso',      emoji: '⚖️', label: 'Bajar peso' },
+  { value: 'mas_proteina',    emoji: '💪', label: 'Más proteína' },
+  { value: 'vegetariano',     emoji: '🥦', label: 'Vegetariano' },
+  { value: 'vegano',          emoji: '🌱', label: 'Vegano' },
+  { value: 'sin_gluten',      emoji: '🌾', label: 'Sin gluten' },
 ]
 
 function PillSelector({
@@ -110,13 +112,14 @@ function PillSelector({
   )
 }
 
-export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
+export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
   const { t } = useI18n()
   const [config, setConfig] = useState<ConfigGeneracion>({
     cocina: 'variada e internacional',
     dificultad: dificultadPerfil,
     tiempo: 'combinado',
     ocasion: 'semana normal',
+    objetivo: objetivoPerfil ?? 'sin_restriccion',
     extra: '',
     no_quiero: '',
     modoIngredientes: 'libre',
@@ -301,6 +304,12 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
           <div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_tiempo}</p>
             <PillSelector opciones={OPCIONES_TIEMPO} value={config.tiempo} onChange={v => set('tiempo', v)} />
+          </div>
+
+          {/* Objetivo nutricional */}
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_objetivo}</p>
+            <PillSelector opciones={OPCIONES_OBJETIVO} value={config.objetivo} onChange={v => set('objetivo', v)} />
           </div>
 
           {/* Preferencias libres */}
