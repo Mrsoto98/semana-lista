@@ -718,14 +718,6 @@ export default function Lista() {
           <div data-tutorial="lista-cabecera" className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-black tracking-tight">Lista</h1>
-              <button
-                data-tutorial="compartida-btn"
-                onClick={() => { setModoModal('elegir'); setModalCompartida(true) }}
-                className="flex items-center gap-1.5 bg-green-select text-white text-xs font-bold px-2.5 py-1.5 rounded-full shadow-sm hover:bg-green-600 transition-colors"
-              >
-                <span>👥</span>
-                <span>{t.nav_compartida}{listas.length > 0 ? ` (${listas.length})` : ''}</span>
-              </button>
             </div>
             <button data-tutorial="presupuesto" className="text-right" onClick={() => { setPresupuestoDraft(presupuesto > 0 ? presupuesto.toString() : ''); setEditandoPresupuesto(true) }}>
               {totalEstimado > 0 && (
