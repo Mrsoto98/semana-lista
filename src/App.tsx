@@ -412,6 +412,86 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AndroidInstallBanner() {
+  const [prompt, setPrompt] = useState<Event | null>(null)
+  const [visible, setVisible] = useState(false)
+  const [instalado, setInstalado] = useState(false)
+
+  useEffect(() => {
+    const yaInstalado = localStorage.getItem('android-install-visto')
+    const esStandalone = window.matchMedia('(display-mode: standalone)').matches
+    if (yaInstalado || esStandalone) return
+
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setPrompt(e)
+      // Mostrar el banner 3s después de que el evento esté disponible
+      setTimeout(() => setVisible(true), 3000)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  async function instalar() {
+    if (!prompt) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (prompt as any).prompt()
+    if (result?.outcome === 'accepted' || result === undefined) {
+      setInstalado(true)
+      localStorage.setItem('android-install-visto', '1')
+    }
+    setVisible(false)
+  }
+
+  function cerrar() {
+    setVisible(false)
+    localStorage.setItem('android-install-visto', '1')
+  }
+
+  if (!visible || instalado) return null
+
+  return (
+    <div className="fixed bottom-24 left-0 right-0 z-[90] flex justify-center px-4 pointer-events-none">
+      <div
+        className="w-full max-w-sm pointer-events-auto fade-slide-up"
+        style={{
+          background: 'rgba(15,25,45,0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(52,211,153,0.35)',
+          borderRadius: '20px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(52,211,153,0.15)',
+        }}
+      >
+        <div className="flex items-center gap-3 p-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-2xl"
+            style={{ background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)' }}>
+            🥗
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-bold text-sm leading-tight">Instala Semana Lista</p>
+            <p className="text-gray-400 text-xs mt-0.5">Añádela a tu pantalla de inicio</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={instalar}
+              className="bg-green-500 text-white text-xs font-black px-3 py-2 rounded-xl shadow-lg shadow-green-500/30 active:scale-95 transition-all"
+            >
+              Instalar
+            </button>
+            <button
+              onClick={cerrar}
+              className="text-gray-500 hover:text-gray-300 text-lg leading-none w-7 h-7 flex items-center justify-center"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function IosTutorial() {
   const [visible, setVisible] = useState(false)
   const [paso, setPaso] = useState(0)
@@ -561,6 +641,7 @@ function AppRoutes() {
   return (
     <>
       <OfflineBanner />
+      <AndroidInstallBanner />
       <IosTutorial />
       <Tutorial />
       <Navbar />
