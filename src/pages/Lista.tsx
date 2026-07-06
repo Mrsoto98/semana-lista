@@ -163,8 +163,7 @@ export default function Lista() {
   // Catálogo Mercadona — carga lazy desde JSON local
   const [MERCADONA, setMERCADONA] = useState<CatalogoMercadonaData | null>(null)
   useEffect(() => {
-    import('../data/mercadona.json').then(m => {
-      const raw = m.default as CatalogoMercadonaData
+    fetch('/mercadona.json').then(r => r.json()).then((raw: CatalogoMercadonaData) => {
       setMERCADONA({ ...raw, categorias: expandirCatalogo(raw.categorias as Record<string, ProductoMercadona[]>) as typeof raw.categorias })
     })
   }, [])

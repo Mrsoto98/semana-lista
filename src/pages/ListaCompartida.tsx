@@ -276,8 +276,7 @@ export default function ListaCompartida() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    import('../data/mercadona.json').then(m => {
-      const raw = m.default as CatalogoData
+    fetch('/mercadona.json').then(r => r.json()).then((raw: CatalogoData) => {
       setCatalogo({ ...raw, categorias: expandirCatalogo(raw.categorias as Record<string, ProductoMercadona[]>) as typeof raw.categorias })
     })
   }, [])

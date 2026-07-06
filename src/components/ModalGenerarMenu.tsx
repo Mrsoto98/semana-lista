@@ -165,7 +165,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
 
   useEffect(() => {
     if (config.modoIngredientes === 'personalizada' && !catalogo) {
-      import('../data/mercadona.json').then(m => setCatalogo(m.default as CatalogoMercadonaData))
+      fetch('/mercadona.json').then(r => r.json()).then((d: CatalogoMercadonaData) => setCatalogo(d))
     }
   }, [config.modoIngredientes, catalogo])
 
