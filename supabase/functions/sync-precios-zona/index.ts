@@ -12,6 +12,9 @@ import { createClient } from 'npm:@supabase/supabase-js'
 
 const SUPABASE_URL             = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+// SYNC_API_KEY = la clave sb_secret_... que se pasa como Bearer desde el script
+// Se configura en Supabase Dashboard → Edge Functions → sync-precios-zona → Secrets
+const SYNC_API_KEY             = Deno.env.get('SYNC_API_KEY') ?? SUPABASE_SERVICE_ROLE_KEY
 const MERCADONA_BASE           = 'https://tienda.mercadona.es/api'
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -54,25 +57,39 @@ interface PrecioRow {
 }
 
 // ── Obtiene todos los IDs del catálogo maestro para filtrar ───────────────────
-// Usamos catalogo_cache (__catalogo_v2__) como fuente de IDs válidos,
-// ya que esa es la copia del catálogo de Barcelona que el usuario mantiene.
+// Lee productos_mercadona (solo IDs, no toca ni modifica nada).
+// Si la tabla está vacía, devuelve Set vacío → sin filtrado (acepta todo).
 async function obtenerIdsValidos(): Promise<Set<string>> {
-  const { data } = await supabase
+  // Intento 1: productos_mercadona
+  const { data: prods } = await supabase
+    .from('productos_mercadona')
+    .select('id')
+
+  if (prods && prods.length > 0) {
+    return new Set(prods.map((p: { id: string | number }) => String(p.id)))
+  }
+
+  // Intento 2: catalogo_cache
+  const { data: cache } = await supabase
     .from('catalogo_cache')
     .select('payload')
     .eq('termino', '__catalogo_v2__')
     .maybeSingle()
 
-  if (!data?.payload) return new Set()
-
-  const payload = data.payload as Record<string, { productos?: Array<{ id: string }> }>
-  const ids = new Set<string>()
-  for (const sub of Object.values(payload)) {
-    for (const p of sub.productos ?? []) {
-      if (p.id) ids.add(String(p.id))
+  if (cache?.payload) {
+    const payload = cache.payload as Record<string, { productos?: Array<{ id: string }> }>
+    const ids = new Set<string>()
+    for (const sub of Object.values(payload)) {
+      for (const p of sub.productos ?? []) {
+        if (p.id) ids.add(String(p.id))
+      }
     }
+    if (ids.size > 0) return ids
   }
-  return ids
+
+  // Sin catálogo maestro: no filtrar, aceptar todo lo que scrapeemos
+  console.warn('[sync-precios-zona] Sin catálogo maestro — aceptando todos los productos')
+  return new Set()
 }
 
 Deno.serve(async (req: Request) => {
@@ -80,9 +97,10 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' } })
   }
 
-  // Solo acepta service_role — no exponer al cliente
+  // Solo acepta llamadas con la clave correcta (SYNC_API_KEY o service_role)
   const authHeader = req.headers.get('Authorization') ?? ''
-  if (!authHeader.includes(SUPABASE_SERVICE_ROLE_KEY)) {
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+  if (!token || (token !== SYNC_API_KEY && token !== SUPABASE_SERVICE_ROLE_KEY)) {
     return new Response(JSON.stringify({ error: 'Solo para uso interno' }), { status: 403 })
   }
 
@@ -100,40 +118,68 @@ Deno.serve(async (req: Request) => {
 
     // 2. Sesión Mercadona para esta zona
     const cookie = await obtenerSesion(codigo_postal)
+    console.log(`[sync] cookie obtenida: ${cookie ? cookie.substring(0, 40) + '...' : '(vacía)'}`)
 
     // 3. Recorrer categorías de Mercadona y acumular precios
-    const preciosNuevos: PrecioRow[] = []
+    // Map para deduplicar: mismo producto puede aparecer en varias subcategorías
+    const preciosMap = new Map<string, PrecioRow>()
     const now = new Date().toISOString()
 
-    const catData = await fetchJson(`${MERCADONA_BASE}/categories/?lang=es`, cookie)
+    const catRaw = await fetch(`${MERCADONA_BASE}/categories/?lang=es`, { headers: baseHeaders(cookie) })
+    console.log(`[sync] categories status: ${catRaw.status}`)
+    const catText = await catRaw.text()
+    console.log(`[sync] categories respuesta (primeros 300 chars): ${catText.substring(0, 300)}`)
+    const catData = JSON.parse(catText) as Record<string, unknown>
     const categorias = (catData.results as Record<string, unknown>[] ?? [])
 
+    // Las categorías top-level ya traen sus subcategorías embebidas.
+    // Los productos están al fetchear cada SUBcategoría individualmente.
+    console.log(`[sync] Total categorias top-level: ${categorias.length}`)
     for (const cat of categorias) {
-      let subCats: Record<string, unknown>[] = []
-      try {
-        const subData = await fetchJson(`${MERCADONA_BASE}/categories/${cat.id}/?lang=es`, cookie)
-        subCats = subData.categories as Record<string, unknown>[] ?? []
-      } catch { continue }
+      const subCatsEmbedidos = (cat.categories as Record<string, unknown>[] ?? [])
+      for (const sub of subCatsEmbedidos) {
+        let productos: Record<string, unknown>[] = []
+        try {
+          const subRes = await fetch(`${MERCADONA_BASE}/categories/${sub.id}/?lang=es`, { headers: baseHeaders(cookie) })
+          if (!subRes.ok) { console.error(`[sync] subcat ${sub.id} status ${subRes.status}`); continue }
+          const subText = await subRes.text()
+          if (preciosMap.size === 0 && productos.length === 0) {
+            console.log(`[sync] subcat ${sub.id} sample: ${subText.substring(0, 300)}`)
+          }
+          const subData = JSON.parse(subText) as Record<string, unknown>
+          // La API devuelve { categories: [{ products: [...] }] } al fetchear una subcategoría
+          for (const subsub of (subData.categories as Record<string, unknown>[] ?? [])) {
+            for (const p of (subsub.products as Record<string, unknown>[] ?? [])) {
+              productos.push(p)
+            }
+          }
+          // Fallback: a veces products está directo en la raíz
+          if (!productos.length && Array.isArray(subData.products)) {
+            productos = subData.products as Record<string, unknown>[]
+          }
+          if (productos.length) console.log(`[sync] subcat ${sub.id} productos: ${productos.length}`)
+        } catch (e) { console.error(`[sync] subcat ${sub.id} excepcion: ${e}`); continue }
 
-      for (const sub of subCats) {
-        for (const prod of (sub.products as Record<string, unknown>[] ?? [])) {
+        for (const prod of productos) {
           const id = String(prod.id ?? '')
-          if (!id || !idsValidos.has(id)) continue  // solo productos del catálogo maestro
+          if (!id) continue
+          if (idsValidos.size > 0 && !idsValidos.has(id)) continue
 
           const pi = prod.price_instructions as Record<string, unknown> | undefined
           const precio = Number(pi?.unit_price ?? pi?.bulk_price ?? 0)
           if (!precio) continue
 
           const precioRef = (pi?.reference_price as string) ?? null
-
-          preciosNuevos.push({ producto_id: id, zona_id, precio, precio_ref: precioRef, disponible: true, updated_at: now })
+          // Map deduplica automáticamente por producto_id
+          preciosMap.set(id, { producto_id: id, zona_id, precio, precio_ref: precioRef, disponible: true, updated_at: now })
         }
       }
 
-      // Pausa pequeña para no saturar la API de Mercadona
-      await new Promise(r => setTimeout(r, 120))
+      // Pausa entre categorías para no saturar la API de Mercadona
+      await new Promise(r => setTimeout(r, 400))
     }
 
+    const preciosNuevos = Array.from(preciosMap.values())
     console.log(`[sync-precios-zona] Productos encontrados para zona: ${preciosNuevos.length}`)
 
     // 4. Marcar como no disponibles los que ya no aparecen en la zona
@@ -157,8 +203,8 @@ Deno.serve(async (req: Request) => {
       console.log(`[sync-precios-zona] Desactivados: ${aDesactivar.length}`)
     }
 
-    // 5. Upsert en lotes de 500 (límite de Supabase por request)
-    const LOTE = 500
+    // 5. Upsert en lotes de 200 (más conservador para evitar conflictos)
+    const LOTE = 200
     for (let i = 0; i < preciosNuevos.length; i += LOTE) {
       const lote = preciosNuevos.slice(i, i + LOTE)
       const { error } = await supabase
