@@ -12,8 +12,8 @@ export function TagInput({ tags, onChange, placeholder = 'Escribe y pulsa Enter.
   const inputRef = useRef<HTMLInputElement>(null)
 
   function add() {
-    const val = input.trim().toLowerCase()
-    if (val && !tags.includes(val)) {
+    const val = input.trim().toLowerCase().slice(0, 50)
+    if (val && !tags.includes(val) && tags.length < 30) {
       onChange([...tags, val])
     }
     setInput('')

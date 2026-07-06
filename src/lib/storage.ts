@@ -4,8 +4,8 @@ const PREFIX = 'semana-lista:'
 export function guardar<T>(clave: string, valor: T): void {
   try {
     localStorage.setItem(PREFIX + clave, JSON.stringify(valor))
-  } catch {
-    // storage full or private mode — silently ignore
+  } catch (e) {
+    console.warn('[storage] No se pudo guardar:', clave, e)
   }
 }
 

@@ -6,11 +6,19 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista-2wbr.vercel.app'
+const ALLOWED_ORIGINS = new Set([
+  ALLOWED_ORIGIN,
+  'https://semana-lista-2wbr.vercel.app',
+  'https://semana-lista.vercel.app',
+])
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get('origin') ?? ''
-  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') || origin.startsWith('http://localhost') ? origin : ALLOWED_ORIGIN
+  const isAllowed = ALLOWED_ORIGINS.has(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://192.168.')
+  const allowed = isAllowed ? origin : ALLOWED_ORIGIN
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -19,16 +27,15 @@ function corsHeaders(req: Request) {
   }
 }
 
-function verificarJWT(req: Request): boolean {
+async function verificarUsuario(req: Request): Promise<boolean> {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) return false
-    const parts = authHeader.slice(7).split('.')
-    if (parts.length !== 3) return false
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    if (!payload?.sub) return false
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return false
-    return true
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user } } = await supabase.auth.getUser()
+    return !!user
   } catch { return false }
 }
 
@@ -88,8 +95,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors })
 
-  // Verificar JWT — endpoint solo para usuarios autenticados
-  const autenticado = verificarJWT(req)
+  // Verificar JWT con firma real via Supabase auth
+  const autenticado = await verificarUsuario(req)
   if (!autenticado) {
     return new Response(JSON.stringify({ error: 'No autorizado' }), {
       status: 401, headers: { ...cors, 'Content-Type': 'application/json' },

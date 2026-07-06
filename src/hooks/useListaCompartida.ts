@@ -130,8 +130,10 @@ export function useListaCompartida(listaId: string | null) {
   }
 
   async function eliminarItem(id: string) {
+    const snapshot = items
     setItems(prev => prev.filter(i => i.id !== id))
-    await supabase.from('lista_compartida_items').delete().eq('id', id)
+    const { error } = await supabase.from('lista_compartida_items').delete().eq('id', id)
+    if (error) setItems(snapshot) // rollback si falla
   }
 
   async function renombrarLista(nombre: string) {

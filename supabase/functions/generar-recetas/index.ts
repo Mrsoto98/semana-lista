@@ -1,13 +1,23 @@
 // supabase/functions/generar-recetas/index.ts
 import INGREDIENTES_JSON from './ingredientes.json' with { type: 'json' }
 import INGREDIENTES_COCINAS from './ingredientes-cocinas.json' with { type: 'json' }
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
+import { createClient } from 'npm:@supabase/supabase-js'
 
-const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista.vercel.app'
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://semana-lista-2wbr.vercel.app'
+const ALLOWED_ORIGINS = new Set([
+  ALLOWED_ORIGIN,
+  'https://semana-lista-2wbr.vercel.app',
+  'https://semana-lista.vercel.app',
+])
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get('origin') ?? ''
-  const allowed = origin === ALLOWED_ORIGIN || origin.endsWith('.vercel.app') || origin.startsWith('http://localhost') ? origin : ALLOWED_ORIGIN
+  const isAllowed = ALLOWED_ORIGINS.has(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://192.168.')
+  const allowed = isAllowed ? origin : ALLOWED_ORIGIN
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -27,23 +37,31 @@ function sanitizarParaPrompt(s: string, maxLen = 200): string {
     .trim()
 }
 
-// Verifica el JWT localmente (sin red): decodifica el payload y comprueba
-// que tiene sub (user ID) y que no ha expirado.
-function verificarJWT(req: Request): { userId: string | null; error: string | null } {
+// Verifica el JWT mediante Supabase auth (valida firma real del token)
+async function verificarUsuario(req: Request): Promise<{ userId: string | null; error: string | null }> {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) return { userId: null, error: 'Token requerido' }
-    const token = authHeader.slice(7)
-    const parts = token.split('.')
-    if (parts.length !== 3) return { userId: null, error: 'Token malformado' }
-    // Decodificar payload (base64url → JSON)
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    if (!payload?.sub) return { userId: null, error: 'Token sin usuario' }
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return { userId: null, error: 'Token expirado' }
-    return { userId: payload.sub as string, error: null }
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error || !user) return { userId: null, error: 'Token inválido' }
+    return { userId: user.id, error: null }
   } catch {
     return { userId: null, error: 'Token inválido' }
   }
+}
+
+// Rate limiting en memoria: 1 generación de semana completa cada 20s por usuario
+const rateLimitMap = new Map<string, number>()
+function checkRateLimit(userId: string, tipo: 'semana' | 'slot'): boolean {
+  const key = `${userId}:${tipo}`
+  const minMs = tipo === 'semana' ? 20_000 : 5_000
+  const last = rateLimitMap.get(key) ?? 0
+  if (Date.now() - last < minMs) return false
+  rateLimitMap.set(key, Date.now())
+  return true
 }
 
 // Mapea el valor de "cocina" que elige el usuario en la UI al código de
@@ -220,7 +238,10 @@ Dificultad: "fácil","media" o "difícil". Unidades: g,kg,ml,l,ud,cucharada,pizc
 }
 
 async function llamarClaude(prompt: string, maxTokens: number): Promise<string> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 90_000)
   const res = await fetch('https://api.anthropic.com/v1/messages', {
+    signal: controller.signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -233,6 +254,7 @@ async function llamarClaude(prompt: string, maxTokens: number): Promise<string> 
       messages: [{ role: 'user', content: prompt }],
     }),
   })
+  clearTimeout(timeout)
   if (!res.ok) {
     const err = await res.text()
     throw new Error(`Anthropic ${res.status}: ${err}`)
@@ -250,8 +272,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: cors })
 
-  // Verificar JWT — endpoint no disponible sin sesión activa
-  const { userId, error: authErr } = verificarJWT(req)
+  // Verificar JWT con firma real via Supabase auth
+  const { userId, error: authErr } = await verificarUsuario(req)
   if (!userId) {
     return new Response(JSON.stringify({ error: 'No autorizado', detail: authErr }), {
       status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
@@ -261,6 +283,15 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await req.json()
     const { perfil, recetas_ya_usadas = [], dia, franja, accion, receta_existente, dias: diasReq, franjas: franjasReq, lang = 'es' } = body
+
+    // Rate limit: semana completa 20s, slot/extra 5s por usuario
+    const tipoLlamada = (!dia && !franja) ? 'semana' : 'slot'
+    if (!checkRateLimit(userId, tipoLlamada)) {
+      return new Response(
+        JSON.stringify({ error: true, mensaje: 'Espera un momento antes de volver a generar.' }),
+        { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } },
+      )
+    }
 
     // Modo pasos: generar pasos de cocina para una receta
     if (body.action === 'pasos') {
