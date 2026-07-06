@@ -20,6 +20,7 @@ const Ajustes    = lazy(() => import('./pages/Ajustes'))
 const Privacidad = lazy(() => import('./pages/Privacidad'))
 const MenuPublico     = lazy(() => import('./pages/MenuPublico'))
 const ListaCompartida = lazy(() => import('./pages/ListaCompartida'))
+const Comunidad       = lazy(() => import('./pages/Comunidad'))
 
 function PageLoader() {
   return (
@@ -209,6 +210,11 @@ function Navbar() {
         <path d="M16 10a4 4 0 01-8 0"/>
       </svg>
     ),
+    comunidad: (active) => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: active ? ACCENT : 'currentColor' }}>
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+      </svg>
+    ),
     compartida: (active) => (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: active ? ACCENT : 'currentColor' }}>
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -234,11 +240,12 @@ function Navbar() {
 
   const { t } = useI18n()
   const tabs = [
-    { key: 'ajustes',    path: '/ajustes',  label: t.nav_ajustes },
-    { key: 'exportar',   path: '/exportar', label: t.nav_exportar },
-    { key: 'menu',       path: '/menu',     label: t.nav_menu },
-    { key: 'lista',      path: '/lista',    label: t.nav_lista },
-    { key: 'compartida', path: '',          label: t.nav_compartida },
+    { key: 'ajustes',    path: '/ajustes',    label: t.nav_ajustes },
+    { key: 'exportar',   path: '/exportar',   label: t.nav_exportar },
+    { key: 'menu',       path: '/menu',       label: t.nav_menu },
+    { key: 'lista',      path: '/lista',      label: t.nav_lista },
+    { key: 'comunidad',  path: '/comunidad',  label: 'Comunidad' },
+    { key: 'compartida', path: '',            label: t.nav_compartida },
   ] as const
 
   return (
@@ -496,6 +503,7 @@ function AppRoutes() {
             <Route path="/privacidad" element={<Privacidad />} />
             <Route path="/menu/:semanaId" element={<MenuPublico />} />
             <Route path="/lista-compartida/:id" element={<Protected><ListaCompartida /></Protected>} />
+            <Route path="/comunidad"            element={<Protected><Comunidad /></Protected>} />
           </Routes>
           </div>
         </Suspense>
