@@ -160,52 +160,14 @@ export default function Lista() {
   const [errorCompartida, setErrorCompartida] = useState('')
   const [cargandoCompartida, setCargandoCompartida] = useState(false)
 
-  // Catálogo Mercadona — carga lazy con overlay de precios por zona
+  // Catálogo Mercadona — carga lazy desde JSON local
   const [MERCADONA, setMERCADONA] = useState<CatalogoMercadonaData | null>(null)
   useEffect(() => {
-    const zonaId = perfil?.zona_id ?? 'barcelona'
-    import('../data/mercadona.json').then(async m => {
+    import('../data/mercadona.json').then(m => {
       const raw = m.default as CatalogoMercadonaData
-      let categorias = raw.categorias as Record<string, ProductoMercadona[]>
-
-      // Si el usuario NO está en la zona base del catálogo, sobreescribir precios
-      if (zonaId !== 'barcelona') {
-        try {
-          const { data: precios } = await supabase
-            .from('precios_zona')
-            .select('producto_id, precio, disponible')
-            .eq('zona_id', zonaId)
-
-          if (precios && precios.length > 0) {
-            const mapaPrecios = new Map<string, { precio: number; disponible: boolean }>(
-              precios.map((p: { producto_id: string; precio: number; disponible: boolean }) =>
-                [p.producto_id, { precio: p.precio, disponible: p.disponible }]
-              )
-            )
-            // Clonar y aplicar overlay: actualizar precio y filtrar no disponibles
-            categorias = Object.fromEntries(
-              Object.entries(categorias).map(([cat, prods]) => [
-                cat,
-                prods
-                  .filter(p => {
-                    const z = mapaPrecios.get(p.id)
-                    return !z || z.disponible  // si no hay dato de zona, lo dejamos (fallback)
-                  })
-                  .map(p => {
-                    const z = mapaPrecios.get(p.id)
-                    return z ? { ...p, precio: z.precio } : p
-                  }),
-              ])
-            )
-          }
-        } catch {
-          // Si falla, usar el catálogo base sin overlay (mejor que nada)
-        }
-      }
-
-      setMERCADONA({ ...raw, categorias: expandirCatalogo(categorias) as typeof raw.categorias })
+      setMERCADONA({ ...raw, categorias: expandirCatalogo(raw.categorias as Record<string, ProductoMercadona[]>) as typeof raw.categorias })
     })
-  }, [perfil?.zona_id])
+  }, [])
   const CATEGORIAS_MERCADONA = useMemo(() => MERCADONA ? Object.keys(MERCADONA.categorias) : [], [MERCADONA])
   const TODOS_LOS_PRODUCTOS = useMemo<ProductoMercadona[]>(() => {
     if (!MERCADONA) return []

@@ -276,39 +276,11 @@ export default function ListaCompartida() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const zonaId = perfil?.zona_id ?? 'barcelona'
-    import('../data/mercadona.json').then(async m => {
+    import('../data/mercadona.json').then(m => {
       const raw = m.default as CatalogoData
-      let categorias = raw.categorias as Record<string, ProductoMercadona[]>
-
-      if (zonaId !== 'barcelona') {
-        try {
-          const { data: precios } = await supabase
-            .from('precios_zona')
-            .select('producto_id, precio, disponible')
-            .eq('zona_id', zonaId)
-
-          if (precios && precios.length > 0) {
-            const mapaPrecios = new Map<string, { precio: number; disponible: boolean }>(
-              precios.map((p: { producto_id: string; precio: number; disponible: boolean }) =>
-                [p.producto_id, { precio: p.precio, disponible: p.disponible }]
-              )
-            )
-            categorias = Object.fromEntries(
-              Object.entries(categorias).map(([cat, prods]) => [
-                cat,
-                prods
-                  .filter(p => { const z = mapaPrecios.get(p.id); return !z || z.disponible })
-                  .map(p => { const z = mapaPrecios.get(p.id); return z ? { ...p, precio: z.precio } : p }),
-              ])
-            )
-          }
-        } catch { /* usar catálogo base */ }
-      }
-
-      setCatalogo({ ...raw, categorias: expandirCatalogo(categorias) as typeof raw.categorias })
+      setCatalogo({ ...raw, categorias: expandirCatalogo(raw.categorias as Record<string, ProductoMercadona[]>) as typeof raw.categorias })
     })
-  }, [perfil?.zona_id])
+  }, [])
 
   useEffect(() => {
     if (!miembros.length) return
