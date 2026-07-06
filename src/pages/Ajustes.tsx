@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { getInstallPrompt } from '../App'
+import { getInstallPrompt } from '../lib/installPrompt'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../hooks/useI18n'
 import { useNavigate } from 'react-router-dom'

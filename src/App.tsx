@@ -6,6 +6,7 @@ import { I18nProvider, useI18n } from './hooks/useI18n'
 import { usePerfil } from './hooks/usePerfil'
 import { useListasCompartidas, ListasCompartidasProvider, type ListaCompartida } from './hooks/useListaCompartida'
 import { guardar, recuperar } from './lib/storage'
+import { setInstallPrompt, getInstallPrompt, clearInstallPrompt } from './lib/installPrompt'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { OfflineBanner } from './components/OfflineBanner'
 import { Tutorial } from './components/Tutorial'
@@ -412,12 +413,6 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// Almacena el prompt de instalación globalmente para accederlo desde Ajustes
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _installPrompt: any = null
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getInstallPrompt(): any { return _installPrompt }
-export function clearInstallPrompt() { _installPrompt = null }
 
 function AndroidInstallBanner() {
   const [prompt, setPrompt] = useState<Event | null>(null)
@@ -433,7 +428,7 @@ function AndroidInstallBanner() {
 
     const handler = (e: Event) => {
       e.preventDefault()
-      _installPrompt = e
+      setInstallPrompt(e)
       setPrompt(e)
       // Solo mostrar banner si no lo cerró en esta sesión
       const cerradoEnSesion = sessionStorage.getItem('install-banner-cerrado')
@@ -446,7 +441,7 @@ function AndroidInstallBanner() {
     // Detectar instalación exitosa
     const instaladoHandler = () => {
       localStorage.setItem('pwa-instalada', '1')
-      _installPrompt = null
+      clearInstallPrompt()
       setVisible(false)
     }
     window.addEventListener('appinstalled', instaladoHandler)
@@ -458,9 +453,9 @@ function AndroidInstallBanner() {
   }, [])
 
   async function instalar() {
-    if (!prompt) return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (prompt as any).prompt()
+    const p = getInstallPrompt()
+    if (!p) return
+    await p.prompt()
     setVisible(false)
   }
 
