@@ -723,11 +723,16 @@ export default function Ajustes() {
         >
           {t.ajustes_privacidad}
         </button>
-        {!window.matchMedia('(display-mode: standalone)').matches && getInstallPrompt() && (
+        {!window.matchMedia('(display-mode: standalone)').matches && (
           <button
             onClick={async () => {
               const p = getInstallPrompt()
-              if (p) await p.prompt()
+              if (p) {
+                await p.prompt()
+              } else {
+                // Chrome aún no ha ofrecido el prompt — dar instrucciones manuales
+                alert('Para instalar: abre el menú del navegador (⋮) y selecciona "Añadir a pantalla de inicio" o "Instalar aplicación".')
+              }
             }}
             className="w-full flex items-center justify-center gap-2 border border-green-400/40 dark:border-green-600/40 text-green-600 dark:text-green-400 rounded-card py-3 text-sm font-semibold hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors"
           >
