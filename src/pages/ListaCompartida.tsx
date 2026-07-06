@@ -121,7 +121,7 @@ export default function ListaCompartida() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { perfil } = usePerfil()
+  usePerfil()
   const {
     lista, items, miembros, loading, error, recargar,
     añadirItem, toggleComprado, toggleEnCasa,

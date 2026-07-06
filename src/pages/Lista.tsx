@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom'
 import { usePerfil } from '../hooks/usePerfil'
 import { useListasCompartidas } from '../hooks/useListaCompartida'
 import { recuperar, guardar } from '../lib/storage'
-import { supabase } from '../lib/supabase'
 import {
   topMatchesMercadona, topMatchConConfianza, agruparIngredientes, resolverContraSet, etiquetaGrupo,
   nombreGuardadoComo as nombreGuardadoComoLib, expandirCatalogo, type MatchProducto,

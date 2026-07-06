@@ -485,14 +485,6 @@ export default function Menu() {
     'sin prisa (más de 1 hora)':   'TIEMPO: recetas de cocción lenta, guisos y elaboradas de más de 1 hora. Prioriza sabores profundos.',
     'combinado': '',
   }
-  const OCASION_PROMPT: Record<string, string> = {
-    'semana normal': '',
-    'visita de amigos o familia': 'OCASIÓN — VISITA DE FAMILIA/AMIGOS: platos para compartir en grupo, vistosos y que impresionen. Raciones generosas, comida para reunión, algún plato especial que quedar bien.',
-    'cena romántica': 'OCASIÓN — CENA ROMÁNTICA: platos elegantes para dos personas, sugerentes y especiales. Sin alimentos difíciles de comer con elegancia. Al menos un plato que resulte sofisticado y memorable.',
-    'comida con niños': 'OCASIÓN — COMIDA CON NIÑOS: recetas suaves sin picante ni sabores fuertes, fáciles de comer y reconocibles para los más pequeños. Platos divertidos y nutritivos que los niños acepten bien. Sin ingredientes raros ni presentaciones intimidantes.',
-    'semana de dieta': 'OCASIÓN — SEMANA DE DIETA: recetas bajas en calorías (máximo 500 kcal por ración). Prioriza verduras, proteína magra (pollo a la plancha, pescado, legumbres), sin fritos ni salsas grasas. Porciones saciantes pero ligeras.',
-    'semana de caprichos': 'OCASIÓN — SEMANA DE CAPRICHOS: platos indulgentes y especiales que normalmente no te preparas en el día a día. Comfort food, platos ricos y satisfactorios, ingredientes premium. No te preocupes por las calorías.',
-  }
 
   async function generarDesdeModal(config: ConfigGeneracion) {
     setModalGenerar(false)
