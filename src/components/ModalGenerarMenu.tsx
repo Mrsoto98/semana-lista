@@ -263,38 +263,6 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
           <div className="border-t border-gray-100 dark:border-gray-800" />
 
-          {/* Qué lista usar — aplica a las 3 opciones de ingredientes: define de
-              dónde salen los "en casa" y a qué lista va la compra del menú */}
-          {listasCompartidas.length > 0 && (
-            <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0.5">{t.modal_que_lista}</p>
-              <p className="text-xs text-gray-400 mb-2">{t.modal_lista_desc}</p>
-              <div className="space-y-1.5">
-                <button onClick={() => seleccionarLista(null)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${!config.listaDestinoId ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
-                  <span className="text-lg">👤</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t.modal_mi_lista}</p>
-                    <p className="text-xs text-gray-400">{ingredientesNevera.length} {t.modal_en_casa_modal}</p>
-                  </div>
-                  {!config.listaDestinoId && <span className="text-green-select">✓</span>}
-                </button>
-                {listasCompartidas.map(lista => (
-                  <button key={lista.id} onClick={() => seleccionarLista(lista.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${config.listaDestinoId === lista.id ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
-                    <span className="text-lg">👥</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</p>
-                      <p className="text-xs text-gray-400">
-                        {cargandoCompartida && config.listaDestinoId === lista.id ? t.cargando : config.listaDestinoId === lista.id ? `${itemsNeveraCompartida.length} ${t.modal_en_casa_modal}` : t.modal_lista_compartida}
-                      </p>
-                    </div>
-                    {config.listaDestinoId === lista.id && !cargandoCompartida && <span className="text-green-select">✓</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Tipo de cocina */}
           <div>
@@ -369,27 +337,85 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
           <div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_ingredientes}</p>
             <div className="grid grid-cols-1 gap-2">
-              {([
-                { value: 'libre',        emoji: '🤖', label: t.modal_ia_libre,      desc: t.modal_ia_libre_desc },
-                { value: 'nevera',       emoji: '🏠', label: t.modal_usar_casa,     desc: neveraActual.length ? `${neveraActual.length} ${t.modal_ingredientes_disponibles}` : t.modal_sin_ingredientes },
-                { value: 'personalizada', emoji: '📝', label: t.modal_lista_personalizada, desc: t.modal_busca_escribe },
-              ] as const).map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => set('modoIngredientes', opt.value)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-colors ${
-                    config.modoIngredientes === opt.value
-                      ? 'bg-accent-light border-green-select'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-green-select'
-                  }`}
-                >
-                  <span className="text-2xl">{opt.emoji}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{opt.label}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
+              {/* IA libre */}
+              {(['libre', 'personalizada'] as const).map(val => {
+                const opt = val === 'libre'
+                  ? { emoji: '🤖', label: t.modal_ia_libre, desc: t.modal_ia_libre_desc }
+                  : { emoji: '📝', label: t.modal_lista_personalizada, desc: t.modal_busca_escribe }
+                return (
+                  <button key={val} onClick={() => set('modoIngredientes', val)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-colors ${config.modoIngredientes === val ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select'}`}>
+                    <span className="text-2xl">{opt.emoji}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{opt.label}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
+                    </div>
+                  </button>
+                )
+              })}
+
+              {/* Usar lo que tengo en casa — con selector de lista integrado */}
+              <div className={`rounded-xl border-2 transition-colors ${config.modoIngredientes === 'nevera' ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700'}`}>
+                <button onClick={() => set('modoIngredientes', 'nevera')}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left">
+                  <span className="text-2xl">🏠</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t.modal_usar_casa}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {neveraActual.length ? `${neveraActual.length} ${t.modal_ingredientes_disponibles}` : t.modal_sin_ingredientes}
+                    </p>
                   </div>
                 </button>
-              ))}
+
+                {/* Panel expandible cuando está seleccionado */}
+                {config.modoIngredientes === 'nevera' && (
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* Advertencia mínimo */}
+                    <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${neveraActual.length >= 8 ? 'bg-green-select/10 text-green-select' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'}`}>
+                      <span className="shrink-0 mt-0.5">{neveraActual.length >= 8 ? '✓' : '⚠️'}</span>
+                      <span>
+                        {neveraActual.length >= 8
+                          ? `Se generarán recetas usando tus ${neveraActual.length} ingredientes en casa.`
+                          : `Necesitas al menos 8 artículos marcados como "en casa" en la lista seleccionada para que la IA genere menús variados (ahora: ${neveraActual.length}).`
+                        }
+                      </span>
+                    </div>
+
+                    {/* Selector de lista (solo si hay compartidas) */}
+                    {listasCompartidas.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Usar ingredientes en casa de:</p>
+                        <button onClick={() => seleccionarLista(null)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${!config.listaDestinoId ? 'bg-white dark:bg-gray-800 border-green-select' : 'bg-white/60 dark:bg-gray-800/40 border-gray-200 dark:border-gray-600 hover:border-green-select/60'}`}>
+                          <span>👤</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t.modal_mi_lista}</p>
+                            <p className="text-xs text-gray-400">{ingredientesNevera.length} {t.modal_en_casa_modal}</p>
+                          </div>
+                          {!config.listaDestinoId && <span className="text-green-select text-sm">✓</span>}
+                        </button>
+                        {listasCompartidas.map(lista => (
+                          <button key={lista.id} onClick={() => seleccionarLista(lista.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${config.listaDestinoId === lista.id ? 'bg-white dark:bg-gray-800 border-green-select' : 'bg-white/60 dark:bg-gray-800/40 border-gray-200 dark:border-gray-600 hover:border-green-select/60'}`}>
+                            <span>👥</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</p>
+                              <p className="text-xs text-gray-400">
+                                {cargandoCompartida && config.listaDestinoId === lista.id
+                                  ? t.cargando
+                                  : config.listaDestinoId === lista.id
+                                    ? `${itemsNeveraCompartida.length} ${t.modal_en_casa_modal}`
+                                    : t.modal_lista_compartida}
+                              </p>
+                            </div>
+                            {config.listaDestinoId === lista.id && !cargandoCompartida && <span className="text-green-select text-sm">✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Lista personalizada — buscador + chips */}

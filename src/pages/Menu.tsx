@@ -673,28 +673,6 @@ export default function Menu() {
                 </div>
               </div>
               <div className="border-t border-gray-200 dark:border-gray-700" />
-              {listasCompartidas.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-0.5">{t.modal_que_lista}</label>
-                  <p className="text-xs text-gray-400 mb-1.5">{t.modal_lista_desc}</p>
-                  <div className="space-y-1.5">
-                    <button onClick={() => setCuestionario(p => ({ ...p, listaDestinoId: null }))}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${!cuestionario.listaDestinoId ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
-                      <span className="text-lg">👤</span>
-                      <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100">{t.modal_mi_lista}</span>
-                      {!cuestionario.listaDestinoId && <span className="text-green-select">✓</span>}
-                    </button>
-                    {listasCompartidas.map(lista => (
-                      <button key={lista.id} onClick={() => setCuestionario(p => ({ ...p, listaDestinoId: lista.id }))}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${cuestionario.listaDestinoId === lista.id ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
-                        <span className="text-lg">👥</span>
-                        <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</span>
-                        {cuestionario.listaDestinoId === lista.id && <span className="text-green-select">✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">{t.modal_tipo_cocina}</label>
                 <select value={cuestionario.cocina} onChange={e => setCuestionario(p => ({ ...p, cocina: e.target.value }))}
