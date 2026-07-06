@@ -1,5 +1,5 @@
 // src/lib/ads.ts — Servicio de anuncios unificado (web/AdSense + Android/AdMob)
-import { Capacitor } from '@capacitor/core'
+// Los imports de Capacitor son dinámicos para que el build web no los necesite
 
 declare global {
   interface Window {
@@ -7,17 +7,27 @@ declare global {
   }
 }
 
-// ── IDs de prueba de Google — reemplazar por los reales cuando tengas AdMob ──
 const ADMOB_REWARDED_ID_ANDROID = 'ca-app-pub-4112362316379237/1190824552'
 
-export const esNativo = () => Capacitor.isNativePlatform()
+// Detecta si estamos en Android nativo sin importar Capacitor estáticamente
+export function esNativo(): boolean {
+  try {
+    // En web esto no existe; en Capacitor sí
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return !!(window as any).Capacitor?.isNativePlatform?.()
+  } catch {
+    return false
+  }
+}
 
-let admobMod: typeof import('@capacitor-community/admob') | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let admobMod: any = null
 
 async function getAdMob() {
   if (!esNativo()) return null
   if (admobMod) return admobMod
   try {
+    // @ts-ignore — solo disponible en build Android
     admobMod = await import('@capacitor-community/admob')
     return admobMod
   } catch {
@@ -60,9 +70,11 @@ export async function mostrarAnuncioRewarded(): Promise<'recompensa' | 'cancelad
     await AdMob.prepareRewardVideoAd({ adId: ADMOB_REWARDED_ID_ANDROID })
 
     return new Promise((resolve) => {
-      const handles: ReturnType<typeof AdMob.addListener>[] = []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const handles: any[] = []
 
-      function limpiar() { handles.forEach(h => h.then(r => r.remove())) }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      function limpiar() { handles.forEach((h: any) => h.then((r: any) => r.remove())) }
 
       handles.push(AdMob.addListener(RewardAdPluginEvents.Rewarded, () => {
         limpiar(); resolve('recompensa')
