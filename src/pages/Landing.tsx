@@ -36,7 +36,7 @@ export default function Landing() {
         >
           Empezar gratis
         </button>
-        <p className="text-xs text-gray-500 mt-3">Sin tarjeta de crédito. Gratis para siempre.</p>
+        <p className="text-xs text-gray-500 mt-3">Sin tarjeta de crédito. Gratis para empezar.</p>
       </section>
 
       {/* Features */}
@@ -49,7 +49,7 @@ export default function Landing() {
             { icon: '💰', title: 'Precios de Mercadona', desc: 'Compara productos y precios reales de Mercadona directamente en la app.' },
             { icon: '👥', title: 'Comparte con tu familia', desc: 'Listas compartidas en tiempo real con tu pareja, familia o compañeros de piso.' },
             { icon: '📤', title: 'Exporta fácil', desc: 'Envía la lista por WhatsApp o correo con un solo toque.' },
-            { icon: '📱', title: 'Funciona sin internet', desc: 'Instálala en tu móvil como app y úsala aunque no tengas cobertura.' },
+            { icon: '📱', title: 'Instálala como app', desc: 'Añádela a tu pantalla de inicio y tenla siempre a mano, como una app nativa.' },
           ].map(f => (
             <div key={f.title} className="flex items-start gap-4 bg-white/5 rounded-2xl p-4 border border-white/8">
               <span className="text-3xl shrink-0">{f.icon}</span>
@@ -88,7 +88,7 @@ export default function Landing() {
       <section className="px-5 pb-16 max-w-lg mx-auto text-center">
         <div className="bg-green-500/10 border border-green-500/20 rounded-3xl p-8">
           <p className="text-2xl font-black mb-2">¿Listo para empezar?</p>
-          <p className="text-gray-400 text-sm mb-6">Únete a miles de familias que ya planifican su semana con IA.</p>
+          <p className="text-gray-400 text-sm mb-6">Únete a las familias que ya planifican su semana con IA.</p>
           <button
             onClick={() => navigate('/login')}
             className="w-full bg-green-500 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-green-500/30 active:scale-95 transition-all"
