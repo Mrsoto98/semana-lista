@@ -57,6 +57,7 @@ export interface Perfil {
   ingredientes_si: string[]
   ingredientes_no: string[]
   nevera: string[]
+  zona_id?: string   // zona logística Mercadona resuelta del CP
 }
 
 export type ClaveMenu = `${Dia}_${Franja}`

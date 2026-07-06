@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Perfil } from '../types'
 import { useAuth } from './useAuth'
+import { resolverZona } from '../lib/zonas'
 
 export function usePerfil() {
   const { user } = useAuth()
@@ -24,6 +25,13 @@ export function usePerfil() {
 
   async function guardarPerfil(p: Omit<Perfil, 'id' | 'usuario_id'>) {
     if (!user) return
+
+    // Resolver zona logística a partir del código postal
+    // Se hace aquí para capturarla tanto en onboarding como en ajustes
+    const zona_id = p.codigo_postal
+      ? await resolverZona(p.codigo_postal)
+      : (perfil?.zona_id ?? 'barcelona')
+
     // Ensure usuarios row exists and generate codigo_usuario if missing
     const { data: usuarioExistente } = await supabase
       .from('usuarios')
@@ -36,9 +44,10 @@ export function usePerfil() {
     await supabase
       .from('usuarios')
       .upsert({ id: user.id, email: user.email, ...(codigoNuevo ? { codigo_usuario: codigoNuevo } : {}) }, { onConflict: 'id' })
+
     const { data } = await supabase
       .from('perfiles')
-      .upsert({ ...p, usuario_id: user.id }, { onConflict: 'usuario_id' })
+      .upsert({ ...p, zona_id, usuario_id: user.id }, { onConflict: 'usuario_id' })
       .select()
       .single()
     setPerfil(data as Perfil)
