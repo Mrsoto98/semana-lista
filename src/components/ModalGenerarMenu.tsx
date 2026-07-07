@@ -117,7 +117,8 @@ function PillSelector({
 
 export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
   const { t } = useI18n()
-  const [premiumDesbloqueado, setPremiumDesbloqueado] = useState(false)
+  const [semanaDesbloqueada, setSemanaDesbloqueada] = useState(false)
+  const [franjaDesbloqueada, setFranjaDesbloqueada] = useState(false)
   const [mostrandoAdGate, setMostrandoAdGate] = useState<'semana' | 'franja' | null>(null)
   const [cargandoAnuncio, setCargandoAnuncio] = useState(false)
 
@@ -128,9 +129,8 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
         ? await mostrarAnuncioRewarded()
         : await mostrarAnuncioRewardedWeb()
       if (resultado === 'recompensa') {
-        setPremiumDesbloqueado(true)
-        if (mostrandoAdGate === 'semana') onDiasConfigChange('semana')
-        if (mostrandoAdGate === 'franja') onFranjaConfigChange('ambas')
+        if (mostrandoAdGate === 'semana') { setSemanaDesbloqueada(true); onDiasConfigChange('semana') }
+        if (mostrandoAdGate === 'franja') { setFranjaDesbloqueada(true); onFranjaConfigChange('ambas') }
         setMostrandoAdGate(null)
       } else {
         setMostrandoAdGate(null)
@@ -141,7 +141,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
   }
 
   function handleFranjaConfigChange(key: FranjaConfig) {
-    if (key === 'ambas' && !premiumDesbloqueado) {
+    if (key === 'ambas' && !franjaDesbloqueada) {
       setMostrandoAdGate('franja')
       return
     }
@@ -149,7 +149,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
   }
 
   function handleDiasConfigChange(key: DiasConfig) {
-    if (key === 'semana' && !premiumDesbloqueado) {
+    if (key === 'semana' && !semanaDesbloqueada) {
       setMostrandoAdGate('semana')
       return
     }
@@ -158,7 +158,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
 
   function handleDiaPersonalizadoClick(d: Dia) {
     const esDiaFinde = DIAS_FIN_SEMANA.includes(d)
-    if (esDiaFinde && !premiumDesbloqueado) {
+    if (esDiaFinde && !semanaDesbloqueada) {
       setMostrandoAdGate('semana')
       return
     }
@@ -280,7 +280,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_para_cuantos_dias}</p>
               <div className="flex gap-2">
                 {([
-                  { key: 'semana',        label: t.modal_semana_completa, locked: !premiumDesbloqueado },
+                  { key: 'semana',        label: t.modal_semana_completa, locked: !semanaDesbloqueada },
                   { key: 'laboral',       label: t.modal_lun_vie,         locked: false },
                   { key: 'personalizado', label: t.modal_personalizado,   locked: false },
                 ] as const).map(({ key, label, locked }) => (
@@ -300,7 +300,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {DIAS.map(d => {
                     const esFinde = DIAS_FIN_SEMANA.includes(d)
-                    const locked = esFinde && !premiumDesbloqueado
+                    const locked = esFinde && !semanaDesbloqueada
                     return (
                       <button key={d}
                         onClick={() => handleDiaPersonalizadoClick(d)}
@@ -316,7 +316,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_que_comidas}</p>
               <div className="flex gap-2">
                 {([
-                  { key: 'ambas',  label: t.modal_comida_cena, locked: !premiumDesbloqueado },
+                  { key: 'ambas',  label: t.modal_comida_cena, locked: !franjaDesbloqueada },
                   { key: 'comida', label: t.modal_solo_comida, locked: false },
                   { key: 'cena',   label: t.modal_solo_cena,   locked: false },
                 ] as const).map(({ key, label, locked }) => (
@@ -595,7 +595,11 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
             <div className="text-4xl">🔒</div>
             <div>
               <p className="text-base font-bold text-gray-800 dark:text-gray-100 mb-1">Contenido premium</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Ve un anuncio corto para desbloquear la semana completa y comida+cena en esta generación.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {mostrandoAdGate === 'semana'
+                  ? 'Ve un anuncio corto para desbloquear la semana completa en esta generación.'
+                  : 'Ve un anuncio corto para desbloquear comida + cena en esta generación.'}
+              </p>
             </div>
             {cargandoAnuncio ? (
               <div className="flex items-center gap-2 text-green-select text-sm font-medium">
