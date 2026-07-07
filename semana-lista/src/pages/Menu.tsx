@@ -106,11 +106,7 @@ export default function Menu() {
   const [favoritaPasosCargando, setFavoritaPasosCargando] = useState(false)
   const [datosSupabaseCargados, setDatosSupabaseCargados] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-  const [generacionesMes, setGeneracionesMes] = useState<number>(() => {
-    const raw = recuperar<string>('gen_semana') ?? ''
-    const [sem, val] = raw.split(':')
-    return sem === semanaKey() ? parseInt(val ?? '0', 10) : 0
-  })
+  const [generacionesMes, setGeneracionesMes] = useState<number>(2)
   const [generacionesAnuncio, setGeneracionesAnuncio] = useState<number>(() => {
     const hoy = new Date().toISOString().split('T')[0]
     const raw = recuperar<string>('gen_anuncio_v2') ?? ''
@@ -196,34 +192,19 @@ export default function Menu() {
         setSemanasGuardadas(sems)
         guardar('semanas_guardadas', sems)
       }
-      // Contador de generaciones: resetear solo si es semana nueva en DB Y en localStorage
+      // Contador de generaciones: DB es la fuente de verdad
       const reset = (data as { generaciones_reset?: string }).generaciones_reset
       const gens = (data as { generaciones_mes?: number }).generaciones_mes ?? 0
       const semanaActual = semanaKey()
-      // Leer localStorage ANTES de decidir si resetear — actúa como veto anti-reset
-      const rawLS = recuperar<string>('gen_semana') ?? ''
-      const [semLS, valLS] = rawLS.split(':')
-      const gensLS = semLS === semanaActual ? parseInt(valLS ?? '0', 10) : 0
-      // Semana nueva según DB
       const dbEsNuevaSemana = !reset || isoWeek(new Date(reset)) !== isoWeek(new Date()) || new Date(reset).getFullYear() !== new Date().getFullYear()
-      // Solo resetear si AMBAS fuentes dicen que es semana nueva.
-      // Si localStorage aún tiene conteo de esta semana, el usuario ya generó → no resetear.
-      const esNuevaSemana = dbEsNuevaSemana && semLS !== semanaActual
-      if (esNuevaSemana) {
+      if (dbEsNuevaSemana) {
         supabase.from('perfiles').update({ generaciones_mes: 0, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
         setGeneracionesMes(0)
         setGeneracionesAnuncio(0)
         guardar('gen_semana', semanaActual + ':0')
-        guardar('gen_anuncio_v2', semanaActual + ':0')
       } else {
-        // Tomar el máximo entre DB y localStorage (el más alto es el correcto)
-        const gensFinal = Math.max(gens, gensLS)
-        setGeneracionesMes(gensFinal)
-        // Sincronizar DB si localStorage tiene más (el update anterior falló)
-        if (gensLS > gens) {
-          supabase.from('perfiles').update({ generaciones_mes: gensLS, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
-        }
-        guardar('gen_semana', semanaActual + ':' + gensFinal)
+        setGeneracionesMes(gens)
+        guardar('gen_semana', semanaActual + ':' + gens)
       }
       setDatosSupabaseCargados(true)
     })
