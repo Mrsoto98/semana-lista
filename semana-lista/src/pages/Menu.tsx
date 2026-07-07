@@ -180,7 +180,8 @@ export default function Menu() {
   // Cargar favoritas y semanas guardadas desde Supabase al iniciar sesión
   useEffect(() => {
     if (!user || datosSupabaseCargados) return
-    supabase.from('perfiles').select('recetas_favoritas, semanas_guardadas, generaciones_mes, generaciones_reset').eq('usuario_id', user.id).maybeSingle().then(({ data }) => {
+    supabase.from('perfiles').select('recetas_favoritas, semanas_guardadas, generaciones_mes, generaciones_reset').eq('usuario_id', user.id).maybeSingle().then(({ data, error }) => {
+      if (error) console.error('[gen] select perfiles error:', error)
       if (!data) { setDatosSupabaseCargados(true); return }
       const favs = (data as { recetas_favoritas?: Receta[] }).recetas_favoritas
       const sems = (data as { semanas_guardadas?: SemanaGuardada[] }).semanas_guardadas
@@ -341,7 +342,7 @@ export default function Menu() {
         const nuevasGens = generacionesMes + 1
         setGeneracionesMes(nuevasGens)
         guardar('gen_semana', `${semanaKey()}:${nuevasGens}`)
-        if (user) supabase.from('perfiles').update({ generaciones_mes: nuevasGens, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
+        if (user) supabase.from('perfiles').update({ generaciones_mes: nuevasGens, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id).then(({ error }) => { if (error) console.error('[gen] update generaciones error:', error) })
       } else {
         const nuevasGensAnuncio = generacionesAnuncio + 1
         setGeneracionesAnuncio(nuevasGensAnuncio)
