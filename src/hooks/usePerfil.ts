@@ -32,18 +32,10 @@ export function usePerfil() {
       ? await resolverZona(p.codigo_postal)
       : (perfil?.zona_id ?? 'barcelona')
 
-    // Ensure usuarios row exists and generate codigo_usuario if missing
-    const { data: usuarioExistente } = await supabase
-      .from('usuarios')
-      .select('codigo_usuario')
-      .eq('id', user.id)
-      .maybeSingle()
-    const codigoNuevo = usuarioExistente?.codigo_usuario
-      ? undefined
-      : String(Math.floor(100 + Math.random() * 900)).padStart(3, '0') + '-' + String(Math.floor(Math.random() * 1000)).padStart(3, '0')
+    // codigo_usuario se genera automáticamente en el servidor mediante trigger
     await supabase
       .from('usuarios')
-      .upsert({ id: user.id, email: user.email, ...(codigoNuevo ? { codigo_usuario: codigoNuevo } : {}) }, { onConflict: 'id' })
+      .upsert({ id: user.id, email: user.email }, { onConflict: 'id' })
 
     const { data } = await supabase
       .from('perfiles')

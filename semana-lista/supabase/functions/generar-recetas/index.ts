@@ -293,37 +293,20 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Validación server-side del límite de generaciones (solo semana completa, no slots ni opciones extra)
+    // Validación atómica del límite de generaciones (check+increment en una sola transacción).
+    // Solo aplica a semana completa — slots y opciones extra no consumen cuota.
     if (tipoLlamada === 'semana') {
-      const LIMITE = 2
+      const viaAnuncio = body.via_anuncio === true
       const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: req.headers.get('Authorization')! } },
       })
-      const isoWeekNum = (d: Date) => {
-        const d2 = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-        const day = d2.getUTCDay() || 7
-        d2.setUTCDate(d2.getUTCDate() + 4 - day)
-        const yearStart = new Date(Date.UTC(d2.getUTCFullYear(), 0, 1))
-        return Math.ceil((((d2.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-      }
-      const { data: perfilGen } = await supabaseUser
-        .from('perfiles')
-        .select('generaciones_mes, generaciones_reset')
-        .eq('usuario_id', userId)
-        .maybeSingle()
-      if (perfilGen) {
-        const ahora = new Date()
-        const reset = perfilGen.generaciones_reset
-        const mismasemana = reset &&
-          isoWeekNum(new Date(reset)) === isoWeekNum(ahora) &&
-          new Date(reset).getFullYear() === ahora.getFullYear()
-        const generacionesActuales = mismasemana ? (perfilGen.generaciones_mes ?? 0) : 0
-        if (generacionesActuales >= LIMITE) {
-          return new Response(
-            JSON.stringify({ error: true, mensaje: 'Has alcanzado el límite de generaciones esta semana.' }),
-            { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } },
-          )
-        }
+      const { data: resultado, error: rpcErr } = await supabaseUser.rpc('intentar_generacion', { p_via_anuncio: viaAnuncio })
+      if (rpcErr) console.error('[gen] intentar_generacion error:', rpcErr)
+      if (!resultado?.permitido) {
+        return new Response(
+          JSON.stringify({ error: true, mensaje: 'Has alcanzado el límite de generaciones esta semana.' }),
+          { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } },
+        )
       }
     }
 
@@ -396,38 +379,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Incrementar contador server-side tras generación exitosa de semana completa
-    try {
-      const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: req.headers.get('Authorization')! } },
-      })
-      const { data: perfilActual } = await supabaseUser
-        .from('perfiles')
-        .select('generaciones_mes, generaciones_reset')
-        .eq('usuario_id', userId)
-        .maybeSingle()
-      if (perfilActual) {
-        const isoWeekNum2 = (d: Date) => {
-          const d2 = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-          const day = d2.getUTCDay() || 7
-          d2.setUTCDate(d2.getUTCDate() + 4 - day)
-          const yearStart = new Date(Date.UTC(d2.getUTCFullYear(), 0, 1))
-          return Math.ceil((((d2.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-        }
-        const ahora2 = new Date()
-        const reset2 = perfilActual.generaciones_reset
-        const mismasemana2 = reset2 &&
-          isoWeekNum2(new Date(reset2)) === isoWeekNum2(ahora2) &&
-          new Date(reset2).getFullYear() === ahora2.getFullYear()
-        const nuevasGens = mismasemana2 ? (perfilActual.generaciones_mes ?? 0) + 1 : 1
-        await supabaseUser.from('perfiles').update({
-          generaciones_mes: nuevasGens,
-          generaciones_reset: ahora2.toISOString().split('T')[0],
-        }).eq('usuario_id', userId)
-      }
-    } catch (e) {
-      console.error('[gen] error incrementando contador:', e)
-    }
+    // El contador ya fue incrementado atómicamente en intentar_generacion() antes de llamar a Claude.
 
     return new Response(
       JSON.stringify({ semana: resultado }),

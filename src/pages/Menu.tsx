@@ -181,7 +181,7 @@ export default function Menu() {
   // Cargar favoritas y semanas guardadas desde Supabase al iniciar sesión
   useEffect(() => {
     if (!user || datosSupabaseCargados) return
-    supabase.from('perfiles').select('recetas_favoritas, semanas_guardadas, generaciones_mes, generaciones_reset').eq('usuario_id', user.id).maybeSingle().then(({ data, error }) => {
+    supabase.from('perfiles').select('recetas_favoritas, semanas_guardadas, generaciones_mes, generaciones_reset, generaciones_anuncio_semana').eq('usuario_id', user.id).maybeSingle().then(({ data, error }) => {
       if (error) console.error('[gen] select perfiles error:', error)
       if (!data) { setDatosSupabaseCargados(true); return }
       const favs = (data as { recetas_favoritas?: Receta[] }).recetas_favoritas
@@ -194,19 +194,17 @@ export default function Menu() {
         setSemanasGuardadas(sems)
         guardar('semanas_guardadas', sems)
       }
-      // Contador de generaciones: DB es la fuente de verdad
+      // Contador de generaciones: DB es la fuente de verdad (la función intentar_generacion gestiona resets)
       const reset = (data as { generaciones_reset?: string }).generaciones_reset
       const gens = (data as { generaciones_mes?: number }).generaciones_mes ?? 0
-      const semanaActual = semanaKey()
+      const gensAnuncio = (data as { generaciones_anuncio_semana?: number }).generaciones_anuncio_semana ?? 0
       const dbEsNuevaSemana = !reset || isoWeek(new Date(reset)) !== isoWeek(new Date()) || new Date(reset).getFullYear() !== new Date().getFullYear()
       if (dbEsNuevaSemana) {
-        supabase.from('perfiles').update({ generaciones_mes: 0, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id)
         setGeneracionesMes(0)
         setGeneracionesAnuncio(0)
-        guardar('gen_semana', semanaActual + ':0')
       } else {
         setGeneracionesMes(gens)
-        guardar('gen_semana', semanaActual + ':' + gens)
+        setGeneracionesAnuncio(gensAnuncio)
       }
       setDatosSupabaseCargados(true)
     })
@@ -300,6 +298,7 @@ export default function Menu() {
 
     try {
       const { supabase } = await import('../lib/supabase')
+      const viaAnuncio = generacionesMes >= LIMITE_GENERACIONES
       const { data, error: fnError } = await supabase.functions.invoke('generar-recetas', {
         body: {
           perfil: perfilConNevera(perfil, extraPrompt, ingredientesEvitar, cocina, objetivo),
@@ -307,6 +306,7 @@ export default function Menu() {
           dias: activeDias,
           franjas: activeFranjas,
           lang,
+          via_anuncio: viaAnuncio,
         },
       })
       if (fnError) throw new Error(fnError.message)
@@ -338,16 +338,11 @@ export default function Menu() {
         .flatMap(e => (e as { datos?: OpcionesSlot }).datos?.opciones ?? []) as Receta[]
       if (todasRecetas.length) guardarRecetasEnCache(todasRecetas)
       track('menu_generado', { slots: Object.keys(nuevosEstados).filter(k => nuevosEstados[k as ClaveMenu]?.estado === 'listo').length })
-      // Incrementar contador de generaciones (libre o bonus anuncio)
+      // Actualizar estado local (el servidor ya incrementó el contador atómicamente)
       if (generacionesMes < LIMITE_GENERACIONES) {
-        const nuevasGens = generacionesMes + 1
-        setGeneracionesMes(nuevasGens)
-        guardar('gen_semana', `${semanaKey()}:${nuevasGens}`)
-        if (user) supabase.from('perfiles').update({ generaciones_mes: nuevasGens, generaciones_reset: new Date().toISOString().split('T')[0] }).eq('usuario_id', user.id).then(({ error }) => { if (error) console.error('[gen] update generaciones error:', error) })
+        setGeneracionesMes(prev => prev + 1)
       } else {
-        const nuevasGensAnuncio = generacionesAnuncio + 1
-        setGeneracionesAnuncio(nuevasGensAnuncio)
-        guardar('gen_anuncio_v2', `${new Date().toISOString().split('T')[0]}:${nuevasGensAnuncio}`)
+        setGeneracionesAnuncio(prev => prev + 1)
       }
     } catch (err) {
       const raw = err instanceof Error ? err.message : 'Error desconocido'

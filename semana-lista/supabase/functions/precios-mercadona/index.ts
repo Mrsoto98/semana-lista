@@ -105,7 +105,9 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { action, codigo_postal = '28001' } = body
+    const { action } = body
+    const cpRaw = String(body.codigo_postal ?? '28001').trim()
+    const codigo_postal = /^\d{5}$/.test(cpRaw) ? cpRaw : '28001'
 
     const session = await obtenerSesion(codigo_postal)
 
