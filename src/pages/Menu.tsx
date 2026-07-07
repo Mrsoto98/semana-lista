@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { CeldaMenu } from '../components/CeldaMenu'
 import { ModalGenerarMenu, type ConfigGeneracion } from '../components/ModalGenerarMenu'
 import { AnuncioRewarded } from '../components/AnuncioRewarded'
+import { esNativo, mostrarAnuncioRewarded, mostrarAnuncioRewardedWeb } from '../lib/ads'
 import { usePerfil } from '../hooks/usePerfil'
 import { useListasCompartidas } from '../hooks/useListaCompartida'
 import { usePreferencias } from '../hooks/usePreferencias'
@@ -133,6 +134,41 @@ export default function Menu() {
     setDiasPersonalizadosRaw(prev => { const next = fn(prev); guardar('menu_dias_personalizados', Array.from(next)); return next })
   }
   function setFranjaConfig(v: FranjaConfig) { setFranjaConfigRaw(v); guardar('menu_franja_config', v) }
+
+  const DIAS_FIN_SEMANA: Dia[] = ['sabado', 'domingo']
+  const [semanaDesbloqueada, setSemanaDesbloqueada] = useState(false)
+  const [franjaDesbloqueada, setFranjaDesbloqueada] = useState(false)
+  const [mostrandoAdGate, setMostrandoAdGate] = useState<'semana' | 'franja' | null>(null)
+  const [cargandoAnuncioGate, setCargandoAnuncioGate] = useState(false)
+
+  async function verAnuncioGate() {
+    setCargandoAnuncioGate(true)
+    try {
+      const resultado = esNativo() ? await mostrarAnuncioRewarded() : await mostrarAnuncioRewardedWeb()
+      if (resultado === 'recompensa') {
+        if (mostrandoAdGate === 'semana') { setSemanaDesbloqueada(true); setDiasConfig('semana') }
+        if (mostrandoAdGate === 'franja') { setFranjaDesbloqueada(true); setFranjaConfig('ambas') }
+      }
+    } finally {
+      setCargandoAnuncioGate(false)
+      setMostrandoAdGate(null)
+    }
+  }
+
+  function handleDiasConfigPage(key: DiasConfig) {
+    if (key === 'semana' && !semanaDesbloqueada) { setMostrandoAdGate('semana'); return }
+    setDiasConfig(key)
+  }
+
+  function handleFranjaConfigPage(key: FranjaConfig) {
+    if (key === 'ambas' && !franjaDesbloqueada) { setMostrandoAdGate('franja'); return }
+    setFranjaConfig(key)
+  }
+
+  function handleDiaPersonalizadoPage(d: Dia) {
+    if (DIAS_FIN_SEMANA.includes(d) && !semanaDesbloqueada) { setMostrandoAdGate('semana'); return }
+    setDiasPersonalizados(prev => { const next = new Set(prev); next.has(d) ? next.delete(d) : next.add(d); return next })
+  }
 
   function diasActivos(): Dia[] {
     if (diasConfig === 'semana') return DIAS
@@ -626,25 +662,28 @@ export default function Menu() {
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.modal_para_cuantos_dias}</p>
                   <div className="flex gap-2">
                     {([
-                      { key: 'semana',        label: t.modal_semana_completa },
-                      { key: 'laboral',       label: t.modal_lun_vie },
-                      { key: 'personalizado', label: t.modal_personalizado },
-                    ] as const).map(({ key, label }) => (
-                      <button key={key} onClick={() => setDiasConfig(key)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
-                        {label}
+                      { key: 'semana',        label: t.modal_semana_completa, locked: !semanaDesbloqueada },
+                      { key: 'laboral',       label: t.modal_lun_vie,         locked: false },
+                      { key: 'personalizado', label: t.modal_personalizado,   locked: false },
+                    ] as const).map(({ key, label, locked }) => (
+                      <button key={key} onClick={() => handleDiasConfigPage(key)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${locked ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-60' : diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                        {locked && '🔒'}{label}
                       </button>
                     ))}
                   </div>
                   {diasConfig === 'personalizado' && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {DIAS.map(d => (
-                        <button key={d}
-                          onClick={() => setDiasPersonalizados(prev => { const next = new Set(prev); next.has(d) ? next.delete(d) : next.add(d); return next })}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
-                          {DIAS_LABEL[d].slice(0, 3)}
-                        </button>
-                      ))}
+                      {DIAS.map(d => {
+                        const locked = DIAS_FIN_SEMANA.includes(d) && !semanaDesbloqueada
+                        return (
+                          <button key={d}
+                            onClick={() => handleDiaPersonalizadoPage(d)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : locked ? 'border-gray-200 dark:border-gray-700 text-gray-300 opacity-60' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
+                            {locked ? '🔒' : ''}{DIAS_LABEL[d].slice(0, 3)}
+                          </button>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -652,13 +691,13 @@ export default function Menu() {
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t.modal_que_comidas}</p>
                   <div className="flex gap-2">
                     {([
-                      { key: 'ambas',  label: t.modal_comida_cena },
-                      { key: 'comida', label: t.modal_solo_comida },
-                      { key: 'cena',   label: t.modal_solo_cena },
-                    ] as const).map(({ key, label }) => (
-                      <button key={key} onClick={() => setFranjaConfig(key)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
-                        {label}
+                      { key: 'ambas',  label: t.modal_comida_cena, locked: !franjaDesbloqueada },
+                      { key: 'comida', label: t.modal_solo_comida, locked: false },
+                      { key: 'cena',   label: t.modal_solo_cena,   locked: false },
+                    ] as const).map(({ key, label, locked }) => (
+                      <button key={key} onClick={() => handleFranjaConfigPage(key)}
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${locked ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-60' : franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                        {locked && '🔒'}{label}
                       </button>
                     ))}
                   </div>
@@ -974,34 +1013,33 @@ export default function Menu() {
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">{t.modal_para_cuantos_dias}</p>
             <div className="flex gap-2">
               {([
-                { key: 'semana',        label: t.modal_semana_completa },
-                { key: 'laboral',       label: t.modal_lun_vie },
-                { key: 'personalizado', label: t.modal_personalizado },
-              ] as const).map(({ key, label }) => (
+                { key: 'semana',        label: t.modal_semana_completa, locked: !semanaDesbloqueada },
+                { key: 'laboral',       label: t.modal_lun_vie,         locked: false },
+                { key: 'personalizado', label: t.modal_personalizado,   locked: false },
+              ] as const).map(({ key, label, locked }) => (
                 <button
                   key={key}
-                  onClick={() => setDiasConfig(key)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
+                  onClick={() => handleDiasConfigPage(key)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${locked ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-60' : diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
                 >
-                  {label}
+                  {locked && '🔒'}{label}
                 </button>
               ))}
             </div>
             {diasConfig === 'personalizado' && (
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {DIAS.map(d => (
-                  <button
-                    key={d}
-                    onClick={() => setDiasPersonalizados(prev => {
-                      const next = new Set(prev)
-                      next.has(d) ? next.delete(d) : next.add(d)
-                      return next
-                    })}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}
-                  >
-                    {DIAS_LABEL[d].slice(0, 3)}
-                  </button>
-                ))}
+                {DIAS.map(d => {
+                  const locked = DIAS_FIN_SEMANA.includes(d) && !semanaDesbloqueada
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => handleDiaPersonalizadoPage(d)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : locked ? 'border-gray-200 dark:border-gray-700 text-gray-300 opacity-60' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}
+                    >
+                      {locked ? '🔒' : ''}{DIAS_LABEL[d].slice(0, 3)}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1009,21 +1047,45 @@ export default function Menu() {
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">{t.modal_que_comidas}</p>
             <div className="flex gap-2">
               {([
-                { key: 'ambas',  label: t.modal_comida_cena },
-                { key: 'comida', label: t.modal_solo_comida },
-                { key: 'cena',   label: t.modal_solo_cena },
-              ] as const).map(({ key, label }) => (
+                { key: 'ambas',  label: t.modal_comida_cena, locked: !franjaDesbloqueada },
+                { key: 'comida', label: t.modal_solo_comida, locked: false },
+                { key: 'cena',   label: t.modal_solo_cena,   locked: false },
+              ] as const).map(({ key, label, locked }) => (
                 <button
                   key={key}
-                  onClick={() => setFranjaConfig(key)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
+                  onClick={() => handleFranjaConfigPage(key)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${locked ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-60' : franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}
                 >
-                  {label}
+                  {locked && '🔒'}{label}
                 </button>
               ))}
             </div>
           </div>
         </div>
+      )}
+
+      {/* Ad gate overlay para botones de la página principal */}
+      {mostrandoAdGate && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 max-w-sm w-full text-center space-y-4 shadow-xl">
+            <div className="text-4xl">🔒</div>
+            <p className="font-bold text-gray-800 dark:text-gray-100">Contenido premium</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {mostrandoAdGate === 'semana'
+                ? 'Ve un anuncio corto para desbloquear la semana completa en esta generación.'
+                : 'Ve un anuncio corto para desbloquear comida + cena en esta generación.'}
+            </p>
+            {cargandoAnuncioGate ? (
+              <p className="text-green-select text-sm font-medium animate-pulse">Cargando anuncio...</p>
+            ) : (
+              <button onClick={verAnuncioGate} className="w-full bg-green-select text-white font-bold py-3 rounded-xl text-sm hover:bg-green-600 transition-colors">
+                📺 Ver anuncio y desbloquear
+              </button>
+            )}
+            <button onClick={() => setMostrandoAdGate(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Favoritas */}
