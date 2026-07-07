@@ -415,7 +415,6 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
 
 
 function AndroidInstallBanner() {
-  const [prompt, setPrompt] = useState<Event | null>(null)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -429,7 +428,6 @@ function AndroidInstallBanner() {
     const handler = (e: Event) => {
       e.preventDefault()
       setInstallPrompt(e)
-      setPrompt(e)
       // Solo mostrar banner si no lo cerró en esta sesión
       const cerradoEnSesion = sessionStorage.getItem('install-banner-cerrado')
       if (!cerradoEnSesion) {
