@@ -10,7 +10,6 @@ import { usePerfil } from '../hooks/usePerfil'
 import { useUsuario } from '../hooks/useUsuario'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { guardar, recuperar } from '../lib/storage'
 import { usePushNotifications, DIAS_SEMANA, HORAS_DISPONIBLES } from '../hooks/usePushNotifications'
 import type { Objetivo, DificultadPreferida, Perfil } from '../types'
 
@@ -83,6 +82,7 @@ export default function Ajustes() {
   // Eliminar cuenta
   const [modalEliminar, setModalEliminar] = useState(false)
   const [confirmTexto, setConfirmTexto] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [eliminando, setEliminando] = useState(false)
   const [errorEliminar, setErrorEliminar] = useState('')
 
@@ -91,10 +91,17 @@ export default function Ajustes() {
     setErrorEliminar('')
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token
+    const isOAuth = user?.app_metadata?.provider && user.app_metadata.provider !== 'email'
+    const body = isOAuth ? undefined : { password: confirmPassword }
     const res = await supabase.functions.invoke('eliminar-cuenta', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body,
     })
-    if (res.error) { setErrorEliminar(res.error.message || 'Error al eliminar la cuenta.'); setEliminando(false); return }
+    if (res.error || res.data?.error) {
+      setErrorEliminar(res.data?.error || res.error?.message || 'Error al eliminar la cuenta.')
+      setEliminando(false)
+      return
+    }
     await supabase.auth.signOut()
     navigate('/', { replace: true })
   }
@@ -730,29 +737,43 @@ export default function Ajustes() {
               {t.eliminar_nota}
             </p>
 
-            <div>
-              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">{t.eliminar_escribe}</label>
-              <input
-                type="text"
-                value={confirmTexto}
-                onChange={e => setConfirmTexto(e.target.value)}
-                placeholder={t.eliminar_confirm_palabra}
-                className="w-full border-2 border-red-200 dark:border-red-800 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:border-red-500"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">{t.eliminar_escribe}</label>
+                <input
+                  type="text"
+                  value={confirmTexto}
+                  onChange={e => setConfirmTexto(e.target.value)}
+                  placeholder={t.eliminar_confirm_palabra}
+                  className="w-full border-2 border-red-200 dark:border-red-800 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:border-red-500"
+                />
+              </div>
+              {user?.app_metadata?.provider === 'email' || !user?.app_metadata?.provider ? (
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">Confirma tu contraseña</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Tu contraseña actual"
+                    className="w-full border-2 border-red-200 dark:border-red-800 rounded-xl px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:border-red-500"
+                  />
+                </div>
+              ) : null}
             </div>
 
             {errorEliminar && <p className="text-sm text-red-500 text-center">{errorEliminar}</p>}
 
             <div className="flex gap-3">
               <button
-                onClick={() => { setModalEliminar(false); setConfirmTexto(''); setErrorEliminar('') }}
+                onClick={() => { setModalEliminar(false); setConfirmTexto(''); setConfirmPassword(''); setErrorEliminar('') }}
                 className="flex-1 border border-gray-200 dark:border-gray-700 rounded-xl py-3 text-sm font-medium"
               >
                 {t.btn_cancelar}
               </button>
               <button
                 onClick={eliminarCuenta}
-                disabled={confirmTexto !== 'ELIMINAR' || eliminando}
+                disabled={confirmTexto !== 'ELIMINAR' || eliminando || ((!user?.app_metadata?.provider || user?.app_metadata?.provider === 'email') && !confirmPassword)}
                 className="flex-1 bg-red-500 text-white rounded-xl py-3 text-sm font-bold disabled:opacity-40 transition-opacity"
               >
                 {eliminando ? t.eliminar_btn_cargando : t.eliminar_btn}
