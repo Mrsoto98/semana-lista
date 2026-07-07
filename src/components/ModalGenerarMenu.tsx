@@ -595,7 +595,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
             <div className="text-4xl">🔒</div>
             <div>
               <p className="text-base font-bold text-gray-800 dark:text-gray-100 mb-1">Contenido premium</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Ve un anuncio corto para desbloquear la semana completa (lunes–domingo) para siempre.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Ve un anuncio corto para desbloquear la semana completa y comida+cena en esta generación.</p>
             </div>
             {cargandoAnuncio ? (
               <div className="flex items-center gap-2 text-green-select text-sm font-medium">
