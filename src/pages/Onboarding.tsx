@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TagInput } from '../components/ui/TagInput'
+import { NeveraSearch } from '../components/ui/NeveraSearch'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { usePerfil } from '../hooks/usePerfil'
 import { useUsuario } from '../hooks/useUsuario'
@@ -264,9 +265,9 @@ export default function Onboarding() {
         {paso === 10 && (
           <div className="space-y-4">
             <p className="text-gray-600 dark:text-gray-400">{t.onb_paso9_pregunta}</p>
-            <TagInput
-              tags={draft.nevera}
-              onChange={tags => set('nevera', tags)}
+            <NeveraSearch
+              items={draft.nevera}
+              onChange={items => set('nevera', items)}
               placeholder={t.onb_paso9_ph}
             />
           </div>
