@@ -6,7 +6,6 @@ import type { DificultadPreferida, Dia } from '../types'
 import { DIAS, DIAS_LABEL } from '../types'
 import { esNativo, mostrarAnuncioRewarded, mostrarAnuncioRewardedWeb } from '../lib/ads'
 
-const PREMIUM_KEY = 'menu-semana-premium'
 const DIAS_FIN_SEMANA: Dia[] = ['sabado', 'domingo']
 
 interface ProductoMercadona {
@@ -118,7 +117,7 @@ function PillSelector({
 
 export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
   const { t } = useI18n()
-  const [premiumDesbloqueado, setPremiumDesbloqueado] = useState(() => localStorage.getItem(PREMIUM_KEY) === '1')
+  const [premiumDesbloqueado, setPremiumDesbloqueado] = useState(false)
   const [mostrandoAdGate, setMostrandoAdGate] = useState<'semana' | 'franja' | null>(null)
   const [cargandoAnuncio, setCargandoAnuncio] = useState(false)
 
@@ -129,7 +128,6 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
         ? await mostrarAnuncioRewarded()
         : await mostrarAnuncioRewardedWeb()
       if (resultado === 'recompensa') {
-        localStorage.setItem(PREMIUM_KEY, '1')
         setPremiumDesbloqueado(true)
         if (mostrandoAdGate === 'semana') onDiasConfigChange('semana')
         if (mostrandoAdGate === 'franja') onFranjaConfigChange('ambas')
