@@ -10,7 +10,6 @@ import { usePerfil } from '../hooks/usePerfil'
 import { useUsuario } from '../hooks/useUsuario'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { guardar, recuperar } from '../lib/storage'
 import { usePushNotifications, DIAS_SEMANA, HORAS_DISPONIBLES } from '../hooks/usePushNotifications'
 import type { Objetivo, DificultadPreferida, Perfil } from '../types'
 
