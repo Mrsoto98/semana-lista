@@ -1,0 +1,4491 @@
+{
+  "Aceite de oliva 0,4º": [
+    "ALL"
+  ],
+  "Aceite de oliva virgen extra": [
+    "ALL"
+  ],
+  "Aceite de oliva virgen extra Gran Selección": [
+    "ALL"
+  ],
+  "Aceite de oliva 1º": [
+    "ALL"
+  ],
+  "Aceite de oliva virgen": [
+    "ALL"
+  ],
+  "Aceite de oliva virgen extra Picual Casa Juncal": [
+    "ALL"
+  ],
+  "Vinagre de vino blanco": [
+    "ALL"
+  ],
+  "Vinagre de manzana": [
+    "ALL"
+  ],
+  "Limón exprimido": [
+    "ALL"
+  ],
+  "Crema de vinagre balsámico de Módena": [
+    "I",
+    "E"
+  ],
+  "Vinagre de Jerez reserva": [
+    "E"
+  ],
+  "Reducción bálsamica de vinagre Pedro Ximénez": [
+    "E"
+  ],
+  "Vinagre balsámico de Módena": [
+    "I",
+    "E"
+  ],
+  "Vinagre de manzana sin filtrar": [
+    "ALL"
+  ],
+  "Aceite de girasol refinado 0,2º": [
+    "ALL"
+  ],
+  "Aceite de coco virgen": [
+    "AS"
+  ],
+  "Sal fina": [
+    "ALL"
+  ],
+  "Sal fina de mesa": [
+    "ALL"
+  ],
+  "Sal yodada fina": [
+    "ALL"
+  ],
+  "Sal gruesa": [
+    "ALL"
+  ],
+  "Bicarbonato de sódio": [
+    "ALL"
+  ],
+  "Escamas de sal marina natural Polasal": [
+    "ALL"
+  ],
+  "Sal gruesa para hornear": [
+    "ALL"
+  ],
+  "Sal de ajo": [
+    "ALL"
+  ],
+  "Sal de frutas sabor limón": [
+    "ALL"
+  ],
+  "Sal 60% menos de sodio": [
+    "ALL"
+  ],
+  "Preparado para ahumar": [
+    "E",
+    "AM"
+  ],
+  "Sal rosa del Himalaya": [
+    "ALL"
+  ],
+  "Orégano": [
+    "ALL"
+  ],
+  "Perejil": [
+    "ALL"
+  ],
+  "Hoja de laurel": [
+    "ALL"
+  ],
+  "Hierbas provenzales": [
+    "E"
+  ],
+  "Albahaca": [
+    "I",
+    "E"
+  ],
+  "Tomillo": [
+    "ALL"
+  ],
+  "Eneldo": [
+    "AS"
+  ],
+  "Cilantro": [
+    "M",
+    "AS"
+  ],
+  "Ajo y Perejil": [
+    "ALL"
+  ],
+  "Romero": [
+    "E"
+  ],
+  "Colorante alimentario": [
+    "ALL"
+  ],
+  "Pimentón dulce de la Vera": [
+    "E",
+    "T"
+  ],
+  "Azafrán molido": [
+    "E",
+    "I"
+  ],
+  "Azafrán hebra": [
+    "E",
+    "I"
+  ],
+  "Pimentón picante": [
+    "E",
+    "T"
+  ],
+  "Pimentón dulce": [
+    "E",
+    "T"
+  ],
+  "Pimienta negra molida": [
+    "ALL"
+  ],
+  "Molinillo pimienta negra": [
+    "ALL"
+  ],
+  "Pimienta negra en grano": [
+    "ALL"
+  ],
+  "Molinillo mix pimientas": [
+    "ALL"
+  ],
+  "Pimienta blanca molida": [
+    "ALL"
+  ],
+  "Ajo granulado": [
+    "ALL"
+  ],
+  "Arroz redondo": [
+    "ALL"
+  ],
+  "Arroz largo": [
+    "ALL"
+  ],
+  "Arroz redondo La Fallera": [
+    "E"
+  ],
+  "Arroz cocido basmati Sabroz": [
+    "AS"
+  ],
+  "Arroz cocido integral Sabroz": [
+    "S"
+  ],
+  "Arroz Albufera": [
+    "E"
+  ],
+  "Quinoa cocida blanca y roja Sabroz": [
+    "S"
+  ],
+  "Arroz cocido redondo Sabroz": [
+    "E"
+  ],
+  "Arroz redondo J Sendra": [
+    "E"
+  ],
+  "Arroz basmati aromático": [
+    "AS"
+  ],
+  "Cous cous mediano": [
+    "ALL"
+  ],
+  "Arroz vaporizado": [
+    "ALL"
+  ],
+  "Quinoa": [
+    "S"
+  ],
+  "Arroz integral largo": [
+    "S"
+  ],
+  "Arroz redondo Sabor": [
+    "E"
+  ],
+  "Arroz largo Sabroz": [
+    "E"
+  ],
+  "Garbanzo cocido": [
+    "T",
+    "E"
+  ],
+  "Garbanzo cocido Pedrosillano": [
+    "T",
+    "E"
+  ],
+  "Garbanzo": [
+    "ALL"
+  ],
+  "Garbanzo lechoso Andaluz": [
+    "T",
+    "E"
+  ],
+  "Alubia cocida blanca": [
+    "T",
+    "E"
+  ],
+  "Alubia cocida roja": [
+    "T",
+    "E"
+  ],
+  "Alubia cocida pinta": [
+    "T",
+    "E"
+  ],
+  "Alubia blanca": [
+    "T",
+    "E"
+  ],
+  "Alubia negra": [
+    "T",
+    "E"
+  ],
+  "Alubia roja": [
+    "ALL"
+  ],
+  "Alubia cocida granja": [
+    "T",
+    "E"
+  ],
+  "Alubia pinta": [
+    "ALL"
+  ],
+  "Lenteja pardina": [
+    "ALL"
+  ],
+  "Lenteja cocida": [
+    "ALL"
+  ],
+  "Soja texturizada Luengo": [
+    "AS"
+  ],
+  "Fideo cabello de ángel": [
+    "T"
+  ],
+  "Fideuá": [
+    "E"
+  ],
+  "Fideo grueso": [
+    "T"
+  ],
+  "Pasta estrellas": [
+    "ALL"
+  ],
+  "Pasta maravilla": [
+    "ALL"
+  ],
+  "Fideo mediano": [
+    "T"
+  ],
+  "Pasta estrellas sin gluten Felicia": [
+    "ALL"
+  ],
+  "Pajaritas vegetales": [
+    "ALL"
+  ],
+  "Macarrón rayado integral": [
+    "ALL"
+  ],
+  "Pasta tortiglioni Armando": [
+    "I"
+  ],
+  "Hélices con vegetales": [
+    "ALL"
+  ],
+  "Macarrón fino": [
+    "ALL"
+  ],
+  "Macarrón al huevo": [
+    "I"
+  ],
+  "Macarrón": [
+    "ALL"
+  ],
+  "Pasta penne Armando": [
+    "I"
+  ],
+  "Pasta fusilli 100% lentejas rojas Felicia": [
+    "AS",
+    "S"
+  ],
+  "Pasta trottole vegetales": [
+    "ALL"
+  ],
+  "Pasta fusilli Armando": [
+    "I"
+  ],
+  "Pasta tiburón": [
+    "ALL"
+  ],
+  "Arreglo para puchero vacuno, cerdo y pollo": [
+    "T"
+  ],
+  "Arreglo para arroz al horno": [
+    "E"
+  ],
+  "Pelota para cocido de cerdo": [
+    "T"
+  ],
+  "Trozo de vacuno para cocido": [
+    "T"
+  ],
+  "Compango": [
+    "T"
+  ],
+  "Hueso garrón": [
+    "T"
+  ],
+  "Osobuco de cerdo": [
+    "T"
+  ],
+  "Espinazo de cerdo": [
+    "T"
+  ],
+  "Arreglo para paella con pollo y conejo": [
+    "E"
+  ],
+  "Manos de cerdo": [
+    "T"
+  ],
+  "Costilla de vacuno": [
+    "T"
+  ],
+  "Chorizo asturiano": [
+    "E"
+  ],
+  "Hueso blanco de cerdo salado": [
+    "T"
+  ],
+  "Hueso vacuno": [
+    "T"
+  ],
+  "Filetes pechuga de pavo": [
+    "ALL"
+  ],
+  "Chuletas de pavo contramuslo": [
+    "ALL"
+  ],
+  "Tacos de pavo": [
+    "ALL"
+  ],
+  "Solomillo de pavo": [
+    "ALL"
+  ],
+  "Filetes de pavo contramuslo": [
+    "ALL"
+  ],
+  "Foie gras de pato fresco": [
+    "E"
+  ],
+  "Codornices": [
+    "E",
+    "I",
+    "AS"
+  ],
+  "Magret de pato": [
+    "E",
+    "I"
+  ],
+  "Filetes pechuga de pavo marinados extra tiernos": [
+    "ALL"
+  ],
+  "Taquitos de pollo": [
+    "M"
+  ],
+  "Filetes pechuga de pollo corte fino": [
+    "ALL"
+  ],
+  "Filetes pechuga de pollo": [
+    "ALL"
+  ],
+  "Contramuslos de pollo deshuesados y sin piel": [
+    "ALL"
+  ],
+  "Solomillos de pollo": [
+    "ALL"
+  ],
+  "Pechugas enteras familiar de pollo": [
+    "ALL"
+  ],
+  "Pechugas enteras de pollo": [
+    "ALL"
+  ],
+  "Cuartos traseros familiar de pollo": [
+    "ALL"
+  ],
+  "Cuartos traseros de pollo": [
+    "ALL"
+  ],
+  "Brochetas de pollo, pimiento verde y tocino de cerdo con varilla": [
+    "E"
+  ],
+  "Muslos de pollo deshuesados con piel": [
+    "ALL"
+  ],
+  "Medio pollo troceado": [
+    "ALL"
+  ],
+  "Jamoncitos de pollo": [
+    "ALL"
+  ],
+  "Alas partidas de pollo": [
+    "ALL"
+  ],
+  "Carcasa y espinazo de pollo": [
+    "ALL"
+  ],
+  "Filetes pechuga de pollo marinadas empanadas sin gluten": [
+    "ALL"
+  ],
+  "Filetes pechuga de pollo finas hierbas marinadas": [
+    "ALL"
+  ],
+  "Filetes pechuga de pollo certificado alimentado con un 50% de maíz": [
+    "ALL"
+  ],
+  "Flautas de pollo y queso": [
+    "M"
+  ],
+  "Pollo entero": [
+    "ALL"
+  ],
+  "Hígados y corazones de pollo": [
+    "ALL"
+  ],
+  "Cuartos traseros de pollo certificado alimentado con un 50% de maíz": [
+    "ALL"
+  ],
+  "Alas de pollo": [
+    "ALL"
+  ],
+  "Alas de pollo adobadas": [
+    "M"
+  ],
+  "Contramuslos de pollo sin piel": [
+    "ALL"
+  ],
+  "Carcasa de pollo certificado alimentado con un 50% de maíz": [
+    "ALL"
+  ],
+  "Jamoncitos de pollo certificado alimentado con un 50% de maíz": [
+    "ALL"
+  ],
+  "Pechuga pavo cocida extrafino lonchas": [
+    "ALL"
+  ],
+  "Pechuga de pollo braseada extrafino lonchas": [
+    "ALL"
+  ],
+  "Pechuga de pavo reducido en sal finas lonchas": [
+    "ALL"
+  ],
+  "Pechuga de pavo finas lonchas": [
+    "ALL"
+  ],
+  "Salchichón de pavo extra lonchas": [
+    "ALL"
+  ],
+  "Longaniza de pavo extra lonchas": [
+    "ALL"
+  ],
+  "Tiras de pechuga pollo al horno": [
+    "ALL"
+  ],
+  "Jamón de pavo finas lonchas": [
+    "ALL"
+  ],
+  "Tiras de pechuga de pollo al natural": [
+    "ALL"
+  ],
+  "Pechuga de pavo al horno de leña lonchas": [
+    "ALL"
+  ],
+  "Pechuga 92% pavo lonchas": [
+    "ALL"
+  ],
+  "Pechuga de pavo Noel lonchas muy finas": [
+    "ALL"
+  ],
+  "Pollo 97% relleno La Carloteña asado al horno lonchas": [
+    "ALL"
+  ],
+  "Jamón de pavo": [
+    "ALL"
+  ],
+  "Longaniza de pavo Imperial extra": [
+    "ALL"
+  ],
+  "Cabeza de cerdo finas lonchas": [
+    "E"
+  ],
+  "Pechuguita de pollo 99% La Carloteña asada al horno lonchas": [
+    "ALL"
+  ],
+  "Maxi pavo finas lonchas": [
+    "ALL"
+  ],
+  "Lomo asado La Carloteña lonchas": [
+    "ALL"
+  ],
+  "Muslito de pollo 97% La Carloteña asado al horno lonchas": [
+    "ALL"
+  ],
+  "Mini muslo de pollo 98% La Carloteña asado al horno": [
+    "ALL"
+  ],
+  "Sticks longaniza de pavo extra": [
+    "ALL"
+  ],
+  "Lomo de cerdo cocido finas lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido extra finas lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido sándwich lonchas": [
+    "ALL"
+  ],
+  "Maxi york finas lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido extra Noel lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido braseado Noel lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido extra cortado a mano Noel sabor ahumado": [
+    "ALL"
+  ],
+  "Magro de cerdo cocido Coren": [
+    "ALL"
+  ],
+  "Maxi york": [
+    "ALL"
+  ],
+  "Lacón al horno Noel lonchas": [
+    "E"
+  ],
+  "Pechuga de pollo 92% lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido extra 50% raza ibérica Noel lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido extrafino lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido finas lonchas": [
+    "ALL"
+  ],
+  "Jamón cocido jugoso lonchas": [
+    "ALL"
+  ],
+  "Bacón cintas": [
+    "ALL"
+  ],
+  "Bacón ahumado La Selva lonchas": [
+    "ALL"
+  ],
+  "Bacón Oscar Mayer lonchas": [
+    "ALL"
+  ],
+  "Bacón ahumado sin corteza La Selva": [
+    "ALL"
+  ],
+  "Panceta salada ibérica La Hacienda del ibérico": [
+    "E"
+  ],
+  "Lomo back bacon": [
+    "ALL"
+  ],
+  "Panceta curada sin corteza La Selva lonchas": [
+    "ALL"
+  ],
+  "Torrezno precocinado": [
+    "E"
+  ],
+  "Salchichas cocidas estilo Frankfurt de pollo y cerdo sabor ahumado": [
+    "ALL"
+  ],
+  "Salchichas cocidas de pollo y pavo sabor ahumado": [
+    "ALL"
+  ],
+  "Salchichas cocidas Schara de cerdo ahumadas": [
+    "ALL"
+  ],
+  "Salchichas cocidas estilo Viena con queso de pollo y cerdo sabor ahumado": [
+    "ALL"
+  ],
+  "Arroz tres delicias ultracongelado": [
+    "AS"
+  ],
+  "Arroz para microondas ultracongelado": [
+    "ALL"
+  ],
+  "Risotto de setas para microondas ultracongelado": [
+    "I"
+  ],
+  "Arroz negro ultracongelado": [
+    "I"
+  ],
+  "Arroz con verduras para microondas ultracongelado": [
+    "ALL"
+  ],
+  "Arroz marinera ultracongelado": [
+    "E"
+  ],
+  "Arroz campestre con pollo ultracongelado": [
+    "ALL"
+  ],
+  "Lasaña boloñesa familiar ultracongelada": [
+    "I"
+  ],
+  "Lasaña a la boloñesa ultracongelada": [
+    "I"
+  ],
+  "Canelones de carne ultracongelados": [
+    "I"
+  ],
+  "Lasaña de atún ultracongelada": [
+    "I"
+  ],
+  "Pasta con pollo al pesto ultracongelada": [
+    "I"
+  ],
+  "Gnocchi de pollo y verduras ultracongelados": [
+    "I"
+  ],
+  "Gyozas de pollo y verduras congeladas": [
+    "AS"
+  ],
+  "Jamoncitos de pollo congelados": [
+    "ALL"
+  ],
+  "Alas de pollo congeladas": [
+    "ALL"
+  ],
+  "Medallones preparado de solomillo cerdo congelados marinados": [
+    "ALL"
+  ],
+  "Solomillo de pavo marinado congelado": [
+    "ALL"
+  ],
+  "Cuartos traseros de pollo congelados": [
+    "ALL"
+  ],
+  "Solomillo de cerdo marinado congelado": [
+    "ALL"
+  ],
+  "Paletilla de lechal entera congelada": [
+    "E"
+  ],
+  "Pierna de lechal entera congelada": [
+    "E"
+  ],
+  "Chuletas cordero de lechal congeladas": [
+    "E"
+  ],
+  "Carrillada de vacuno congelado": [
+    "T"
+  ],
+  "Pechugas de pollo enteras congeladas": [
+    "ALL"
+  ],
+  "Alas de pollo barbacoa congeladas": [
+    "AM"
+  ],
+  "Carrillada de cerdo congelada": [
+    "T"
+  ],
+  "Brochetas de pollo Yakitori ultracongeladas": [
+    "AS"
+  ],
+  "Garreta paletilla de cordero congelada": [
+    "E"
+  ],
+  "Mix frutos rojos ultracongeladas": [
+    "S"
+  ],
+  "Fresas enteras ultracongeladas": [
+    "S"
+  ],
+  "Arándanos enteros ultracongelados": [
+    "S"
+  ],
+  "Mix frutas tropical ultracongeladas": [
+    "S"
+  ],
+  "Aguacate en dados congelado": [
+    "S"
+  ],
+  "Dúo frutas fresa y plátano congeladas": [
+    "S"
+  ],
+  "Verdura para paella ultracongelada": [
+    "E"
+  ],
+  "Ensaladilla ultracongelada": [
+    "E"
+  ],
+  "Garrofón ultracongelado": [
+    "E"
+  ],
+  "Garbanzo ultracongelado": [
+    "ALL"
+  ],
+  "Guisante muy tierno ultracongelado": [
+    "ALL"
+  ],
+  "Guisante fino ultracongelado": [
+    "ALL"
+  ],
+  "Judía verde plana ultracongelada": [
+    "ALL"
+  ],
+  "Cebolla troceada ultracongelada": [
+    "ALL"
+  ],
+  "Judía verde redonda ultracongelada": [
+    "ALL"
+  ],
+  "Ajo tierno ultracongelado": [
+    "ALL"
+  ],
+  "Alcachofa troceada ultracongelada": [
+    "E",
+    "S"
+  ],
+  "Espinaca en porciones ultracongelada": [
+    "ALL",
+    "S"
+  ],
+  "Espinaca picada en porciones ultracongelada": [
+    "ALL",
+    "S"
+  ],
+  "Menestra de verduras ultracongelada": [
+    "ALL"
+  ],
+  "Relleno fajitas pollo, pimientos y cebolla ultracongelado": [
+    "AM"
+  ],
+  "Atún listado al natural": [
+    "ALL"
+  ],
+  "Atún en aceite de girasol": [
+    "ALL"
+  ],
+  "Atún claro en aceite de girasol": [
+    "ALL"
+  ],
+  "Atún en aceite de oliva": [
+    "ALL"
+  ],
+  "Atún claro en aceite de oliva": [
+    "ALL"
+  ],
+  "Atún claro al natural": [
+    "ALL"
+  ],
+  "Atún claro en escabeche blanco": [
+    "E"
+  ],
+  "Atún en salsa de tomate": [
+    "E",
+    "T"
+  ],
+  "Ventresca de atún claro en aceite de oliva": [
+    "ALL"
+  ],
+  "Migas de bonito del norte en aceite de oliva": [
+    "ALL"
+  ],
+  "Bonito del norte en aceite de oliva": [
+    "E",
+    "S"
+  ],
+  "Filetes de bonito del norte en aceite de oliva": [
+    "E",
+    "S"
+  ],
+  "Filetes de caballa del sur en aceite de oliva": [
+    "E",
+    "S"
+  ],
+  "Filetes de caballa del sur en tomate": [
+    "E"
+  ],
+  "Filetes de caballa del sur contenido reducido en sal en aceite de oliva": [
+    "E",
+    "S"
+  ],
+  "Filetes de melva en aceite de oliva": [
+    "E",
+    "S"
+  ],
+  "Filetes de melva canutera con pimientos del piquillo en aceite de oliva": [
+    "E"
+  ],
+  "Sardinas en aceite de oliva": [
+    "E",
+    "S"
+  ],
+  "Sardinillas en aceite de oliva": [
+    "E",
+    "S"
+  ],
+  "Sardinillas reducidas en sal en aceite de oliva": [
+    "E",
+    "S"
+  ],
+  "Sardinillas en tomate": [
+    "E"
+  ],
+  "Sardinillas picantes en aceite de girasol": [
+    "E"
+  ],
+  "Sardinillas en escabeche": [
+    "E"
+  ],
+  "Calamar en salsa americana": [
+    "AM"
+  ],
+  "Calamar en tinta": [
+    "E",
+    "I"
+  ],
+  "Tacos de pota al ajillo": [
+    "AM"
+  ],
+  "Salmón al natural": [
+    "E",
+    "S"
+  ],
+  "Chipirones rellenos enteros en aceite de girasol": [
+    "E"
+  ],
+  "Berberecho al natural XS": [
+    "E",
+    "S"
+  ],
+  "Almejones al natural": [
+    "E",
+    "S"
+  ],
+  "Zamburiñas en salsa de vieira": [
+    "E"
+  ],
+  "Mejillones de Chile en escabeche pequeños": [
+    "E"
+  ],
+  "Mejillones en escabeche pequeños": [
+    "E"
+  ],
+  "Mejillones en escabeche medianos": [
+    "E"
+  ],
+  "Mejillones al natural pequeños": [
+    "E"
+  ],
+  "Mejillones picantes en escabeche pequeños": [
+    "E"
+  ],
+  "Mejillones en salsa de vieira pequeños": [
+    "E"
+  ],
+  "Maíz dulce": [
+    "ALL"
+  ],
+  "Espárragos blancos medianos": [
+    "ALL"
+  ],
+  "Espárragos blancos delgados cortos": [
+    "ALL"
+  ],
+  "Espárragos blancos muy gruesos enteros": [
+    "ALL"
+  ],
+  "Champiñones laminados": [
+    "ALL"
+  ],
+  "Champiñón laminado": [
+    "ALL"
+  ],
+  "Champiñón entero": [
+    "ALL"
+  ],
+  "Pimientos del piquillo enteros extra": [
+    "E"
+  ],
+  "Guisantes extra": [
+    "ALL"
+  ],
+  "Pimientos rojos asados en tiras extra": [
+    "E"
+  ],
+  "Judías verdes redondas": [
+    "ALL"
+  ],
+  "Pimientos asados en tiras": [
+    "E"
+  ],
+  "Corazones de alcachofa": [
+    "ALL"
+  ],
+  "Plátano de Canarias IGP": [
+    "AM"
+  ],
+  "Banana": [
+    "AM"
+  ],
+  "Plátano macho": [
+    "M"
+  ],
+  "Uva blanca sin semillas": [
+    "ALL"
+  ],
+  "Uva roja sin semillas": [
+    "ALL"
+  ],
+  "Manzana Golden": [
+    "ALL"
+  ],
+  "Manzanas Golden": [
+    "ALL"
+  ],
+  "Pera Conferencia": [
+    "ALL"
+  ],
+  "Peras Conferencia": [
+    "ALL"
+  ],
+  "Manzana roja dulce": [
+    "ALL"
+  ],
+  "Manzanas rojas dulces": [
+    "ALL"
+  ],
+  "Pera Ercolina": [
+    "ALL"
+  ],
+  "Manzana Granny Smith": [
+    "ALL"
+  ],
+  "Manzana roja acidulce": [
+    "ALL"
+  ],
+  "Manzanas rojas acidulces": [
+    "ALL"
+  ],
+  "1/4 Sandía baja en semillas": [
+    "S"
+  ],
+  "Media sandía baja en semillas": [
+    "S"
+  ],
+  "Sandía baja en semillas": [
+    "S"
+  ],
+  "Medio melón piel de sapo": [
+    "S"
+  ],
+  "Melón piel de sapo": [
+    "S"
+  ],
+  "Melón Galia": [
+    "S"
+  ],
+  "Limones": [
+    "ALL"
+  ],
+  "Limón": [
+    "ALL"
+  ],
+  "Naranja de mesa": [
+    "S"
+  ],
+  "Naranjas": [
+    "S"
+  ],
+  "Pomelo": [
+    "S"
+  ],
+  "Lima": [
+    "AS"
+  ],
+  "Kiwi verde": [
+    "S"
+  ],
+  "Kiwis verdes": [
+    "S"
+  ],
+  "Kiwis amarillos": [
+    "S"
+  ],
+  "Aguacate": [
+    "E",
+    "S"
+  ],
+  "Aguacates": [
+    "E",
+    "S"
+  ],
+  "Piña": [
+    "AS",
+    "AM"
+  ],
+  "Piña natural a rodajas": [
+    "AS",
+    "AM"
+  ],
+  "Guacamole": [
+    "M"
+  ],
+  "Mango": [
+    "AS"
+  ],
+  "Papaya": [
+    "AS"
+  ],
+  "Albaricoques": [
+    "S"
+  ],
+  "Cerezas": [
+    "S"
+  ],
+  "Nectarina": [
+    "S"
+  ],
+  "Nectarinas": [
+    "S"
+  ],
+  "Fresas": [
+    "S"
+  ],
+  "Ciruela roja": [
+    "S"
+  ],
+  "Frambuesas": [
+    "S"
+  ],
+  "Moras": [
+    "S"
+  ],
+  "Arándanos": [
+    "S"
+  ],
+  "Melocotones amarillos": [
+    "S"
+  ],
+  "Melocotón amarillo": [
+    "S"
+  ],
+  "Paraguayo": [
+    "S"
+  ],
+  "Paraguayos": [
+    "S"
+  ],
+  "Huevos": [
+    "ALL"
+  ],
+  "Huevos super grandes XL": [
+    "ALL"
+  ],
+  "Huevos grandes L": [
+    "ALL"
+  ],
+  "Huevos medianos M": [
+    "ALL"
+  ],
+  "Huevos de gallinas camperas": [
+    "ALL"
+  ],
+  "Huevos cocidos": [
+    "ALL"
+  ],
+  "Huevos de codorniz": [
+    "ALL"
+  ],
+  "Claras de huevo líquidas pasteurizadas": [
+    "ALL"
+  ],
+  "Leche semidesnatada": [
+    "ALL"
+  ],
+  "Leche semidesnatada sin lactosa": [
+    "ALL"
+  ],
+  "Leche semidesnatada calcio": [
+    "ALL"
+  ],
+  "Leche semidesnatada Asturiana": [
+    "ALL"
+  ],
+  "Bebida láctea semidesnatada con fibra": [
+    "S"
+  ],
+  "Leche semidesnatada de cabra": [
+    "ALL"
+  ],
+  "Leche desnatada +Proteínas & calcio": [
+    "S"
+  ],
+  "Leche desnatada": [
+    "ALL"
+  ],
+  "Leche desnatada sin lactosa": [
+    "S"
+  ],
+  "Leche desnatada calcio": [
+    "ALL"
+  ],
+  "Bebida láctea Omega 3 Puleva con leche desnatada": [
+    "S"
+  ],
+  "Leche desnatada Asturiana": [
+    "ALL"
+  ],
+  "Bebida láctea desnatada omega 3": [
+    "S"
+  ],
+  "Bebida láctea Omega 3 Puleva con nueces y leche desnatada": [
+    "S"
+  ],
+  "Leche en polvo desnatada": [
+    "ALL"
+  ],
+  "Leche entera": [
+    "ALL"
+  ],
+  "Leche entera Asturiana": [
+    "ALL"
+  ],
+  "Leche entera sin lactosa": [
+    "ALL"
+  ],
+  "Bebida de avena Alitey": [
+    "S"
+  ],
+  "Bebida de avena con calcio sin azúcares añadidos": [
+    "S"
+  ],
+  "Horchata fresca": [
+    "E"
+  ],
+  "Bebida de soja con calcio y vitaminas sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida de soja 0% azúcar": [
+    "S"
+  ],
+  "Bebida de almendras 0% azúcar": [
+    "S"
+  ],
+  "Bebida de arroz sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida de almendras con calcio": [
+    "S"
+  ],
+  "Preparado de coco": [
+    "AS"
+  ],
+  "Bebida de coco y arroz sin azúcares añadidos": [
+    "S"
+  ],
+  "Horchata de chufa": [
+    "E"
+  ],
+  "Bebida de avena con café": [
+    "S"
+  ],
+  "Bebida de avellana y arroz sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida de soja sabor vainilla 0% azúcar": [
+    "S"
+  ],
+  "Bebida de avena 0% azúcar": [
+    "S"
+  ],
+  "Bebida de avena con chocolate sin azucares añadidos": [
+    "S"
+  ],
+  "Bebida de avena con chocolate sin azúcares añadidos": [
+    "S"
+  ],
+  "Horchata de chufa sin azúcares añadidos": [
+    "E"
+  ],
+  "Bebida de soja sabor café 0% azúcar": [
+    "S"
+  ],
+  "Batido de chocolate": [
+    "S"
+  ],
+  "Batido de chocolate 90% leche": [
+    "ALL"
+  ],
+  "Batido de chocolate 90% leche Puleva": [
+    "ALL"
+  ],
+  "Batido de chocolate ColaCao Energy": [
+    "ALL"
+  ],
+  "Batido sabor vainilla": [
+    "ALL"
+  ],
+  "Preparado de paella y sopa ultracongelado": [
+    "E",
+    "T"
+  ],
+  "Arreglo de marisco pelado": [
+    "E",
+    "I"
+  ],
+  "Gambón congelado": [
+    "E",
+    "I"
+  ],
+  "Gambón grande congelado": [
+    "E",
+    "I"
+  ],
+  "Alistado mediano ultracongelado": [
+    "E",
+    "I"
+  ],
+  "Langostino cocido": [
+    "E",
+    "I"
+  ],
+  "Langostino crudo ultracongelado": [
+    "E",
+    "I"
+  ],
+  "Gamba cocida": [
+    "E",
+    "I"
+  ],
+  "Gamba pelada cruda tamaño mediano ultracongelada": [
+    "E",
+    "I"
+  ],
+  "Gamba pelada cruda tamaño grande ultracongelada": [
+    "E",
+    "I"
+  ],
+  "Camarón boreal cocido y pelado Royal Greenland ultracongelado": [
+    "AS"
+  ],
+  "Langostino cocido y pelado ultracongelado": [
+    "E",
+    "I"
+  ],
+  "Langostino crudo y pelado ultracongelado": [
+    "E",
+    "I"
+  ],
+  "Cigala cruda mediana ultracongelada": [
+    "E",
+    "I"
+  ],
+  "Bogavante americano mediano crudo": [
+    "E",
+    "I"
+  ],
+  "Buey de mar cocido congelado": [
+    "E"
+  ],
+  "Colas de gambón crudo congelado": [
+    "E",
+    "I"
+  ],
+  "Salpicón de marisco": [
+    "E"
+  ],
+  "Carne de mejillón cocido ultracongelado": [
+    "E",
+    "I"
+  ],
+  "Mejillón de Chile entero cocido ultracongelado": [
+    "E",
+    "I"
+  ],
+  "Almeja congelada": [
+    "E",
+    "I"
+  ],
+  "Berberechos": [
+    "E"
+  ],
+  "Navajas": [
+    "E"
+  ],
+  "Chirla": [
+    "E"
+  ],
+  "Mejillón mediterráneo": [
+    "E"
+  ],
+  "Clóchina Valenciana": [
+    "E"
+  ],
+  "Palitos de surimi": [
+    "AM"
+  ],
+  "Palitos de surimi ultracongelados": [
+    "AM"
+  ],
+  "Muslitos de surimi ultracongelados": [
+    "AM"
+  ],
+  "Caracoles precocidos ultracongelados": [
+    "E"
+  ],
+  "Delicias del mar de surimi": [
+    "AM"
+  ],
+  "Filetes de panga ultracongelados": [
+    "ALL"
+  ],
+  "Filetes de merluza del Cabo sin piel ultracongelados": [
+    "E"
+  ],
+  "Rodaja de emperador ultracongelado": [
+    "E",
+    "I"
+  ],
+  "Filetes de bacalao MareDeus ultracongelado": [
+    "E"
+  ],
+  "Filete de salmón rosado salvaje con piel ultracongelado": [
+    "E"
+  ],
+  "Rodajas de emperador pequeñas ultracongeladas": [
+    "S"
+  ],
+  "Fritura de pescado ultracongelada": [
+    "E"
+  ],
+  "Porciones de bacalao sin piel MareDeus ultracongeladas": [
+    "E"
+  ],
+  "Rodaja de tintorera sin piel ultracongelada": [
+    "E"
+  ],
+  "Porciones de merluza del Cabo sin piel ultracongeladas": [
+    "E",
+    "S"
+  ],
+  "Pescadilla de merluza sin cabeza ultracongelada": [
+    "E",
+    "S"
+  ],
+  "Cola de rape del Cabo sin piel ultracongelada": [
+    "E",
+    "S"
+  ],
+  "Filetes de merluza del Cabo grandes sin piel ultracongelados": [
+    "E",
+    "S"
+  ],
+  "Merluza del Cabo sin cabeza ultracongelada": [
+    "E",
+    "S"
+  ],
+  "Lomos de salmón sin piel congelado": [
+    "E",
+    "S"
+  ],
+  "Migas de bacalao sin piel MareDeus ultracongeladas": [
+    "E",
+    "T"
+  ],
+  "Rodajas de atún de aleta amarilla congelado": [
+    "E",
+    "S"
+  ],
+  "Lomo de bacalao MareDeus ultracongelado": [
+    "E",
+    "T"
+  ],
+  "Medallones de salmón cocinar congelados": [
+    "E",
+    "S"
+  ],
+  "Pepito de crema": [
+    "ALL"
+  ],
+  "Bizcocho relleno de caramelo salado": [
+    "ALL"
+  ],
+  "Croissant de mantequilla 26%": [
+    "ALL"
+  ],
+  "Pastel de crema 65%": [
+    "ALL"
+  ],
+  "12 Mini croissants de mantequilla": [
+    "ALL"
+  ],
+  "6 Croissant rellenos de cacao": [
+    "ALL"
+  ],
+  "Bizcocho de yogur": [
+    "ALL"
+  ],
+  "Berlina glacé": [
+    "ALL"
+  ],
+  "Berlina al cacao": [
+    "ALL"
+  ],
+  "Rosquillas al cacao": [
+    "ALL"
+  ],
+  "Magdalenas con azúcar": [
+    "ALL"
+  ],
+  "Magdalenas con pepitas de chocolate": [
+    "ALL"
+  ],
+  "Ensaimada": [
+    "E"
+  ],
+  "Trenza con nueces 4%": [
+    "E"
+  ],
+  "Caracola con pasas 10%": [
+    "E"
+  ],
+  "Napolitana de chocolate 35%": [
+    "ALL"
+  ],
+  "Bizcocho de cacao": [
+    "ALL"
+  ],
+  "Bizcocho con azúcar moreno y nueces": [
+    "ALL"
+  ],
+  "Bizcocho de chocolate sin gluten y sin lactosa": [
+    "ALL"
+  ],
+  "Bizcocho azúcar sin gluten": [
+    "ALL"
+  ],
+  "Croissants surtidos rellenos de crema de cacao y crema con leche sabor a chocolate blanco": [
+    "ALL"
+  ],
+  "Berlina con cobertura de cacao crunch rellena de crema de cacao": [
+    "ALL"
+  ],
+  "Napolitana de crema 31%": [
+    "ALL"
+  ],
+  "Bizcocho de manzana": [
+    "ALL"
+  ],
+  "Berlina con cobertura de frutos rojos y virutas de chocolate blanco relleno 30% arándanos": [
+    "E"
+  ],
+  "Fartons": [
+    "ALL"
+  ],
+  "Empanadilla de bacon 11% y queso 32%": [
+    "ALL"
+  ],
+  "Empanada de atún": [
+    "E"
+  ],
+  "Empanada de atún grande": [
+    "E"
+  ],
+  "Empanada rellena de pollo y setas con crema de queso": [
+    "E"
+  ],
+  "12 Mini saladas surtidas": [
+    "E",
+    "S"
+  ],
+  "24 Mini saladas surtidas": [
+    "E",
+    "S"
+  ],
+  "6 Mini empanadillas de pisto": [
+    "E"
+  ],
+  "Napolitana mixta": [
+    "I"
+  ],
+  "Empanadilla de tomate 22%": [
+    "E"
+  ],
+  "Empanadilla de espinacas 26%": [
+    "E",
+    "S"
+  ],
+  "Empanadilla de guisantes 13%": [
+    "E",
+    "S"
+  ],
+  "Empanadilla de pollo 7% y queso de cabra 4%": [
+    "E"
+  ],
+  "Empanadilla de pollo 10% y bechamel": [
+    "E"
+  ],
+  "Empanadilla de atún 16%": [
+    "E"
+  ],
+  "Empanada de carne 35%": [
+    "E",
+    "T"
+  ],
+  "12 Artesanitos surtidos": [
+    "E"
+  ],
+  "Magdalenas": [
+    "ALL"
+  ],
+  "Valencianas": [
+    "E"
+  ],
+  "Croissant": [
+    "ALL"
+  ],
+  "Croissant relleno de crema al cacao": [
+    "ALL"
+  ],
+  "Fartons tradicionales Polo": [
+    "E"
+  ],
+  "Bollo con pepitas de chocolate Choco Buns": [
+    "ALL"
+  ],
+  "Ensaimadas": [
+    "E"
+  ],
+  "Pan de leche": [
+    "ALL"
+  ],
+  "Bífidus con nueces y cereales probióticos 0% MG": [
+    "S"
+  ],
+  "Bífidus con kiwi probióticos 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus con frutos silvestres probióticos 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus con cereales y fibras probióticos": [
+    "S"
+  ],
+  "Bífidus con piña probióticos 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus con pera probióticos 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus con mango probióticos": [
+    "S"
+  ],
+  "Bífidus con ciruelas pasas probióticos": [
+    "S"
+  ],
+  "Bífidus cremoso con lima limón probióticos 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus cremoso con coco probióticos": [
+    "S"
+  ],
+  "Bífidus natural probióticos 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus cremoso natural edulcorado probióticos 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus natural edulcorado probióticos Activia 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus natural probióticos": [
+    "S"
+  ],
+  "Bífidus natural probióticos Activia 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bífidus natural azucarado probióticos con cereales y fresas deshidratadas": [
+    "S"
+  ],
+  "Bífidus natural probióticos con coco, almendras y chocolate": [
+    "S"
+  ],
+  "Flan de vainilla con caramelo": [
+    "ALL"
+  ],
+  "Flan de huevo": [
+    "ALL"
+  ],
+  "Flan de café": [
+    "ALL"
+  ],
+  "Flan de queso": [
+    "E"
+  ],
+  "Flan de huevo sin azúcares añadidos": [
+    "S"
+  ],
+  "Flan de huevo +Proteínas 0% MG 0% azúcares añadidos 10 g proteínas": [
+    "S"
+  ],
+  "Natillas sabor vainilla": [
+    "E"
+  ],
+  "Natillas sabor vainilla con galleta": [
+    "E"
+  ],
+  "Natillas de chocolate con leche": [
+    "E"
+  ],
+  "Natillas de vainilla Danet": [
+    "E"
+  ],
+  "Natillas de chocolate Danet": [
+    "E"
+  ],
+  "Natillas sabor vainilla +Proteínas 12 g proteínas": [
+    "S"
+  ],
+  "Natillas con chocolate +Proteínas 1,3 g MG 10 g proteínas": [
+    "S"
+  ],
+  "Gelatina sabor fresa": [
+    "ALL"
+  ],
+  "Gelatina sabor a frutos silvestres +Proteínas 10 g proteínas 0% azúcar": [
+    "S"
+  ],
+  "Gelatina 0% azúcar sabores fresa, mandarina y limón": [
+    "S"
+  ],
+  "Gelatina 0% azúcar sabor cereza, cola y sandía": [
+    "S"
+  ],
+  "Gelatina sabores mango maracuyá, guayaba y piña coco": [
+    "ALL"
+  ],
+  "Copa crema de chocolate y nata": [
+    "E"
+  ],
+  "Arroz con leche": [
+    "E",
+    "T"
+  ],
+  "Mousse de chocolate": [
+    "E"
+  ],
+  "Tiramisú": [
+    "I"
+  ],
+  "Yogur azucarado YogoMix variado de copos maíz, bolitas y disquitos chocolateados": [
+    "ALL"
+  ],
+  "Yogur azucarado YogoMix Bolitas con bolitas chocolateadas": [
+    "ALL"
+  ],
+  "Yogur azucarado YogoMix Discos con disquitos chocolateados": [
+    "ALL"
+  ],
+  "Panna Cotta con caramelo": [
+    "I"
+  ],
+  "Cuajada": [
+    "E"
+  ],
+  "Cheesecake con arándanos": [
+    "E"
+  ],
+  "Tarta de queso": [
+    "E"
+  ],
+  "Coulant de chocolate": [
+    "E"
+  ],
+  "Crema catalana": [
+    "E"
+  ],
+  "Postre lácteo Lemon Cake": [
+    "E"
+  ],
+  "Mousse sabor chocolate +Proteínas 10 g proteínas": [
+    "S"
+  ],
+  "Fruta + leche tropical sin azúcares añadidos": [
+    "S"
+  ],
+  "Fruta + leche mediterráneo sin azúcares añadidos": [
+    "S"
+  ],
+  "Fruta + leche tropical Bifrutas": [
+    "ALL"
+  ],
+  "Fruta + leche caribe Don Simón sin azúcares añadidos y zero materia grasa": [
+    "S"
+  ],
+  "Fruta + leche piña y coco sin azúcares añadidos": [
+    "S"
+  ],
+  "Fruta + leche caribe sin azúcares añadidos": [
+    "S"
+  ],
+  "Fruta + leche tropical Don Simón sin azúcares añadidos y zero materia grasa": [
+    "S"
+  ],
+  "Bebida Bahamas": [
+    "AM"
+  ],
+  "Bebida tropical sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida de zumo de naranja, mango y zanahoria La Verja sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida 5 frutas sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida de arándanos y frutas rojas sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida de frutas rojas antioxidante sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida multivitaminas sin azúcares añadidos": [
+    "S"
+  ],
+  "Smoothie veggie aguacate, mango y espinaca": [
+    "S"
+  ],
+  "Zumo maracuyá y chía": [
+    "S"
+  ],
+  "Smoothie fresa y plátano": [
+    "S"
+  ],
+  "Smoothie mango y naranja": [
+    "S"
+  ],
+  "Smoothie mango y coco": [
+    "S"
+  ],
+  "Shot jengibre, manzana y limón": [
+    "S"
+  ],
+  "Zumo de melocotón y uva": [
+    "S"
+  ],
+  "Bebida de melocotón sin azúcares añadidos": [
+    "S"
+  ],
+  "Zumo de piña y uva": [
+    "S"
+  ],
+  "Bebida de piña sin azúcares añadidos": [
+    "S"
+  ],
+  "Zumo de piña": [
+    "S"
+  ],
+  "Zumo de piña selección": [
+    "S"
+  ],
+  "Néctar de piña La Verja": [
+    "S"
+  ],
+  "Zumo de naranja recién exprimido": [
+    "ALL"
+  ],
+  "Zumo pura naranja": [
+    "ALL"
+  ],
+  "Zumo pura naranja con pulpa": [
+    "ALL"
+  ],
+  "Bebida Florida": [
+    "ALL"
+  ],
+  "Bebida de naranja sin azúcares añadidos": [
+    "S"
+  ],
+  "Zumo de naranja": [
+    "ALL"
+  ],
+  "Zumo de clementina": [
+    "ALL"
+  ],
+  "Zumo de tomate": [
+    "ALL"
+  ],
+  "Zumo de manzana": [
+    "ALL"
+  ],
+  "Néctar de maracuyá fruta de la pasión, mango, uva y manzana": [
+    "S"
+  ],
+  "Bebida de mango sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida de pomelo sin azúcares añadidos": [
+    "S"
+  ],
+  "Zumo de manzana selección": [
+    "ALL"
+  ],
+  "Néctar de guayaba": [
+    "S"
+  ],
+  "Aceite de oliva 0": [
+    "ALL"
+  ],
+  "Aceite de girasol refinado 0": [
+    "ALL"
+  ],
+  "Cebolla frita crujiente": [
+    "ALL"
+  ],
+  "Canela molida": [
+    "ALL"
+  ],
+  "Canela en rama": [
+    "ALL"
+  ],
+  "Comino molido": [
+    "ALL"
+  ],
+  "Comino en grano": [
+    "ALL"
+  ],
+  "Curry": [
+    "AS"
+  ],
+  "Nuez moscada molida": [
+    "ALL"
+  ],
+  "Cebolla en polvo": [
+    "ALL"
+  ],
+  "Cayena guindillas": [
+    "ALL"
+  ],
+  "Cayena molida": [
+    "ALL"
+  ],
+  "Cúrcuma molida": [
+    "AS"
+  ],
+  "Jengibre molido": [
+    "AS"
+  ],
+  "Ñoras": [
+    "E"
+  ],
+  "Clavo en grano": [
+    "ALL"
+  ],
+  "Piñones": [
+    "E",
+    "I"
+  ],
+  "Sazonador para fajitas sabor tex-mex": [
+    "AM"
+  ],
+  "Sazonador ajo y limón para carne y pescado": [
+    "ALL"
+  ],
+  "Sazonador hierbas provenzales para pollo y costillas": [
+    "E"
+  ],
+  "Sazonador barbacoa para pollo y costillas": [
+    "AM"
+  ],
+  "Sazonador para paella con azafrán": [
+    "E"
+  ],
+  "Sazonador para burritos": [
+    "M"
+  ],
+  "Sazonador pollo y carne": [
+    "ALL"
+  ],
+  "Sazonador pasta": [
+    "I"
+  ],
+  "Sazonador Topping": [
+    "ALL"
+  ],
+  "Mezcla de especias para gazpacho manchego": [
+    "ALL"
+  ],
+  "Mayonesa": [
+    "ALL"
+  ],
+  "Mayonesa en sobres individuales": [
+    "ALL"
+  ],
+  "Mayonesa Hellmann's": [
+    "ALL"
+  ],
+  "Salsa Original Ligeresa": [
+    "AM"
+  ],
+  "Salsa Light": [
+    "E"
+  ],
+  "Ketchup": [
+    "S"
+  ],
+  "Ketchup en sobres individuales": [
+    "AM"
+  ],
+  "Salsa de tomate Zero sin azúcares añadidos": [
+    "AM"
+  ],
+  "Mostaza de Dijon": [
+    "S"
+  ],
+  "Mostaza clásica": [
+    "E"
+  ],
+  "Allioli Chovi": [
+    "E"
+  ],
+  "Allioli": [
+    "E"
+  ],
+  "Allioli en sobres individuales": [
+    "E"
+  ],
+  "Alioli con perejil": [
+    "E"
+  ],
+  "Tomate frito": [
+    "ALL"
+  ],
+  "Tomate frito receta artesana": [
+    "ALL"
+  ],
+  "Tomate frito Hida": [
+    "ALL"
+  ],
+  "Tomate frito estilo casero": [
+    "ALL"
+  ],
+  "Tomate frito con aceite de oliva": [
+    "ALL"
+  ],
+  "Tomate frito sin azúcares añadidos": [
+    "S"
+  ],
+  "Salsa Barbacoa": [
+    "AM"
+  ],
+  "Salsa pimienta verde": [
+    "ALL"
+  ],
+  "Salsa Burger": [
+    "AM"
+  ],
+  "Salsa Piri Piri": [
+    "AS"
+  ],
+  "Salsa curry Tikka Masala picante": [
+    "AS"
+  ],
+  "Salsa Brasa & Sabor estilo chimichurri": [
+    "AM"
+  ],
+  "Salsa Pesto con albahaca": [
+    "I",
+    "E"
+  ],
+  "Salsa de tomate Boloñesa": [
+    "I"
+  ],
+  "Salsa fresca Queso": [
+    "I"
+  ],
+  "Salsa fresca Pesto con albahaca": [
+    "I"
+  ],
+  "Salsa fresca Carbonara": [
+    "I"
+  ],
+  "Salsa fresca Trufa": [
+    "I"
+  ],
+  "Salsa de Soja": [
+    "AS"
+  ],
+  "Salsa Teriyaki": [
+    "AS"
+  ],
+  "Salsa Thai Chili dulce J-Lek": [
+    "AS"
+  ],
+  "Salsa de Soja sin gluten": [
+    "AS"
+  ],
+  "Salsa Yogur": [
+    "ALL"
+  ],
+  "Bechamel": [
+    "ALL"
+  ],
+  "Salsa Mexicana": [
+    "M"
+  ],
+  "Salsa Ranch": [
+    "AM"
+  ],
+  "Salsa César": [
+    "AM"
+  ],
+  "Aliño de aceite con perejil y ajo": [
+    "ALL"
+  ],
+  "Salsa Miel y Mostaza": [
+    "ALL"
+  ],
+  "Salsa de Trufa": [
+    "I"
+  ],
+  "Aceitunas verdes rellenas de anchoa": [
+    "E"
+  ],
+  "Aceitunas verdes sin hueso": [
+    "E"
+  ],
+  "Aceitunas verdes Chupadedos Huerta de Barros partidas aliñadas": [
+    "E"
+  ],
+  "Aceitunas verdes Gazpacha partidas": [
+    "E"
+  ],
+  "Aceitunas verdes estilo casero partidas aliñadas": [
+    "E"
+  ],
+  "Aceitunas verdes sin hueso aliñadas": [
+    "E"
+  ],
+  "Aceitunas verdes rellenas de jalapeño": [
+    "E"
+  ],
+  "Aceitunas verdes con hueso": [
+    "E"
+  ],
+  "Aceitunas verdes partidas Olives Garcia": [
+    "E"
+  ],
+  "Aceitunas verdes Picadedos sin hueso aliñadas": [
+    "E"
+  ],
+  "Aceitunas verdes rellenas de pepinillo": [
+    "E"
+  ],
+  "Aceitunas verdes rellenas de pimiento asado": [
+    "E"
+  ],
+  "Aceitunas negras sin hueso": [
+    "E"
+  ],
+  "Aceitunas negras de Aragón Campo Nature": [
+    "E"
+  ],
+  "Aceitunas negras en rodajas": [
+    "E"
+  ],
+  "Banderillas picantes": [
+    "E"
+  ],
+  "Banderillas dulces": [
+    "E"
+  ],
+  "Mix de encurtidos": [
+    "E"
+  ],
+  "Banderillas Gildas pinchos de aceituna, anchoa y guindilla": [
+    "E"
+  ],
+  "Pepinillos pequeños": [
+    "ALL"
+  ],
+  "Altramuces": [
+    "E"
+  ],
+  "Alcaparras": [
+    "E",
+    "I"
+  ],
+  "Cebolla roja Olives García en vinagre": [
+    "E"
+  ],
+  "Picadillo de variantes": [
+    "E"
+  ],
+  "Cebollitas": [
+    "E"
+  ],
+  "Guindillas picantes": [
+    "E",
+    "M"
+  ],
+  "Ajos aliñados": [
+    "ALL"
+  ],
+  "Jalapeños picantes en vinagre": [
+    "M"
+  ],
+  "Mix de pepinillos y cebollitas": [
+    "E"
+  ],
+  "Piparra": [
+    "E"
+  ],
+  "Pepinillos agridulces": [
+    "E"
+  ],
+  "Pepinillos en vinagre": [
+    "E"
+  ],
+  "Berenjenas de Almagro aliñada Antonio": [
+    "E"
+  ],
+  "Nuez natural pelada": [
+    "ALL"
+  ],
+  "Almendra natural": [
+    "ALL"
+  ],
+  "Pistacho tostado con sal": [
+    "ALL"
+  ],
+  "Pistacho tostado 0% sal añadida": [
+    "ALL"
+  ],
+  "Pipas girasol tostadas gigante con sal": [
+    "ALL"
+  ],
+  "Cacahuete frito con sal pelado": [
+    "ALL"
+  ],
+  "Pipas girasol tostadas gigante aguasal": [
+    "ALL"
+  ],
+  "Anacardo natural": [
+    "ALL"
+  ],
+  "Palomitas de maíz con sal para microondas": [
+    "ALL"
+  ],
+  "Anacardo frito salado": [
+    "ALL"
+  ],
+  "Avellana tostada 0% sal añadida": [
+    "ALL"
+  ],
+  "Almendra tostada y salada con piel": [
+    "ALL"
+  ],
+  "Cacahuete frito y salado con piel": [
+    "ALL"
+  ],
+  "Maíz frito crujiente y tierno": [
+    "ALL"
+  ],
+  "Almendra frita y salada pelada": [
+    "ALL"
+  ],
+  "Cacahuete tostado 0% sal añadida": [
+    "ALL"
+  ],
+  "Almendra tostada 0% sal añadida con piel": [
+    "ALL"
+  ],
+  "Maíz palomitas": [
+    "ALL"
+  ],
+  "Maíz frito gigante": [
+    "AM"
+  ],
+  "Nuez macadamia tostada con sal": [
+    "ALL"
+  ],
+  "Mezcla semillas": [
+    "ALL"
+  ],
+  "Pipas de calabaza natural peladas": [
+    "ALL"
+  ],
+  "Castañas cocidas y peladas": [
+    "ALL"
+  ],
+  "Cacahuete frito con miel": [
+    "AS"
+  ],
+  "Cacahuete tostado con sal": [
+    "ALL"
+  ],
+  "Semillas de chía": [
+    "ALL"
+  ],
+  "Pipas de girasol fritas peladas": [
+    "ALL"
+  ],
+  "Almendra marcona frita con sal": [
+    "ALL"
+  ],
+  "Palomitas de maíz sabor mantequilla para microondas": [
+    "ALL"
+  ],
+  "Semillas sésamo tostado": [
+    "ALL"
+  ],
+  "Pipas girasol barbacoa": [
+    "AM"
+  ],
+  "Pipas girasol naturales peladas": [
+    "ALL"
+  ],
+  "Semillas lino dorado": [
+    "S"
+  ],
+  "Nuez natural": [
+    "ALL"
+  ],
+  "Pipas calabaza tostadas aguasal": [
+    "ALL"
+  ],
+  "Pipas girasol tostadas 0% sal añadida": [
+    "S"
+  ],
+  "Nuez de Brasil natural": [
+    "ALL"
+  ],
+  "Pistacho natural pelado": [
+    "ALL"
+  ],
+  "Nuez Pecana natural pelada": [
+    "ALL"
+  ],
+  "Cacahuete tostado 0% sal añadida pelado": [
+    "S"
+  ],
+  "Cacahuete +Proteínas en polvo desgrasado 14 g proteínas 70% reducido en grasa": [
+    "S"
+  ],
+  "Nuez troceada pelada": [
+    "ALL"
+  ],
+  "Anacardo tostado 0% sal añadida": [
+    "ALL"
+  ],
+  "Pistacho tostado pelado": [
+    "ALL"
+  ],
+  "Cocktail tostado con sal": [
+    "ALL"
+  ],
+  "Cocktail mezcla": [
+    "ALL"
+  ],
+  "Combinado frutos secos, frutas desecadas y semillas de calabaza": [
+    "ALL"
+  ],
+  "Cocktail crunchy sabores": [
+    "ALL"
+  ],
+  "Cocktail rodeo": [
+    "AM"
+  ],
+  "Cocktail natural": [
+    "ALL"
+  ],
+  "Cocktail tostado 0% sal añadida": [
+    "S"
+  ],
+  "Cocktail tostado y ahumado": [
+    "ALL"
+  ],
+  "Cocktail fruta deshidratada": [
+    "ALL"
+  ],
+  "Cocktail rumba": [
+    "AM"
+  ],
+  "Pasas sultanas sin semillas": [
+    "ALL"
+  ],
+  "Pasas moscatel sin semillas": [
+    "ALL"
+  ],
+  "Mango deshidratado": [
+    "AS",
+    "AM"
+  ],
+  "Ciruelas desecadas sin hueso": [
+    "ALL"
+  ],
+  "Arándanos deshidratados": [
+    "S"
+  ],
+  "Orejones albaricoque": [
+    "ALL"
+  ],
+  "Dátiles en rama": [
+    "ALL"
+  ],
+  "Dátiles Medjoul con hueso": [
+    "ALL"
+  ],
+  "Dátiles desecados sin hueso": [
+    "ALL"
+  ],
+  "Piña deshidratada": [
+    "AS",
+    "AM"
+  ],
+  "Patatas fritas extra crujientes": [
+    "AM"
+  ],
+  "Patatas fritas clásicas": [
+    "AM"
+  ],
+  "Patatas fritas onduladas sabor jamón serrano": [
+    "E"
+  ],
+  "Patatas fritas corte ondulado": [
+    "AM"
+  ],
+  "Patatas light": [
+    "S"
+  ],
+  "Aperitivo de patata sabor original Pringles": [
+    "AM"
+  ],
+  "Aperitivo de patata sabor crema agria y cebolla Pringles": [
+    "AM"
+  ],
+  "Patatas fritas sabor sal y vinagre": [
+    "AM"
+  ],
+  "Patatas fritas sabor chili y lima": [
+    "AS",
+    "AM"
+  ],
+  "Patatas fritas 0% sal añadida": [
+    "S"
+  ],
+  "Patatas fritas sabor limón y pimienta": [
+    "E"
+  ],
+  "Aperitivo de patata con sabor a nata agria y cebolla": [
+    "S"
+  ],
+  "Patatas fritas onduladas sabor queso de cabra y cebolla caramelizada": [
+    "E"
+  ],
+  "Patatas fritas onduladas sabor campestre": [
+    "E"
+  ],
+  "Aperitivo de patata sabor barbacoa": [
+    "AM"
+  ],
+  "Nachos Padrísimos sabor guacamole": [
+    "M"
+  ],
+  "Torreznillos cortezas de cerdo fritas ahumadas": [
+    "E"
+  ],
+  "Nachos": [
+    "M"
+  ],
+  "Tiras de maíz frito sabor barbacoa": [
+    "AM"
+  ],
+  "Nachos tex-mex sabor queso": [
+    "M"
+  ],
+  "Garfitos de maíz sabor queso": [
+    "AM"
+  ],
+  "Cuquitos sabor queso": [
+    "AM"
+  ],
+  "Conos sabor bacón y queso": [
+    "AM"
+  ],
+  "Cortezas de cerdo fritas sabor barbacoa": [
+    "AM"
+  ],
+  "Snack de maíz Redes sabor barbacoa": [
+    "AM"
+  ],
+  "Hélices": [
+    "AM"
+  ],
+  "Pasta fusilli sin gluten Felicia": [
+    "I"
+  ],
+  "Pasta penne rigate": [
+    "I"
+  ],
+  "Tallarines": [
+    "I"
+  ],
+  "Spaghetti integral": [
+    "S",
+    "I"
+  ],
+  "Spaghetti fino": [
+    "I"
+  ],
+  "Nidos al huevo": [
+    "I"
+  ],
+  "Spaghetti al huevo": [
+    "I"
+  ],
+  "Spaghetti": [
+    "I"
+  ],
+  "Spaghetti sin gluten Felicia": [
+    "I",
+    "S"
+  ],
+  "Pasta fresca tagliatelle al huevo": [
+    "I"
+  ],
+  "Spaghetti Armando": [
+    "I"
+  ],
+  "Noodles de arroz": [
+    "AS"
+  ],
+  "Tortellini carne Pagani": [
+    "I"
+  ],
+  "Pasta fresca tortellini rellena de carne": [
+    "I"
+  ],
+  "Pasta fresca ravioli rellena de ricotta y espinacas": [
+    "I"
+  ],
+  "Tortellini tres quesos Pagani": [
+    "I"
+  ],
+  "Pasta fresca gnocchi": [
+    "I"
+  ],
+  "Pasta fresca girasoles rellena de quesos": [
+    "I"
+  ],
+  "Pasta fresca medialunas rellenas de parmigiano reggiano y trufa": [
+    "I"
+  ],
+  "Pasta fresca ravioli rellena de calabaza con cebolla": [
+    "I"
+  ],
+  "Pasta fresca gnocchi rellena de quesos": [
+    "I"
+  ],
+  "Pasta fresca girasoles rellena de queso de cabra y cebolla caramelizada": [
+    "I"
+  ],
+  "Pasta fresca girasoles rellena de carrillera y puré de patata": [
+    "I"
+  ],
+  "Pasta fresca girasoles rellena de tomate frito y queso mozarella": [
+    "I"
+  ],
+  "Fideos orientales Yakisoba sabor soja": [
+    "AS"
+  ],
+  "Fideos orientales sabor pollo": [
+    "AS"
+  ],
+  "Fideos orientales sabor picante": [
+    "AS"
+  ],
+  "Noodles Ramen": [
+    "AS"
+  ],
+  "Fideos orientales sabor gamba": [
+    "AS"
+  ],
+  "Placas para lasaña precocidas El Pavo": [
+    "I"
+  ],
+  "Placas para canelones El Pavo": [
+    "I"
+  ],
+  "Pollo certificado entero alimentado con un 50% de maíz": [
+    "ALL"
+  ],
+  "Alas partidas de pollo certificado alimentado con un 50% de maíz": [
+    "ALL"
+  ],
+  "Mollejas de pollo": [
+    "T"
+  ],
+  "Sangre hervida de pollo": [
+    "T"
+  ],
+  "Patas de pollo": [
+    "T"
+  ],
+  "Filetes pechuga de pollo extra tiernos": [
+    "ALL"
+  ],
+  "Solomillos de pollo certificado alimentado con un 50% de maíz": [
+    "ALL"
+  ],
+  "Lagrimitas de pollo al limón empanadas sin gluten": [
+    "AS"
+  ],
+  "Filetes solomillos de pollo marinados empanados sin gluten": [
+    "AS"
+  ],
+  "Alas de pollo adobadas picantes": [
+    "M"
+  ],
+  "Pinchos de pollo sin varilla adobados": [
+    "M"
+  ],
+  "Pincho Mexicano de pollo con varilla": [
+    "M"
+  ],
+  "Contramuslos deshuesados y sin piel de pollo certificado alimentado con un 50% de maíz": [
+    "ALL"
+  ],
+  "Empanados de pollo picantes sin gluten": [
+    "AS"
+  ],
+  "Solomillos de pollo adobados": [
+    "M"
+  ],
+  "Bolitas de pollo congeladas": [
+    "ALL"
+  ],
+  "Filetes lomo de cerdo corte fino": [
+    "E",
+    "AM"
+  ],
+  "Chuletas lomo de cerdo finas": [
+    "E",
+    "AM"
+  ],
+  "Filetes secreto de cerdo": [
+    "E",
+    "AM"
+  ],
+  "Entrecot aguja de cerdo Duroc": [
+    "E",
+    "AM"
+  ],
+  "Panceta de cerdo adobada": [
+    "E",
+    "T"
+  ],
+  "Costillas de cerdo marinadas Smoke Honey": [
+    "AM"
+  ],
+  "Costillas de cerdo carnosas a tacos": [
+    "M"
+  ],
+  "Filetes lomo de cerdo familiar": [
+    "ALL"
+  ],
+  "Carrillada de cerdo": [
+    "T"
+  ],
+  "Costilla de cerdo ibérico adobada": [
+    "E",
+    "T"
+  ],
+  "Chuletas de cerdo sajonia": [
+    "E"
+  ],
+  "Costilla de cerdo churrasco": [
+    "AM"
+  ],
+  "Panceta de cerdo": [
+    "ALL"
+  ],
+  "Cerdo a tacos": [
+    "M"
+  ],
+  "Filetes lomo de cerdo adobado": [
+    "E",
+    "T"
+  ],
+  "Filetes lomo de cerdo adobado familiar": [
+    "E",
+    "T"
+  ],
+  "San Jacobos de cerdo sin gluten": [
+    "E"
+  ],
+  "Filetes lomo de cerdo cabeza": [
+    "E",
+    "AM"
+  ],
+  "Flautas de bacón y queso": [
+    "AM"
+  ],
+  "Media careta de cerdo sin oreja": [
+    "T"
+  ],
+  "Fiambre de magro de cerdo adobado": [
+    "E",
+    "T"
+  ],
+  "Filetes hígado de cerdo": [
+    "T"
+  ],
+  "Presa de cerdo ibérico": [
+    "E"
+  ],
+  "Secreto de cerdo ibérico": [
+    "E"
+  ],
+  "Medallones preparado de solomillo cerdo provenzal": [
+    "E"
+  ],
+  "Pinchos de cerdo adobado sin varilla": [
+    "E"
+  ],
+  "Chuletas aguja de cerdo": [
+    "E",
+    "AM"
+  ],
+  "Filetes lomo de cerdo ibérico": [
+    "ALL"
+  ],
+  "Solomillo de cerdo": [
+    "ALL"
+  ],
+  "Lagarto de cerdo": [
+    "E",
+    "AM"
+  ],
+  "Panceta fina sin corteza corte fino": [
+    "ALL"
+  ],
+  "Fiambre de magreta de cerdo adobada": [
+    "E"
+  ],
+  "Filetes lomo de cerdo extra tiernos": [
+    "E"
+  ],
+  "Lomo de cerdo trozo": [
+    "T"
+  ],
+  "Pieza cabeza lomo de cerdo": [
+    "ALL"
+  ],
+  "Secreto de cerdo": [
+    "E",
+    "AM"
+  ],
+  "Pluma de cerdo": [
+    "E",
+    "AM"
+  ],
+  "Taquitos de cerdo": [
+    "M"
+  ],
+  "Brochetas de cerdo adobadas con varilla": [
+    "E"
+  ],
+  "Manteca de cerdo": [
+    "ALL"
+  ],
+  "Salchichas cocidas con leche de pollo, cerdo y pavo": [
+    "AM"
+  ],
+  "Salchichas cocidas hot dog bocadillo Oscar Mayer Classic de pollo y cerdo sabor ahumado": [
+    "AM"
+  ],
+  "Salchichas cocidas estilo Frankfurt con queso de pollo y cerdo sabor ahumado": [
+    "AM"
+  ],
+  "Salchichas cocidas bocata de pollo y pavo sabor ahumado": [
+    "AM"
+  ],
+  "Salchichas cocidas bocata gourmet de cerdo sabor ahumado": [
+    "AM"
+  ],
+  "Salchichas cocidas de cerdo estilo Bratwurst": [
+    "AM"
+  ],
+  "Salchichas cocidas bocata queso": [
+    "AM"
+  ],
+  "Salchichas cocidas bocata": [
+    "AM"
+  ],
+  "Salchichas cocidas Frankfurt La Selva": [
+    "AM"
+  ],
+  "Salchichas cocidas estilo Frankfurt sabor ahumado": [
+    "AM"
+  ],
+  "Salchichas cocidas de cerdo estilo parrillero": [
+    "AM"
+  ],
+  "Chopped cerdo lonchas": [
+    "AM"
+  ],
+  "Chopped cocido en lata finas lonchas": [
+    "AM"
+  ],
+  "Chopped": [
+    "AM"
+  ],
+  "Mortadela lonchas": [
+    "I",
+    "E"
+  ],
+  "Mortadela con aceitunas lonchas": [
+    "I",
+    "E"
+  ],
+  "Mortadela italiana finas lonchas": [
+    "I"
+  ],
+  "Mortadela": [
+    "I",
+    "E"
+  ],
+  "Galantina con pistacho y trufa finas lonchas": [
+    "I",
+    "E"
+  ],
+  "Mortadela de pavo finas lonchas": [
+    "E"
+  ],
+  "Mortadela de pavo con aceitunas finas lonchas": [
+    "E"
+  ],
+  "Fuet espetec": [
+    "E"
+  ],
+  "Salchichón extra lonchas": [
+    "E"
+  ],
+  "Sticks longaniza extra": [
+    "E"
+  ],
+  "Longaniza de Pascua extra": [
+    "E"
+  ],
+  "Longaniza de payés extra lonchas": [
+    "E"
+  ],
+  "Salami extra lonchas": [
+    "E"
+  ],
+  "Salchichón de cebo ibérico cortado a máquina": [
+    "E"
+  ],
+  "Salchichón de bellota ibérico cortado a máquina": [
+    "E"
+  ],
+  "Salchichón ibérico extra La Hacienda del ibérico lonchas": [
+    "E"
+  ],
+  "Longaniza clásica extra": [
+    "E"
+  ],
+  "Longaniza de payés extra": [
+    "E"
+  ],
+  "Salami montañés extra": [
+    "E"
+  ],
+  "Salchichón cular ibérico extra La Hacienda del ibérico": [
+    "E"
+  ],
+  "Mini salchichón ibérico extra La Hacienda del ibérico": [
+    "E"
+  ],
+  "Longaniza de Aragón extra Cárnicas Gállego": [
+    "E"
+  ],
+  "Pepperoni lonchas": [
+    "I"
+  ],
+  "Salami extra pimienta finas lonchas": [
+    "E"
+  ],
+  "Salchichón extra pimienta finas lonchas": [
+    "E"
+  ],
+  "Chorizo Pamplona extra lonchas": [
+    "E",
+    "T"
+  ],
+  "Chorizo extra lonchas": [
+    "E",
+    "T"
+  ],
+  "Chorizo de pavo extra lonchas": [
+    "E",
+    "T",
+    "S"
+  ],
+  "Chorizo ibérico extra La Hacienda del ibérico lonchas": [
+    "E",
+    "T"
+  ],
+  "Chorizo picante extra": [
+    "E",
+    "T",
+    "M"
+  ],
+  "Taquitos de chorizo extra Revilla": [
+    "E",
+    "T",
+    "M"
+  ],
+  "Chorizo picante extra lonchas": [
+    "E",
+    "T",
+    "M"
+  ],
+  "Chorizo extra pimienta finas lonchas": [
+    "E",
+    "T"
+  ],
+  "Chorizo de cebo ibérico cortado a máquina": [
+    "E",
+    "T"
+  ],
+  "Chorizo de bellota ibérico cortado a máquina": [
+    "E",
+    "T"
+  ],
+  "Chorizo dulce extra": [
+    "E",
+    "T"
+  ],
+  "Mini chorizo ibérico extra La Hacienda del ibérico": [
+    "E",
+    "T"
+  ],
+  "Chorizo de Tarancón Bricio": [
+    "E",
+    "T"
+  ],
+  "Chorizo cular ibérico extra La Hacienda del ibérico": [
+    "E",
+    "T"
+  ],
+  "Chorizo sarta dulce extra de León": [
+    "E",
+    "T"
+  ],
+  "Chorizo sarta picante extra de León": [
+    "E",
+    "T"
+  ],
+  "Lomo embuchado lonchas": [
+    "E",
+    "T"
+  ],
+  "Cabecero de lomo lonchas": [
+    "E",
+    "T"
+  ],
+  "Lomo de cebo ibérico 50% raza ibérica cortado a máquina": [
+    "E",
+    "T"
+  ],
+  "Lomo de bellota ibérico 50% raza ibérica cortado a máquina": [
+    "E",
+    "T"
+  ],
+  "Surtido de ibéricos La Hacienda del ibérico lonchas": [
+    "E"
+  ],
+  "Lomo de pavo lonchas": [
+    "ALL"
+  ],
+  "Lomo": [
+    "ALL"
+  ],
+  "Caña de lomo cebo ibérico La Hacienda del ibérico": [
+    "E"
+  ],
+  "Jamón serrano Incarlopsa lonchas extrafinas": [
+    "E"
+  ],
+  "Mini taquitos de jamón Incarlopsa": [
+    "E",
+    "M"
+  ],
+  "Jamón serrano Incarlopsa lonchas": [
+    "E"
+  ],
+  "Jamón serrano cortado a máquina": [
+    "E"
+  ],
+  "Jamón de cebo ibérico cortado a máquina": [
+    "E"
+  ],
+  "Jamón serrano reserva cortado a tapas": [
+    "E"
+  ],
+  "Jamón de cebo ibérico cortado a tapas": [
+    "E"
+  ],
+  "Queso curado y cheddar en dados": [
+    "ALL"
+  ],
+  "Queso curado cheddar": [
+    "AM"
+  ],
+  "Queso lonchas mozzarella de vaca": [
+    "I"
+  ],
+  "Queso lonchas cheddar de vaca": [
+    "AM"
+  ],
+  "Queso rallado mozzarella pizza-Roma de vaca": [
+    "I"
+  ],
+  "Mozzarella fresca de vaca": [
+    "I"
+  ],
+  "Mozzarella fresca de vaca en perlas": [
+    "I"
+  ],
+  "Mozzarella fresca di bufala campana": [
+    "I"
+  ],
+  "Mozzarella fresca light de vaca": [
+    "I",
+    "S"
+  ],
+  "Habitas muy tiernas ultracongeladas": [
+    "ALL"
+  ],
+  "Habas fina ultracongelada": [
+    "E",
+    "S"
+  ],
+  "Habas baby ultracongelada": [
+    "E",
+    "S"
+  ],
+  "Salteado de setas ultracongeladas": [
+    "ALL"
+  ],
+  "Pimiento rojo y verde ultracongelado": [
+    "ALL"
+  ],
+  "Salteado de verduras asadas ultracongeladas": [
+    "E",
+    "S"
+  ],
+  "Parrillada de verduras ultracongeladas": [
+    "E",
+    "S"
+  ],
+  "Maíz dulce ultracongelado": [
+    "ALL"
+  ],
+  "Espárrago verde troceado ultracongelado": [
+    "ALL"
+  ],
+  "Salteado de gambas, espárragos verdes, ajos tiernos, champiñón y cebolla ultracongelado": [
+    "AS",
+    "E"
+  ],
+  "Brócoli ultracongelado": [
+    "ALL"
+  ],
+  "Salteado de pollo ultracongelado": [
+    "ALL"
+  ],
+  "Salteado de patata y salchicha frankfurt ultracongelado": [
+    "AM"
+  ],
+  "Ajo troceado ultracongelado": [
+    "ALL"
+  ],
+  "Alcachofa baby ultracongelada": [
+    "E",
+    "S"
+  ],
+  "Pimientos del piquillo rellenos de bacalao ultracongelados": [
+    "E"
+  ],
+  "Tempura de verduras ultracongelada": [
+    "AS"
+  ],
+  "Pisto de verduras ultracongelado": [
+    "E",
+    "T"
+  ],
+  "Rollitos primavera ultracongelados": [
+    "AS"
+  ],
+  "Coliflor, brócoli y zanahoria ultracongelada": [
+    "AS"
+  ],
+  "Coles de Bruselas ultracongeladas": [
+    "ALL"
+  ],
+  "Coliflor ultracongelada": [
+    "ALL"
+  ],
+  "Edamame soja verde ultracongelada": [
+    "AS"
+  ],
+  "Wok de verduras ultracongelado": [
+    "AS"
+  ],
+  "Wakame ensalada de alga marina congelada": [
+    "AS"
+  ],
+  "Espinacas a la crema ultracongeladas": [
+    "E",
+    "T"
+  ],
+  "Salteado de verduras ultracongelado": [
+    "ALL"
+  ],
+  "Migas de coliflor ultracongeladas": [
+    "S"
+  ],
+  "Salteado rústico ultracongelado": [
+    "E",
+    "T"
+  ],
+  "Patatas prefritas corte fino ultracongeladas": [
+    "AM"
+  ],
+  "Patatas prefritas corte grueso ultracongeladas": [
+    "AM"
+  ],
+  "Patatas prefritas gajo ultracongeladas": [
+    "AM"
+  ],
+  "Patatas fritas horno y air fryer ultracongeladas": [
+    "S"
+  ],
+  "Bastones de batata ultracongelada": [
+    "S"
+  ],
+  "Patatas prefritas Waffle con piel ultracongeladas": [
+    "AM"
+  ],
+  "Patatas prefritas Crispy Pops congeladas": [
+    "AM"
+  ],
+  "Mini helado bombón surtido": [
+    "ALL"
+  ],
+  "Mini helado bombón Boom sabor leche tostada": [
+    "ALL"
+  ],
+  "Helado bombón almendrado sabor vainilla": [
+    "ALL"
+  ],
+  "Mini helado bombón almendrado sabor vainilla": [
+    "ALL"
+  ],
+  "Mini helado bombón surtido sin azúcares añadidos": [
+    "S"
+  ],
+  "Mini helado bombón sabor nocciola": [
+    "I",
+    "E"
+  ],
+  "Mini helado bombón vegetal pistacho a base de anacardos": [
+    "S"
+  ],
+  "Helado bombón negro sabor nata": [
+    "E",
+    "I"
+  ],
+  "Mini helado bombón vegetal triple chocolate a base de anacardos": [
+    "S"
+  ],
+  "Helado bombón blanco sabor vainilla": [
+    "E",
+    "I"
+  ],
+  "Helado bombón mango blanco con salsa de mango": [
+    "E",
+    "S"
+  ],
+  "Helado bombón pistacho sabor almendra con salsa de pistacho": [
+    "E",
+    "I"
+  ],
+  "Mini helado cucurucho sabor nata": [
+    "E",
+    "I"
+  ],
+  "Helado cucurucho sabor vainilla": [
+    "E",
+    "I"
+  ],
+  "Helado cucurucho sabor nata": [
+    "E",
+    "I"
+  ],
+  "Mini helado cucurucho sabor nata sin azúcares añadidos": [
+    "S"
+  ],
+  "Helado cucurucho sabor choco nata": [
+    "E",
+    "I"
+  ],
+  "Helado cucurucho sabor fresa nata": [
+    "E",
+    "I"
+  ],
+  "Helado cucurucho caramelo y nueces pecán sabor vainilla": [
+    "E",
+    "I"
+  ],
+  "Flash popitos": [
+    "ALL"
+  ],
+  "Mini helados hielo sorbetes": [
+    "S"
+  ],
+  "Helado hielo sorbete con lima limón": [
+    "S"
+  ],
+  "Granizado de limón sin azúcares añadidos": [
+    "S"
+  ],
+  "Granizado de limón": [
+    "ALL"
+  ],
+  "Granizado agua de cebada": [
+    "ALL"
+  ],
+  "Granizado de café": [
+    "ALL"
+  ],
+  "Helado hielo sabor chocolate": [
+    "ALL"
+  ],
+  "Helado hielo sorbete con horchata": [
+    "E"
+  ],
+  "Helado hielo sorbete con fresa": [
+    "ALL"
+  ],
+  "Helado hielo sorbete con naranja": [
+    "E"
+  ],
+  "Helado hielo con limón": [
+    "ALL"
+  ],
+  "Helado hielo sorbete con mango": [
+    "AS"
+  ],
+  "Helado Dochi cheesecake con salsa de frambuesa": [
+    "ALL"
+  ],
+  "Helado Dochi sabor tarta de la abuela con salsa de avellana": [
+    "ALL"
+  ],
+  "Helado choco cookies con sirope y galletas de chocolate": [
+    "ALL"
+  ],
+  "Helado sabor vainilla praliné con nueces pecán y sirope de caramelo": [
+    "ALL"
+  ],
+  "Helado stracciatella con sirope de chocolate": [
+    "I"
+  ],
+  "Helado capuccino con sirope de café": [
+    "I"
+  ],
+  "Pizza Pepperoni barbacoa ultracongelada": [
+    "AM"
+  ],
+  "Pizza masa fina Barbacoa ultracongelada": [
+    "AM"
+  ],
+  "Zanahoria en tiras": [
+    "ALL"
+  ],
+  "Judías verdes planas": [
+    "ALL"
+  ],
+  "Remolacha en tiras": [
+    "ALL"
+  ],
+  "Macedonia de verduras": [
+    "ALL"
+  ],
+  "Verduras asadas": [
+    "E",
+    "S"
+  ],
+  "Patatas cocidas": [
+    "ALL"
+  ],
+  "Palmito al natural entero": [
+    "AS"
+  ],
+  "Pimientos en tiras condimentados": [
+    "E",
+    "S"
+  ],
+  "Ensalada china con mazorquitas": [
+    "AS"
+  ],
+  "Cebolla caramelizada": [
+    "ALL"
+  ],
+  "Mazorquitas de maíz agridulce": [
+    "AS"
+  ],
+  "Chucrut al estilo bávaro Hengstenberg": [
+    "E"
+  ],
+  "Acelgas troceadas": [
+    "ALL"
+  ],
+  "Espárragos blancos gruesos cortos": [
+    "E",
+    "S"
+  ],
+  "Piña en su jugo rodajas": [
+    "ALL"
+  ],
+  "Melocotón en almíbar": [
+    "ALL"
+  ],
+  "Melocotón light sin azúcares añadidos": [
+    "S"
+  ],
+  "Macedonia mix de frutas en almíbar": [
+    "ALL"
+  ],
+  "Dulce de membrillo 0% azúcares añadidos": [
+    "S"
+  ],
+  "Cabello de Ángel Hida": [
+    "E"
+  ],
+  "Postre de manzana Jamar": [
+    "E"
+  ],
+  "Dulce de membrillo taco": [
+    "E"
+  ],
+  "Papilla fruta variada +4 meses": [
+    "ALL"
+  ],
+  "Papilla frutas con avena +8 meses": [
+    "ALL"
+  ],
+  "Papilla plátano, mandarina y pera +4 meses": [
+    "ALL"
+  ],
+  "Papilla pera y manzana +4 meses": [
+    "ALL"
+  ],
+  "Papilla tres frutas con yogur +8 meses": [
+    "ALL"
+  ],
+  "Bolsita puré fresa y plátano +8 meses": [
+    "ALL"
+  ],
+  "Bolsita puré fruta variada +6 meses": [
+    "ALL"
+  ],
+  "Bolsita puré plátano y manzana +6 meses": [
+    "ALL"
+  ],
+  "Bolsita puré plátano, fresa, arándanos y avena +8 meses": [
+    "ALL"
+  ],
+  "Bolsita puré manzana, mango, frambuesa, plátano y papaya +6 meses": [
+    "ALL"
+  ],
+  "Gazpacho tradicional": [
+    "E",
+    "T"
+  ],
+  "Salmorejo al estilo cordobés": [
+    "E",
+    "T"
+  ],
+  "Gazpacho fresco": [
+    "E",
+    "S"
+  ],
+  "Salmorejo fresco": [
+    "E",
+    "S"
+  ],
+  "Crema de calabaza y zanahoria": [
+    "E",
+    "S",
+    "T"
+  ],
+  "Crema de espárragos": [
+    "E",
+    "S",
+    "T"
+  ],
+  "Crema de verduras": [
+    "E",
+    "S",
+    "T"
+  ],
+  "Crema de pollo con verduras": [
+    "E",
+    "T"
+  ],
+  "Crema de calabaza": [
+    "E",
+    "S",
+    "T"
+  ],
+  "Puré de patatas en copos": [
+    "ALL"
+  ],
+  "Crema de setas Starlux con champiñones": [
+    "E",
+    "S",
+    "T"
+  ],
+  "Crema de calabacín": [
+    "E",
+    "S",
+    "T"
+  ],
+  "Crema de lentejas": [
+    "T",
+    "E",
+    "S"
+  ],
+  "Sopa de pollo Gallina Blanca con fideos finos": [
+    "T",
+    "E"
+  ],
+  "Sopa de pollo con fideos finos": [
+    "T",
+    "E",
+    "S"
+  ],
+  "Sopa maravilla": [
+    "T",
+    "E"
+  ],
+  "Sopa de miso": [
+    "AS"
+  ],
+  "Sopa de verduras": [
+    "ALL"
+  ],
+  "Sopa de cebolla": [
+    "T",
+    "E"
+  ],
+  "Sopa hortelana": [
+    "T",
+    "E"
+  ],
+  "Caldo de pollo": [
+    "ALL"
+  ],
+  "Caldo de pollo casero Gallina Blanca": [
+    "ALL"
+  ],
+  "Caldo de pescado": [
+    "ALL"
+  ],
+  "Caldo de cocido casero Gallina Blanca": [
+    "T",
+    "E"
+  ],
+  "Caldo de verduras": [
+    "ALL"
+  ],
+  "Caldo de marisco o fideuá para paella con sofrito": [
+    "E"
+  ],
+  "Caldo de pollo bajo en sal": [
+    "E"
+  ],
+  "Fumet caldo de pescado": [
+    "ALL"
+  ],
+  "Caldo de cocido": [
+    "T",
+    "E"
+  ],
+  "Caldo de carne con sofrito": [
+    "E"
+  ],
+  "Caldo de carne en pastillas": [
+    "ALL"
+  ],
+  "Caldo de pollo Avecrem en pastillas": [
+    "ALL"
+  ],
+  "Caldo de pescado en pastillas": [
+    "ALL"
+  ],
+  "Doble caldo sabor clásico carne en pastillas": [
+    "ALL"
+  ],
+  "Caldo de pollo en pastillas": [
+    "ALL"
+  ],
+  "Caldo de verduras en pastillas": [
+    "ALL"
+  ],
+  "Tomate triturado": [
+    "ALL"
+  ],
+  "Lechuga Iceberg": [
+    "ALL"
+  ],
+  "Ensalada mezcla 4 estaciones lavada": [
+    "ALL"
+  ],
+  "Lechugas corazón romana": [
+    "ALL"
+  ],
+  "Ensalada mezcla brotes tiernos lavada": [
+    "ALL"
+  ],
+  "Canónigos lavados": [
+    "ALL"
+  ],
+  "Lechuga iceberg cortada y lavada": [
+    "ALL"
+  ],
+  "Ensalada mezcla gourmet lavada": [
+    "ALL"
+  ],
+  "Cogollos de lechuga": [
+    "ALL"
+  ],
+  "Lechuga corazón romana": [
+    "ALL"
+  ],
+  "Endibias": [
+    "ALL"
+  ],
+  "Ensalada mezcla brotes tiernos maxi lavada": [
+    "ALL"
+  ],
+  "Ensalada mezcla gourmet maxi lavada": [
+    "ALL"
+  ],
+  "Ensalada mezcla tierna lavada": [
+    "ALL"
+  ],
+  "Rúcula lavada": [
+    "ALL"
+  ],
+  "Cogollos corazón de lechuga": [
+    "ALL"
+  ],
+  "Ensalada mezcla dúo canónigos y rúcula lavada": [
+    "S"
+  ],
+  "Lechuga hoja roble": [
+    "S"
+  ],
+  "Escarola rizada cortada y lavada": [
+    "S"
+  ],
+  "Espinacas baby lavadas": [
+    "S"
+  ],
+  "Lechuga romana cortada y lavada": [
+    "S"
+  ],
+  "Ensalada César": [
+    "AM"
+  ],
+  "Ensalada California": [
+    "AM"
+  ],
+  "Wraps Texas": [
+    "AM"
+  ],
+  "Ensalada de la casa": [
+    "ALL"
+  ],
+  "Ensalada ensatún": [
+    "E"
+  ],
+  "Ensalada de pasta": [
+    "I",
+    "E"
+  ],
+  "Ensalada queso de cabra": [
+    "E",
+    "S"
+  ],
+  "Ensalada de pasta Listo para Comer": [
+    "I",
+    "E"
+  ],
+  "Ensalada de pollo, queso y frutos secos Listo para Comer": [
+    "AM"
+  ],
+  "Patata": [
+    "ALL"
+  ],
+  "Patatas": [
+    "ALL"
+  ],
+  "Patatas rojas": [
+    "ALL"
+  ],
+  "Patatas guarnición": [
+    "ALL"
+  ],
+  "Batata": [
+    "ALL"
+  ],
+  "Patatas especial para freir": [
+    "ALL"
+  ],
+  "Yuca": [
+    "AM",
+    "M"
+  ],
+  "Cebollas tiernas": [
+    "ALL"
+  ],
+  "Cebollas": [
+    "ALL"
+  ],
+  "Ajos morados": [
+    "ALL"
+  ],
+  "Cebollas dulces": [
+    "AS"
+  ],
+  "Cebollas rojas": [
+    "E",
+    "I"
+  ],
+  "Ajo negro dientes pelados": [
+    "AS"
+  ],
+  "Picada de ajo y perejil": [
+    "ALL"
+  ],
+  "Tomate ensalada": [
+    "ALL"
+  ],
+  "Tomate canario": [
+    "E"
+  ],
+  "Tomate pera": [
+    "ALL"
+  ],
+  "Tomates pera": [
+    "ALL"
+  ],
+  "Tomates cherry pera kumato": [
+    "S"
+  ],
+  "Tomates cherry": [
+    "S"
+  ],
+  "Tomates cherry en rama Dulcita": [
+    "S"
+  ],
+  "Tomates negros": [
+    "E",
+    "S"
+  ],
+  "Tomates": [
+    "ALL"
+  ],
+  "Tomate rallado": [
+    "ALL"
+  ],
+  "Rama de Tomates": [
+    "ALL"
+  ],
+  "Tomate valenciano": [
+    "E"
+  ],
+  "Zanahorias": [
+    "ALL"
+  ],
+  "Pepino": [
+    "ALL"
+  ],
+  "Pepino holandés": [
+    "ALL"
+  ],
+  "Palitos de zanahoria": [
+    "S"
+  ],
+  "Zanahoria rallada lavada": [
+    "S"
+  ],
+  "Pimiento rojo": [
+    "ALL"
+  ],
+  "Calabacín verde": [
+    "ALL"
+  ],
+  "Pimiento verde freír": [
+    "ALL"
+  ],
+  "Calabacín blanco": [
+    "ALL"
+  ],
+  "Pimiento verde": [
+    "ALL"
+  ],
+  "Pimientos tricolor": [
+    "ALL"
+  ],
+  "Pimientos semipicantes": [
+    "ALL"
+  ],
+  "Coliflor": [
+    "ALL"
+  ],
+  "Repollo liso partido": [
+    "ALL"
+  ],
+  "Champiñones laminados limpios": [
+    "ALL"
+  ],
+  "Jengibre": [
+    "AS"
+  ],
+  "Batido de vainilla": [
+    "ALL"
+  ],
+  "Batido sabor fresa": [
+    "ALL"
+  ],
+  "Batido de chocolate 0% sin azúcares añadidos": [
+    "S"
+  ],
+  "Bebida láctea crecimiento y desarrollo Puleva Max": [
+    "ALL"
+  ],
+  "Bebida láctea con cereales crecimiento y desarrollo Puleva Max": [
+    "ALL"
+  ],
+  "Preparado lácteo crecimiento Peques 3 Puleva": [
+    "ALL"
+  ],
+  "Preparado lácteo con cereales crecimiento Peques 3 Puleva": [
+    "ALL"
+  ],
+  "Preparado lácteo +1 año": [
+    "ALL"
+  ],
+  "Preparado lácteo con cereales +1 año": [
+    "ALL"
+  ],
+  "Preparado lácteo con cacao y cereales +1 año": [
+    "ALL"
+  ],
+  "Leche condensada": [
+    "ALL"
+  ],
+  "Leche condensada desnatada": [
+    "ALL"
+  ],
+  "Bebida láctea sabor canela y limón": [
+    "ALL"
+  ],
+  "Leche evaporada": [
+    "ALL"
+  ],
+  "Crema de leche para café Campina": [
+    "ALL"
+  ],
+  "Mantequilla sin sal añadida": [
+    "ALL"
+  ],
+  "Mantequilla en porciones sin sal añadida": [
+    "ALL"
+  ],
+  "Mantequilla con sal": [
+    "ALL"
+  ],
+  "Mantequilla light": [
+    "ALL"
+  ],
+  "Mantequilla sin lactosa": [
+    "ALL"
+  ],
+  "Margarina": [
+    "ALL"
+  ],
+  "Margarina Tulipán Original": [
+    "ALL"
+  ],
+  "Margarina con sal": [
+    "ALL"
+  ],
+  "Margarina ligera": [
+    "S"
+  ],
+  "Margarina Flora Proactiv": [
+    "ALL"
+  ],
+  "Margarina 100% vegetal": [
+    "ALL"
+  ],
+  "Margarina Flora Original": [
+    "ALL"
+  ],
+  "Nata ligera para cocinar": [
+    "ALL"
+  ],
+  "Nata montada azucarada": [
+    "ALL"
+  ],
+  "Nata para montar": [
+    "ALL"
+  ],
+  "Nata fresca para cocinar": [
+    "ALL"
+  ],
+  "Crema de soja": [
+    "AS"
+  ],
+  "Nata ligera para cocinar sin lactosa": [
+    "S"
+  ],
+  "Medallones de merluza del Cabo ultracongelados": [
+    "ALL"
+  ],
+  "Rodajas de merluza del Cabo ultracongeladas": [
+    "ALL"
+  ],
+  "Albóndigas de bacalao Camós congeladas": [
+    "E",
+    "T"
+  ],
+  "Aritos de surimi a la romana ultracongelados": [
+    "E"
+  ],
+  "Merluza empanada pan fino ultracongelada": [
+    "E"
+  ],
+  "Filetes de merluza al huevo ultracongelados": [
+    "E"
+  ],
+  "Varitas de merluza empanadas ultracongeladas": [
+    "E"
+  ],
+  "Empanadillas de atún ultracongeladas": [
+    "E"
+  ],
+  "Palitos de merluza a la romana ultracongelados": [
+    "E"
+  ],
+  "Figuritas de merluza empanadas ultracongeladas": [
+    "E"
+  ],
+  "Chipirones enharinados ultracongelado": [
+    "E"
+  ],
+  "Langostino caballitos rebozados ultracongelados": [
+    "E"
+  ],
+  "Filetes de boquerón en tempura ultracongelado": [
+    "E"
+  ],
+  "Rabas empanadas ultracongeladas": [
+    "E"
+  ],
+  "Anillas de pota a la romana ultracongeladas": [
+    "E"
+  ],
+  "Croquetas de merluza ultracongelados": [
+    "E"
+  ],
+  "Tubo de pota Argentina limpio congelado": [
+    "ALL"
+  ],
+  "Sepia faraónica limpia congelada": [
+    "ALL"
+  ],
+  "Huevas de sepia congeladas": [
+    "ALL"
+  ],
+  "Sepia faraónica troceada limpia congelada": [
+    "ALL"
+  ],
+  "Calamar troceado limpio congelado": [
+    "ALL"
+  ],
+  "Rodaja de potón del Pacífico cocido congelado": [
+    "ALL"
+  ],
+  "Sepia limpia pequeña congelada": [
+    "ALL"
+  ],
+  "Tiras de potón del Pacífico congeladas": [
+    "ALL"
+  ],
+  "Tinta de sepia Nortindal congelada": [
+    "ALL"
+  ],
+  "Anillas de pota Argentina congeladas": [
+    "ALL"
+  ],
+  "Pulpo crudo congelado": [
+    "ALL"
+  ],
+  "Puntilla de la Índia congelada": [
+    "AS"
+  ],
+  "Calamar patagónico pequeño ultracongelado": [
+    "ALL"
+  ],
+  "Calamar grande congelado": [
+    "ALL"
+  ],
+  "Salmón a rodajas": [
+    "I",
+    "S"
+  ],
+  "Salmón media pieza a rodajas": [
+    "E",
+    "S"
+  ],
+  "Salmón abierto en libro sin cabeza y sin espina": [
+    "E",
+    "S"
+  ],
+  "Salmón media pieza abierto en libro sin cabeza y sin espina": [
+    "E",
+    "S"
+  ],
+  "Salmón sin aletas y sin escamas": [
+    "E",
+    "S"
+  ],
+  "Salmón media pieza sin aletas y sin escamas": [
+    "E",
+    "S"
+  ],
+  "Medio salmón": [
+    "E",
+    "S"
+  ],
+  "Filete de salmón": [
+    "E",
+    "S"
+  ],
+  "Escalopin de salmón": [
+    "E",
+    "S"
+  ],
+  "Rodaja de salmón": [
+    "E",
+    "S"
+  ],
+  "Dorada limpia con cabeza": [
+    "E",
+    "S"
+  ],
+  "Dorada abierta a la espalda con espinas y con cabeza": [
+    "E",
+    "S"
+  ],
+  "Dorada a filetes sin cabeza y sin espina": [
+    "E",
+    "S"
+  ],
+  "Dorada abierta en libro sin cabeza y sin espina": [
+    "E",
+    "S"
+  ],
+  "Dorada sin limpiar": [
+    "E",
+    "S"
+  ],
+  "Filetes de dorada": [
+    "E",
+    "S"
+  ],
+  "Lubina limpia con cabeza": [
+    "E",
+    "S"
+  ],
+  "Lubina abierta a la espalda con espinas y con cabeza": [
+    "E",
+    "S"
+  ],
+  "Lubina a filetes sin cabeza y sin espina": [
+    "E",
+    "S"
+  ],
+  "Lubina abierta en libro sin cabeza y sin espina": [
+    "E",
+    "S"
+  ],
+  "Lubina sin limpiar": [
+    "E",
+    "S"
+  ],
+  "Filete de lubina": [
+    "E",
+    "S"
+  ],
+  "Merluza a rodajas": [
+    "T",
+    "E"
+  ],
+  "Merluza media pieza a rodajas": [
+    "T",
+    "E"
+  ],
+  "Merluza abierta en libro sin cabeza y sin espina": [
+    "T",
+    "E"
+  ],
+  "Merluza media pieza abierta en libro sin cabeza y sin espina": [
+    "T",
+    "E"
+  ],
+  "Merluza sin aletas y sin escamas": [
+    "T",
+    "E"
+  ],
+  "Merluza media pieza sin aletas y sin escamas": [
+    "T",
+    "E"
+  ],
+  "Porciones de merluza del Cabo": [
+    "T"
+  ],
+  "Bacalao al punto de sal descongelado": [
+    "T"
+  ],
+  "Corvina limpia con cabeza": [
+    "E"
+  ],
+  "Corvina abierta a la espalda con espinas y con cabeza": [
+    "E"
+  ],
+  "Corvina a filetes": [
+    "E"
+  ],
+  "Sepia limpia": [
+    "E",
+    "I"
+  ],
+  "Calamar pequeño limpio patagónico": [
+    "E",
+    "AS"
+  ],
+  "Pulpo cocido": [
+    "E"
+  ],
+  "Patas de pulpo cocido": [
+    "E"
+  ],
+  "Trucha abierta en libro con cabeza": [
+    "E"
+  ],
+  "Trucha abierta en libro sin cabeza y sin espina": [
+    "E"
+  ],
+  "Trucha sin aletas": [
+    "E"
+  ],
+  "Bocaditos bañados al cacao": [
+    "AM"
+  ],
+  "Sobaos": [
+    "E"
+  ],
+  "Crepes rellenos de chocolate": [
+    "E"
+  ],
+  "Palmeritas": [
+    "E"
+  ],
+  "Gofres clásicos": [
+    "E"
+  ],
+  "Gofres con chocolate": [
+    "E"
+  ],
+  "Napolitanas con relleno de cacao": [
+    "E"
+  ],
+  "Rosegones pasta de almendras": [
+    "E"
+  ],
+  "Bizcochos": [
+    "ALL"
+  ],
+  "Bizcochos de huevo": [
+    "ALL"
+  ],
+  "Napolitanas con relleno sabor crema": [
+    "E"
+  ],
+  "Tortas de aceite Inés Rosales": [
+    "E"
+  ],
+  "Tortas de aceite Inés Rosales sin azúcar": [
+    "E"
+  ],
+  "Magdalenas sin gluten": [
+    "S"
+  ],
+  "Magdalenas integrales 0% azúcares añadidos": [
+    "S"
+  ],
+  "Magdalenas al cacao": [
+    "E"
+  ],
+  "Mantecadas": [
+    "E"
+  ],
+  "Mini magdalenas con pepitas de chocolate con leche": [
+    "E"
+  ],
+  "Caña de hojaldre rellena de crema sabor vainilla con cobertura de cacao": [
+    "E"
+  ],
+  "Bizcocho": [
+    "ALL"
+  ],
+  "Espiral al cacao": [
+    "E"
+  ],
+  "Bizcocho con baño de cacao": [
+    "E"
+  ],
+  "Coquito": [
+    "E"
+  ],
+  "Rosquilla al cacao": [
+    "E"
+  ],
+  "Hojaldre cabello de Ángel": [
+    "E"
+  ],
+  "Rollo con sabor nata": [
+    "E"
+  ],
+  "Rollo con sabor avellana": [
+    "E"
+  ],
+  "Hojaldre relleno de crema sin azúcar añadido": [
+    "S"
+  ],
+  "Hojaldre relleno de crema de cacao": [
+    "E"
+  ],
+  "Pasta de almendra": [
+    "ALL"
+  ],
+  "Rosquilla de cacao Caocream": [
+    "E"
+  ],
+  "Harina de trigo": [
+    "ALL"
+  ],
+  "Harina de trigo grande": [
+    "ALL"
+  ],
+  "Harina de fuerza": [
+    "ALL"
+  ],
+  "Preparado para repostería con impulsor incorporado": [
+    "ALL"
+  ],
+  "Harina de maíz blanco precocida": [
+    "AM",
+    "M"
+  ],
+  "Harina fina de maíz": [
+    "ALL"
+  ],
+  "Harina integral de trigo": [
+    "ALL"
+  ],
+  "Harina de espelta 100% integral": [
+    "ALL"
+  ],
+  "Harina semolosa de trigo especial para fritos": [
+    "ALL"
+  ],
+  "Harina de arroz": [
+    "ALL"
+  ],
+  "Sémola de trigo": [
+    "ALL"
+  ],
+  "Preparado para repostería y panificación": [
+    "ALL"
+  ],
+  "Harina de garbanzo": [
+    "E",
+    "I"
+  ],
+  "Levadura fresca Levital": [
+    "ALL"
+  ],
+  "Chocolate negro fundir": [
+    "ALL"
+  ],
+  "Impulsor gasificante en polvo Royal uso alimentario": [
+    "ALL"
+  ],
+  "Impulsor gasificante repostería para uso alimentario": [
+    "ALL"
+  ],
+  "Gasificante repostería casera": [
+    "ALL"
+  ],
+  "Gelatina neutra en láminas Foodsy": [
+    "ALL"
+  ],
+  "Preparado en polvo cuajada azucarada Royal sabor lácteo": [
+    "ALL"
+  ],
+  "Gotas de chocolate negro para fundir": [
+    "ALL"
+  ],
+  "Preparado en polvo flan": [
+    "ALL"
+  ],
+  "Chocolate blanco fundir": [
+    "ALL"
+  ],
+  "Aroma de vainilla": [
+    "ALL"
+  ],
+  "Preparado en polvo natillas": [
+    "ALL"
+  ],
+  "Chocolate negro 70% cacao fundir 0% azúcares añadidos": [
+    "S"
+  ],
+  "Chocolate con leche fundir": [
+    "ALL"
+  ],
+  "Levadura de panadería": [
+    "ALL"
+  ],
+  "Preparado en polvo instantáneo para crepes": [
+    "ALL"
+  ],
+  "Preparado en polvo gelatina frutos rojos 0% azúcares": [
+    "S"
+  ],
+  "Preparado en polvo gelatina cereza": [
+    "ALL"
+  ],
+  "Preparado en polvo gelatina fresa": [
+    "ALL"
+  ],
+  "Preparado en polvo gelatina maracuyá": [
+    "ALL"
+  ],
+  "Masa fresca hojaldre": [
+    "ALL"
+  ],
+  "Masa para empanadillas y postres Buitoni": [
+    "ALL"
+  ],
+  "Masa fresca hojaldre con mantequilla": [
+    "M"
+  ],
+  "Masa fresca quebrada brisa": [
+    "ALL"
+  ],
+  "Masa fresca empanada": [
+    "ALL"
+  ],
+  "Masa de hojaldre sin gluten": [
+    "M"
+  ],
+  "Tortillas de trigo": [
+    "M"
+  ],
+  "Tortillas de trigo integrales": [
+    "M"
+  ],
+  "Maxi tortillas de trigo": [
+    "M"
+  ],
+  "Mini tortillas de trigo": [
+    "M"
+  ],
+  "Tortillas de avena 51%": [
+    "M"
+  ],
+  "Tortillas de maíz": [
+    "M"
+  ],
+  "Fideos de chocolate": [
+    "ALL"
+  ],
+  "Bífidus natural edulcorado probióticos 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Natillas con chocolate +Proteínas 1": [
+    "S"
+  ],
+  "Copa de chocolate y nata +Proteínas 12": [
+    "S"
+  ],
+  "Postre de soja sabor chocolate": [
+    "S"
+  ],
+  "Postre de soja sabor vainilla": [
+    "S"
+  ],
+  "Postre de soja sabor natural con coco Alpro": [
+    "AS",
+    "S"
+  ],
+  "Postre de soja sabor mango Alpro sin azúcares añadidos": [
+    "AS",
+    "S"
+  ],
+  "Postre de soja natural": [
+    "S"
+  ],
+  "Postre de coco natural Alpro sin azúcares añadidos": [
+    "AS",
+    "S"
+  ],
+  "Postre de soja sabor arándanos Alpro": [
+    "S"
+  ],
+  "Postre de soja sabor lima limón Alpro": [
+    "S"
+  ],
+  "Yogur natural edulcorado 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Postre lácteo cremoso natural edulcorado 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Postre lácteo con fresa +Proteínas 0% MG 10 g proteínas": [
+    "S"
+  ],
+  "Yogur natural 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Postre lácteo con arándanos +Proteínas 0% MG 10 g proteínas": [
+    "S"
+  ],
+  "Postre lácteo con fruta 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Yogur sabores 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Yogur sabor fresa 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Yogur sabor limón 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Postre lácteo natural sin lactosa 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Postre lácteo con puré mango y maracuya +Proteínas 0% MG 10 g proteínas": [
+    "S"
+  ],
+  "Postre lácteo natural +Proteínas 0% MG 10 g proteínas": [
+    "S"
+  ],
+  "Postre lácteo natural +Proteínas 0% MG 12 g proteínas": [
+    "S"
+  ],
+  "Postre lácteo sabor coco +Proteínas 0% MG 10 g proteínas": [
+    "S"
+  ],
+  "Yogur griego natural": [
+    "E"
+  ],
+  "Yogur griego stracciatella": [
+    "E"
+  ],
+  "Yogur griego sabor fresa": [
+    "E"
+  ],
+  "Yogur griego con fresa": [
+    "E"
+  ],
+  "Yogur griego natural con azúcar de caña": [
+    "E"
+  ],
+  "Yogur griego con mango": [
+    "E"
+  ],
+  "Yogur griego natural ligero 2% MG": [
+    "E"
+  ],
+  "Yogur griego natural ligero": [
+    "E"
+  ],
+  "Yogur griego sabor limón": [
+    "E"
+  ],
+  "Yogur líquido de fresa": [
+    "S"
+  ],
+  "Bebida láctea de fresa y plátano": [
+    "S"
+  ],
+  "Bebida láctea de fresa": [
+    "S"
+  ],
+  "Bebida láctea de piña y coco": [
+    "S"
+  ],
+  "Bebida láctea de frutas del bosque": [
+    "S"
+  ],
+  "Yogur líquido natural con azúcar de caña": [
+    "S"
+  ],
+  "Yogur líquido piña y coco 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Yogur líquido frutos silvestres 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bebida láctea natural azucarada": [
+    "S"
+  ],
+  "Bebida láctea sabor fresa +Proteínas 0% MG 20 g proteínas": [
+    "S"
+  ],
+  "Batido lácteo sabor chocolate +Proteínas 30 g proteínas": [
+    "S"
+  ],
+  "Batido lácteo sabor vainilla +Proteínas 30 g proteínas": [
+    "S"
+  ],
+  "Bebida láctea sabor tropical +Proteínas 0% MG 20 g proteínas": [
+    "S"
+  ],
+  "Bebida láctea sabor açaí plátano +Proteínas 0% MG 20 g proteínas": [
+    "S"
+  ],
+  "Bebida láctea sabor fresa y plátano +Proteínas 0% MG 0% azúcares añadidos 17": [
+    "S"
+  ],
+  "Bebida láctea sabor stracciatella +Proteínas 0% azúcares añadidos 20 g proteínas": [
+    "S"
+  ],
+  "Batido lácteo sabor café +Proteínas 30 g proteínas": [
+    "S"
+  ],
+  "Bebida láctea de fresa L-casei": [
+    "S"
+  ],
+  "Bebida láctea sabores L-casei": [
+    "S"
+  ],
+  "Bebida láctea natural azucarada L-casei": [
+    "S"
+  ],
+  "Bebida láctea natural Actimel": [
+    "S"
+  ],
+  "Bebida láctea natural Actimel 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bebida láctea de fresa L-casei 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bebida láctea natural L-casei 0% MG 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bebida láctea de fresa Cuidacol 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bebida láctea de fresa Danacol 0% azúcares añadidos 0% MG": [
+    "S"
+  ],
+  "Bebida láctea natural Danacol 0% azúcares añadidos 0% MG": [
+    "S"
+  ],
+  "Bebida láctea natural Cuidacol 0% azúcares añadidos": [
+    "S"
+  ],
+  "Bebida Kéfir de coco": [
+    "S"
+  ],
+  "Bebida Kéfir natural 0% MG": [
+    "S"
+  ],
+  "Bebida Kéfir de fresa y plátano": [
+    "S"
+  ],
+  "Bebida láctea sabor avena y nueces Cuidacol 0% azúcares añadidos": [
+    "S"
+  ],
+  "Yogur natural": [
+    "ALL"
+  ],
+  "Yogur natural con azúcar de caña": [
+    "ALL"
+  ],
+  "Kéfir natural sabor suave": [
+    "ALL"
+  ],
+  "Yogur natural de cabra": [
+    "ALL"
+  ],
+  "Postre lácteo cremoso natural azucarado sin lactosa": [
+    "ALL"
+  ],
+  "Yogur sabores": [
+    "ALL"
+  ],
+  "Yogur sabor fresa": [
+    "ALL"
+  ],
+  "Fruta + leche caribe sin azúcares añadidos y zero materia grasa": [
+    "S"
+  ],
+  "Fruta + leche tropical sin azúcares añadidos y zero materia grasa": [
+    "S"
+  ]
+}

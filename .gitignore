@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env.local
+.env.*.local
+*.DS_Store
+.claude/
+.vercel
+.env*
+scripts/sync-zonas.ps1
+scripts/scrape-local.mjs

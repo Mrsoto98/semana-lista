@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#22c55e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Semana Lista" />
+    <title>Semana Lista — Planificador de menús con IA</title>
+    <meta name="description" content="Planifica tu menú semanal con IA, genera la lista de la compra y encuentra los mejores precios en Mercadona." />
+    <meta property="og:title" content="Semana Lista" />
+    <meta property="og:description" content="Planifica tu menú semanal con IA en segundos." />
+    <meta property="og:type" content="website" />
+    <!-- AdSense — anuncios web (iPhone/web users) -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4112362316379237" crossorigin="anonymous"></script>
+    <!-- Ad Placement API shim para rewarded web -->
+    <script>
+      window.adBreak = window.adConfig = function(o) {
+        (window.adsbygoogle = window.adsbygoogle || []).push(o)
+      }
+    </script>
+  </head>
+  <script>
+    // Aplica dark mode antes de que React monte, evitando el flash
+    try {
+      const t = localStorage.getItem('semana-lista:theme')
+      if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      }
+    } catch {}
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+        .then(function(reg) {
+          reg.update()
+          document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') reg.update()
+          })
+          // Cuando hay un SW esperando, forzarlo a activarse ya
+          function activarSWEsperando(r) {
+            if (r.waiting) {
+              r.waiting.postMessage({ type: 'SKIP_WAITING' })
+            }
+          }
+          activarSWEsperando(reg)
+          reg.addEventListener('updatefound', function() {
+            var nuevo = reg.installing
+            if (!nuevo) return
+            nuevo.addEventListener('statechange', function() {
+              if (nuevo.state === 'installed') activarSWEsperando(reg)
+            })
+          })
+        })
+
+      // Recargar cuando el nuevo SW tome el control
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        window.location.reload()
+      })
+    }
+  </script>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
