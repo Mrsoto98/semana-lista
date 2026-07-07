@@ -4,6 +4,10 @@ import { recuperar } from '../lib/storage'
 import { useI18n } from '../hooks/useI18n'
 import type { DificultadPreferida, Dia } from '../types'
 import { DIAS, DIAS_LABEL } from '../types'
+import { esNativo, mostrarAnuncioRewarded, mostrarAnuncioRewardedWeb } from '../lib/ads'
+
+const PREMIUM_KEY = 'menu-semana-premium'
+const DIAS_FIN_SEMANA: Dia[] = ['sabado', 'domingo']
 
 interface ProductoMercadona {
   id: string; nombre: string; precio: number; tamaño: number; unidad: string
@@ -114,6 +118,51 @@ function PillSelector({
 
 export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
   const { t } = useI18n()
+  const [premiumDesbloqueado, setPremiumDesbloqueado] = useState(() => localStorage.getItem(PREMIUM_KEY) === '1')
+  const [mostrandoAdGate, setMostrandoAdGate] = useState<'semana' | null>(null)
+  const [cargandoAnuncio, setCargandoAnuncio] = useState(false)
+
+  async function verAnuncioYDesbloquear() {
+    setCargandoAnuncio(true)
+    try {
+      const resultado = esNativo()
+        ? await mostrarAnuncioRewarded()
+        : await mostrarAnuncioRewardedWeb()
+      if (resultado === 'recompensa') {
+        localStorage.setItem(PREMIUM_KEY, '1')
+        setPremiumDesbloqueado(true)
+        // Aplicar selección bloqueada que quería hacer
+        if (mostrandoAdGate === 'semana') onDiasConfigChange('semana')
+        setMostrandoAdGate(null)
+      } else {
+        setMostrandoAdGate(null)
+      }
+    } finally {
+      setCargandoAnuncio(false)
+    }
+  }
+
+  function handleDiasConfigChange(key: DiasConfig) {
+    if (key === 'semana' && !premiumDesbloqueado) {
+      setMostrandoAdGate('semana')
+      return
+    }
+    onDiasConfigChange(key)
+  }
+
+  function handleDiaPersonalizadoClick(d: Dia) {
+    const esDiaFinde = DIAS_FIN_SEMANA.includes(d)
+    if (esDiaFinde && !premiumDesbloqueado) {
+      setMostrandoAdGate('semana')
+      return
+    }
+    onDiasPersonalizadosChange(prev => {
+      const next = new Set(prev)
+      next.has(d) ? next.delete(d) : next.add(d)
+      return next
+    })
+  }
+
   const [config, setConfig] = useState<ConfigGeneracion>({
     cocina: 'variada e internacional',
     dificultad: dificultadPerfil,
@@ -209,7 +258,7 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
 
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm pt-4 sm:pt-0">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-xl max-h-[92vh] flex flex-col mx-4 sm:mx-0">
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-xl max-h-[92vh] flex flex-col mx-4 sm:mx-0">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <h2 className="text-lg font-black tracking-tight">📅 Generar menú semanal</h2>
@@ -225,25 +274,29 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_para_cuantos_dias}</p>
               <div className="flex gap-2">
                 {([
-                  { key: 'semana',        label: t.modal_semana_completa },
-                  { key: 'laboral',       label: t.modal_lun_vie },
-                  { key: 'personalizado', label: t.modal_personalizado },
-                ] as const).map(({ key, label }) => (
-                  <button key={key} onClick={() => onDiasConfigChange(key)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
-                    {label}
+                  { key: 'semana',        label: t.modal_semana_completa, locked: !premiumDesbloqueado },
+                  { key: 'laboral',       label: t.modal_lun_vie,         locked: false },
+                  { key: 'personalizado', label: t.modal_personalizado,   locked: false },
+                ] as const).map(({ key, label, locked }) => (
+                  <button key={key} onClick={() => handleDiasConfigChange(key)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors relative ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : locked ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-70' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                    {locked && <span className="mr-0.5">🔒</span>}{label}
                   </button>
                 ))}
               </div>
               {diasConfig === 'personalizado' && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {DIAS.map(d => (
-                    <button key={d}
-                      onClick={() => onDiasPersonalizadosChange(prev => { const next = new Set(prev); next.has(d) ? next.delete(d) : next.add(d); return next })}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
-                      {DIAS_LABEL[d].slice(0, 3)}
-                    </button>
-                  ))}
+                  {DIAS.map(d => {
+                    const esFinde = DIAS_FIN_SEMANA.includes(d)
+                    const locked = esFinde && !premiumDesbloqueado
+                    return (
+                      <button key={d}
+                        onClick={() => handleDiaPersonalizadoClick(d)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : locked ? 'border-gray-200 dark:border-gray-700 text-gray-300 opacity-60' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
+                        {locked ? '🔒' : ''}{DIAS_LABEL[d].slice(0, 3)}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -518,6 +571,29 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
             {t.modal_generar}
           </button>
         </div>
+        {/* Ad gate overlay */}
+        {mostrandoAdGate && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 dark:bg-gray-900/95 rounded-2xl px-8 text-center gap-5">
+            <div className="text-4xl">🔒</div>
+            <div>
+              <p className="text-base font-bold text-gray-800 dark:text-gray-100 mb-1">Contenido premium</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Ve un anuncio corto para desbloquear la semana completa (lunes–domingo) para siempre.</p>
+            </div>
+            {cargandoAnuncio ? (
+              <div className="flex items-center gap-2 text-green-select text-sm font-medium">
+                <span className="animate-spin">⏳</span> Cargando anuncio...
+              </div>
+            ) : (
+              <button
+                onClick={verAnuncioYDesbloquear}
+                className="bg-green-select text-white font-bold px-6 py-3 rounded-xl text-sm hover:bg-green-600 transition-colors"
+              >
+                📺 Ver anuncio y desbloquear
+              </button>
+            )}
+            <button onClick={() => setMostrandoAdGate(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+          </div>
+        )}
       </div>
     </div>
   )
