@@ -119,7 +119,7 @@ function PillSelector({
 export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
   const { t } = useI18n()
   const [premiumDesbloqueado, setPremiumDesbloqueado] = useState(() => localStorage.getItem(PREMIUM_KEY) === '1')
-  const [mostrandoAdGate, setMostrandoAdGate] = useState<'semana' | null>(null)
+  const [mostrandoAdGate, setMostrandoAdGate] = useState<'semana' | 'franja' | null>(null)
   const [cargandoAnuncio, setCargandoAnuncio] = useState(false)
 
   async function verAnuncioYDesbloquear() {
@@ -131,8 +131,8 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
       if (resultado === 'recompensa') {
         localStorage.setItem(PREMIUM_KEY, '1')
         setPremiumDesbloqueado(true)
-        // Aplicar selección bloqueada que quería hacer
         if (mostrandoAdGate === 'semana') onDiasConfigChange('semana')
+        if (mostrandoAdGate === 'franja') onFranjaConfigChange('ambas')
         setMostrandoAdGate(null)
       } else {
         setMostrandoAdGate(null)
@@ -140,6 +140,14 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
     } finally {
       setCargandoAnuncio(false)
     }
+  }
+
+  function handleFranjaConfigChange(key: FranjaConfig) {
+    if (key === 'ambas' && !premiumDesbloqueado) {
+      setMostrandoAdGate('franja')
+      return
+    }
+    onFranjaConfigChange(key)
   }
 
   function handleDiasConfigChange(key: DiasConfig) {
@@ -279,7 +287,13 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
                   { key: 'personalizado', label: t.modal_personalizado,   locked: false },
                 ] as const).map(({ key, label, locked }) => (
                   <button key={key} onClick={() => handleDiasConfigChange(key)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors relative ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : locked ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-70' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors relative ${
+                      locked
+                        ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-60'
+                        : diasConfig === key
+                          ? 'border-green-select bg-accent-light text-green-select'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500'
+                    }`}>
                     {locked && <span className="mr-0.5">🔒</span>}{label}
                   </button>
                 ))}
@@ -304,13 +318,19 @@ export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingrediente
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_que_comidas}</p>
               <div className="flex gap-2">
                 {([
-                  { key: 'ambas',  label: t.modal_comida_cena },
-                  { key: 'comida', label: t.modal_solo_comida },
-                  { key: 'cena',   label: t.modal_solo_cena },
-                ] as const).map(({ key, label }) => (
-                  <button key={key} onClick={() => onFranjaConfigChange(key)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
-                    {label}
+                  { key: 'ambas',  label: t.modal_comida_cena, locked: !premiumDesbloqueado },
+                  { key: 'comida', label: t.modal_solo_comida, locked: false },
+                  { key: 'cena',   label: t.modal_solo_cena,   locked: false },
+                ] as const).map(({ key, label, locked }) => (
+                  <button key={key} onClick={() => handleFranjaConfigChange(key)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${
+                      locked
+                        ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-60'
+                        : franjaConfig === key
+                          ? 'border-green-select bg-accent-light text-green-select'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500'
+                    }`}>
+                    {locked && <span className="mr-0.5">🔒</span>}{label}
                   </button>
                 ))}
               </div>
