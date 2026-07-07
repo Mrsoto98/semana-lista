@@ -12,8 +12,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { guardar, recuperar } from '../lib/storage'
 import { usePushNotifications, DIAS_SEMANA, HORAS_DISPONIBLES } from '../hooks/usePushNotifications'
-import type { Objetivo, DificultadPreferida, Perfil, Dia } from '../types'
-import { DIAS, DIAS_LABEL } from '../types'
+import type { Objetivo, DificultadPreferida, Perfil } from '../types'
 
 // Labels built inside component from t.* keys
 type DificultadItem = { value: DificultadPreferida; label: string; emoji: string; desc: string }
@@ -159,18 +158,6 @@ export default function Ajustes() {
     if (error) setErrorUsuario(error)
     else { setGuardadoUsuario(true); setTimeout(() => setGuardadoUsuario(false), 2000) }
   }
-
-  // Ajustes del menú semanal (comparte localStorage con Menu.tsx)
-  type DiasConfig = 'semana' | 'laboral' | 'personalizado'
-  type FranjaConfig = 'ambas' | 'comida' | 'cena'
-  const [diasConfig, setDiasConfigRaw] = useState<DiasConfig>(() => recuperar<DiasConfig>('menu_dias_config') ?? 'laboral')
-  const [diasPersonalizados, setDiasPersonalizadosRaw] = useState<Set<Dia>>(() => new Set(recuperar<Dia[]>('menu_dias_personalizados') ?? DIAS))
-  const [franjaConfig, setFranjaConfigRaw] = useState<FranjaConfig>(() => recuperar<FranjaConfig>('menu_franja_config') ?? 'comida')
-  function setDiasConfig(v: DiasConfig) { setDiasConfigRaw(v); guardar('menu_dias_config', v) }
-  function setDiasPersonalizados(fn: (prev: Set<Dia>) => Set<Dia>) {
-    setDiasPersonalizadosRaw(prev => { const next = fn(prev); guardar('menu_dias_personalizados', Array.from(next)); return next })
-  }
-  function setFranjaConfig(v: FranjaConfig) { setFranjaConfigRaw(v); guardar('menu_franja_config', v) }
 
   const [tema, setTema] = useState<'light' | 'dark' | 'system'>(() => {
     const t = localStorage.getItem('semana-lista:theme')
@@ -483,53 +470,6 @@ export default function Ajustes() {
           </div>
         </div>
       )}
-
-      {/* Ajustes del menú semanal */}
-      <div className="pt-2">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t.ajustes_menu_titulo}</p>
-        <div className="bg-white dark:bg-gray-900 rounded-card border border-gray-100 dark:border-gray-800 p-4 space-y-4">
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t.modal_para_cuantos_dias}</p>
-            <div className="flex gap-2">
-              {([
-                { key: 'semana',       label: t.modal_semana_completa },
-                { key: 'laboral',      label: t.modal_lun_vie },
-                { key: 'personalizado', label: t.modal_personalizado },
-              ] as const).map(({ key, label }) => (
-                <button key={key} onClick={() => setDiasConfig(key)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${diasConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            {diasConfig === 'personalizado' && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {DIAS.map(d => (
-                  <button key={d} onClick={() => setDiasPersonalizados(prev => { const next = new Set(prev); next.has(d) ? next.delete(d) : next.add(d); return next })}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
-                    {DIAS_LABEL[d].slice(0, 3)}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-2">{t.modal_que_comidas}</p>
-            <div className="flex gap-2">
-              {([
-                { key: 'ambas',  label: t.modal_comida_cena },
-                { key: 'comida', label: t.modal_solo_comida },
-                { key: 'cena',   label: t.modal_solo_cena },
-              ] as const).map(({ key, label }) => (
-                <button key={key} onClick={() => setFranjaConfig(key)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${franjaConfig === key ? 'border-green-select bg-accent-light text-green-select' : 'border-gray-200 dark:border-gray-700 text-gray-500'}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Color de acento */}
       <div className="pt-2">
