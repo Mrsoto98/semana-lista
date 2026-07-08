@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "build": "tsx src/index.ts",
+    "start": "tsx src/index.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.44.4",
