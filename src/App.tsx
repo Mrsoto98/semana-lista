@@ -10,11 +10,14 @@ import { setInstallPrompt, getInstallPrompt, clearInstallPrompt } from './lib/in
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { OfflineBanner } from './components/OfflineBanner'
 import { Tutorial } from './components/Tutorial'
+import { supabase } from './lib/supabase'
+import { esNativo } from './lib/ads'
 
 
 
-const Landing    = lazy(() => import('./pages/Landing'))
-const Auth       = lazy(() => import('./pages/Auth'))
+const Landing      = lazy(() => import('./pages/Landing'))
+const Auth         = lazy(() => import('./pages/Auth'))
+const AuthCallback = lazy(() => import('./pages/AuthCallback'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
 const Menu       = lazy(() => import('./pages/Menu'))
 const Lista      = lazy(() => import('./pages/Lista'))
@@ -627,6 +630,47 @@ function AppRoutes() {
   const swipeStart = useRef<{ x: number; y: number } | null>(null)
   const { listas } = useListasCompartidas()
 
+  // Listener OAuth deep link — dentro de React para garantizar que está listo antes del evento.
+  // El flow: Auth.tsx abre CCT → Google OAuth → Supabase redirige a /auth/callback (https)
+  // → AuthCallback.tsx redirige a com.semanalista.app://auth/continue#tokens desde JS
+  // → Android dispara Intent → appUrlOpen se activa aquí con los tokens.
+  useEffect(() => {
+    if (!esNativo()) return
+    let removeListener: (() => void) | undefined
+    // @ts-ignore
+    import('@capacitor/app').then(({ App }: { App: any }) => {
+      App.addListener('appUrlOpen', async ({ url }: { url: string }) => {
+        if (!url.startsWith('com.semanalista.app://auth/')) return
+        try {
+          const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
+          const hash = new URLSearchParams(parsed.hash.slice(1))
+          const access_token = hash.get('access_token') ?? parsed.searchParams.get('access_token')
+          const refresh_token = hash.get('refresh_token') ?? parsed.searchParams.get('refresh_token')
+          const code = parsed.searchParams.get('code')
+
+          let userId: string | null = null
+          if (access_token && refresh_token) {
+            const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
+            if (error) throw error
+            userId = data.user?.id ?? null
+          } else if (code) {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+            if (error) throw error
+            userId = data.user?.id ?? null
+          }
+
+          if (!userId) throw new Error('Sin usuario tras OAuth')
+          const { data: perfil } = await supabase.from('perfiles').select('id').eq('usuario_id', userId).maybeSingle()
+          window.location.href = perfil ? '/menu' : '/onboarding'
+        } catch (err) {
+          console.error('OAuth callback error:', err)
+          window.location.href = '/login?oauth_error=1'
+        }
+      }).then((h: any) => { removeListener = () => h.remove() })
+    }).catch(() => {})
+    return () => { removeListener?.() }
+  }, [])
+
   const NAV_PATHS = ['/ajustes', '/exportar', '/menu', '/lista', '/lista-compartida']
 
   function navigateTo(path: string) {
@@ -679,6 +723,7 @@ function AppRoutes() {
             <Route path="/privacidad" element={<Privacidad />} />
             <Route path="/menu/:semanaId" element={<MenuPublico />} />
             <Route path="/lista-compartida/:id" element={<Protected><ListaCompartida /></Protected>} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
           </div>
         </Suspense>

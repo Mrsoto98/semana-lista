@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Badge } from './ui/Badge'
 import type { Receta } from '../types'
 import { obtenerImagenReceta, fotoUrlPollinations } from '../lib/recetasCache'
+import { useI18n } from '../hooks/useI18n'
 
 function FotoReceta({ nombre }: { nombre: string }) {
   const [estado, setEstado] = useState<'cargando' | 'ok' | 'error'>('cargando')
@@ -80,6 +81,7 @@ export function RecetaCard({
   esDislike = false, onDislike, onQuitarDislike,
   puedeAnadirExtra = false, cargandoExtra = false, onAnadirOpcionExtra,
 }: Props) {
+  const { lang } = useI18n()
   const [vista, setVista] = useState(seleccionada)
   // Sync local vista when external seleccionada changes (e.g. after regenerar día)
   React.useEffect(() => { setVista(seleccionada) }, [seleccionada])
@@ -112,7 +114,7 @@ export function RecetaCard({
     try {
       const { supabase } = await import('../lib/supabase')
       const { data } = await supabase.functions.invoke('generar-recetas', {
-        body: { action: 'pasos', nombre: receta.nombre, ingredientes: receta.ingredientes, descripcion: receta.descripcion_corta },
+        body: { action: 'pasos', nombre: receta.nombre, ingredientes: receta.ingredientes, descripcion: receta.descripcion_corta, lang },
       })
       setPasos((data as { pasos: string[] })?.pasos ?? [])
     } catch {
@@ -153,10 +155,10 @@ export function RecetaCard({
 
   return (
     <div
-      className={`rounded-card border-l-4 ${accent} overflow-hidden fade-slide-up transition-all duration-150 cursor-pointer
+      className={`rounded-card border-l-4 ${accent} overflow-hidden fade-slide-up transition-all duration-150 cursor-pointer card
         ${estaSeleccionada
-          ? 'shadow-card-md ring-2 ring-green-select/20 bg-white dark:bg-gray-900'
-          : 'shadow-card bg-white dark:bg-gray-900 hover:shadow-card-md'
+          ? 'shadow-card-md ring-2 ring-green-select/20'
+          : 'hover:shadow-card-md hover:-translate-y-0.5'
         }`}
       onClick={() => onSeleccionar(vista)}
     >
@@ -209,7 +211,7 @@ export function RecetaCard({
           <button
             data-tutorial="ver-receta"
             onClick={verReceta}
-            className="text-xs text-green-select hover:text-green-700 font-medium transition-colors"
+            className="text-xs text-green-select hover:opacity-75 font-medium transition-colors"
           >
             📖 Ver receta
           </button>
@@ -262,7 +264,7 @@ export function RecetaCard({
               <ol className="space-y-3">
                 {pasos.map((paso, i) => (
                   <li key={i} className="text-sm text-gray-700 dark:text-gray-300 flex gap-3">
-                    <span className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="w-5 h-5 rounded-full bg-accent-light text-green-select text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                     <span className="leading-relaxed">{paso.replace(/^\d+\.?\s*/, '')}</span>
                   </li>
                 ))}

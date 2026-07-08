@@ -65,7 +65,7 @@ export function usePushNotifications() {
     if (!user) return false
     try {
       setEstado('cargando')
-      const reg = await navigator.serviceWorker.register('/sw.js')
+      const reg = await navigator.serviceWorker.register('/push-sw.js')
       await navigator.serviceWorker.ready
 
       const perm = await Notification.requestPermission()
@@ -111,7 +111,7 @@ export function usePushNotifications() {
   async function desactivar(): Promise<void> {
     if (!user) return
     try {
-      const reg = await navigator.serviceWorker.getRegistration('/sw.js')
+      const reg = await navigator.serviceWorker.getRegistration('/push-sw.js')
       if (reg) {
         const sub = await reg.pushManager.getSubscription()
         if (sub) {

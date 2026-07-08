@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Generar assets</title></head>
+<body style="background:#111;color:#fff;font-family:sans-serif;padding:20px">
+<h2>Assets Google Play — haz clic para descargar</h2>
+
+<div style="display:flex;gap:30px;flex-wrap:wrap;margin-top:20px">
+  <!-- ICONO 512x512 -->
+  <div>
+    <p>Icono 512×512</p>
+    <canvas id="icon" width="512" height="512" style="border-radius:80px;display:block"></canvas>
+    <button onclick="downloadCanvas('icon','icono-512x512.png')" style="margin-top:8px;padding:8px 16px;cursor:pointer">⬇ Descargar icono</button>
+  </div>
+
+  <!-- FEATURE GRAPHIC 1024x500 -->
+  <div>
+    <p>Feature Graphic 1024×500</p>
+    <canvas id="feature" width="1024" height="500" style="display:block;width:512px;height:250px"></canvas>
+    <button onclick="downloadCanvas('feature','feature-graphic-1024x500.png')" style="margin-top:8px;padding:8px 16px;cursor:pointer">⬇ Descargar feature graphic</button>
+  </div>
+</div>
+
+<script>
+function drawIcon() {
+  const c = document.getElementById('icon')
+  const ctx = c.getContext('2d')
+  const size = 512
+
+  // Fondo degradado oscuro
+  const grad = ctx.createLinearGradient(0, 0, size, size)
+  grad.addColorStop(0, '#0f1a0f')
+  grad.addColorStop(1, '#1a2d1a')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, size, size)
+
+  // Círculo verde suave
+  const circle = ctx.createRadialGradient(256, 220, 60, 256, 220, 200)
+  circle.addColorStop(0, 'rgba(34,197,94,0.18)')
+  circle.addColorStop(1, 'rgba(34,197,94,0)')
+  ctx.fillStyle = circle
+  ctx.fillRect(0, 0, size, size)
+
+  // Emoji 🥗
+  ctx.font = '260px serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('🥗', 256, 240)
+
+  // Texto "Semana Lista" abajo
+  ctx.font = 'bold 46px Arial, sans-serif'
+  ctx.fillStyle = '#22c55e'
+  ctx.letterSpacing = '2px'
+  ctx.fillText('Semana Lista', 256, 430)
+}
+
+function drawFeature() {
+  const c = document.getElementById('feature')
+  const ctx = c.getContext('2d')
+  const W = 1024, H = 500
+
+  // Fondo
+  const grad = ctx.createLinearGradient(0, 0, W, H)
+  grad.addColorStop(0, '#0a150a')
+  grad.addColorStop(0.5, '#0f2010')
+  grad.addColorStop(1, '#0a150a')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, W, H)
+
+  // Glow verde izquierda
+  const glow = ctx.createRadialGradient(200, 250, 20, 200, 250, 280)
+  glow.addColorStop(0, 'rgba(34,197,94,0.15)')
+  glow.addColorStop(1, 'rgba(34,197,94,0)')
+  ctx.fillStyle = glow
+  ctx.fillRect(0, 0, W, H)
+
+  // Emoji grande
+  ctx.font = '200px serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('🥗', 200, 250)
+
+  // Título
+  ctx.textAlign = 'left'
+  ctx.font = 'bold 80px Arial, sans-serif'
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText('Semana Lista', 370, 190)
+
+  // Subtítulo verde
+  ctx.font = 'bold 38px Arial, sans-serif'
+  ctx.fillStyle = '#22c55e'
+  ctx.fillText('Menú semanal con IA', 370, 260)
+
+  // Descripción
+  ctx.font = '28px Arial, sans-serif'
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'
+  ctx.fillText('Planifica, cocina y come mejor', 370, 320)
+
+  // Línea decorativa
+  ctx.strokeStyle = '#22c55e'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.moveTo(370, 218)
+  ctx.lineTo(920, 218)
+  ctx.stroke()
+}
+
+function downloadCanvas(id, filename) {
+  const c = document.getElementById(id)
+  const a = document.createElement('a')
+  a.download = filename
+  a.href = c.toDataURL('image/png')
+  a.click()
+}
+
+drawIcon()
+drawFeature()
+</script>
+</body>
+</html>

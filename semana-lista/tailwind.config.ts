@@ -8,7 +8,7 @@ export default {
     extend: {
       colors: {
         'warm-white':   '#F8F8F6',
-        'green-select': '#16a34a',   // antes #4CAF50 — más moderno y profundo
+        'green-select': 'rgb(var(--accent) / <alpha-value>)',
         'green-light':  '#86efac',   // acento claro para fondos
         'orange-accent':'#f97316',   // naranja más vivo
       },
@@ -19,9 +19,10 @@ export default {
         card: '14px',               // antes 12px — un poco más redondeado
       },
       boxShadow: {
-        'card':    '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04)',
-        'card-md': '0 4px 12px 0 rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.05)',
-        'card-lg': '0 8px 24px 0 rgb(0 0 0 / 0.10), 0 4px 8px -2px rgb(0 0 0 / 0.06)',
+        'card':    '0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)',
+        'card-md': '0 8px 32px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
+        'card-lg': '0 16px 48px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+        'glass':   '0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)',
       },
       keyframes: {
         'fade-in': {

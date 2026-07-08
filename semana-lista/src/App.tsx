@@ -15,8 +15,9 @@ import { esNativo } from './lib/ads'
 
 
 
-const Landing    = lazy(() => import('./pages/Landing'))
-const Auth       = lazy(() => import('./pages/Auth'))
+const Landing      = lazy(() => import('./pages/Landing'))
+const Auth         = lazy(() => import('./pages/Auth'))
+const AuthCallback = lazy(() => import('./pages/AuthCallback'))
 const Onboarding = lazy(() => import('./pages/Onboarding'))
 const Menu       = lazy(() => import('./pages/Menu'))
 const Lista      = lazy(() => import('./pages/Lista'))
@@ -629,16 +630,17 @@ function AppRoutes() {
   const swipeStart = useRef<{ x: number; y: number } | null>(null)
   const { listas } = useListasCompartidas()
 
-  // Listener OAuth deep link — dentro de React para garantizar que está listo antes del evento
+  // Listener OAuth deep link — dentro de React para garantizar que está listo antes del evento.
+  // El flow: Auth.tsx abre CCT → Google OAuth → Supabase redirige a /auth/callback (https)
+  // → AuthCallback.tsx redirige a com.semanalista.app://auth/continue#tokens desde JS
+  // → Android dispara Intent → appUrlOpen se activa aquí con los tokens.
   useEffect(() => {
     if (!esNativo()) return
     let removeListener: (() => void) | undefined
     // @ts-ignore
     import('@capacitor/app').then(({ App }: { App: any }) => {
       App.addListener('appUrlOpen', async ({ url }: { url: string }) => {
-        if (!url.includes('auth/callback')) return
-        // @ts-ignore
-        import('@capacitor/browser').then(({ Browser }: { Browser: any }) => Browser.close()).catch(() => {})
+        if (!url.startsWith('com.semanalista.app://auth/')) return
         try {
           const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
           const hash = new URLSearchParams(parsed.hash.slice(1))
@@ -721,6 +723,7 @@ function AppRoutes() {
             <Route path="/privacidad" element={<Privacidad />} />
             <Route path="/menu/:semanaId" element={<MenuPublico />} />
             <Route path="/lista-compartida/:id" element={<Protected><ListaCompartida /></Protected>} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
           </Routes>
           </div>
         </Suspense>

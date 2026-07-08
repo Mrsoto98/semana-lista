@@ -4,7 +4,20 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useI18n } from '../hooks/useI18n'
-const REDIRECT_URL = `${window.location.origin}/`
+import { esNativo } from '../lib/ads'
+
+// Para nativo usamos https:// como redirect — CCT lo abre sin problemas.
+// La página /auth/callback recibe los tokens y redirige al scheme desde JS,
+// lo que sí dispara el Intent de Android (a diferencia del redirect de servidor).
+const REDIRECT_URL = esNativo()
+  ? 'https://semana-lista-2wbr.vercel.app/auth/callback'
+  : `${window.location.origin}/`
+
+function abrirOAuthNativo(url: string) {
+  // Abre en el navegador del sistema — funciona con la página intermedia /auth/callback
+  // que redirige al scheme com.semanalista.app:// desde JS, disparando el Intent de Android
+  window.open(url, '_system')
+}
 
 type Mode = 'login' | 'registro'
 
@@ -26,7 +39,9 @@ export default function Auth() {
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('oauth_error') ? 'Error al iniciar sesión con Google. Vuelve a intentarlo.' : null
+  )
   const [enviando, setEnviando] = useState(false)
   const [confirmacionEnviada, setConfirmacionEnviada] = useState(false)
 
@@ -72,11 +87,21 @@ export default function Auth() {
     setError(null)
     setEnviando(true)
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: REDIRECT_URL },
-      })
-      if (error) throw error
+      if (esNativo()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: REDIRECT_URL, skipBrowserRedirect: true },
+        })
+        if (error) throw error
+        if (data.url) await abrirOAuthNativo(data.url)
+        else throw new Error('No se recibió URL de autenticación')
+      } else {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: REDIRECT_URL },
+        })
+        if (error) throw error
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al iniciar con Google'
       setError(traducirError(msg))

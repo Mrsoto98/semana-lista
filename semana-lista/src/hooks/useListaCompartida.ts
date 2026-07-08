@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useContext, createContext } from 'react'
+import React from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
@@ -129,8 +130,10 @@ export function useListaCompartida(listaId: string | null) {
   }
 
   async function eliminarItem(id: string) {
+    const snapshot = items
     setItems(prev => prev.filter(i => i.id !== id))
-    await supabase.from('lista_compartida_items').delete().eq('id', id)
+    const { error } = await supabase.from('lista_compartida_items').delete().eq('id', id)
+    if (error) setItems(snapshot) // rollback si falla
   }
 
   async function renombrarLista(nombre: string) {
@@ -150,29 +153,70 @@ export function useListaCompartida(listaId: string | null) {
   return { lista, items, miembros, loading, error, esAdmin, añadirItem, toggleComprado, toggleEnCasa, actualizarPrecio, actualizarCantidad, actualizarUnidadYCantidad, eliminarItem, renombrarLista, actualizarPresupuesto, recargar: cargar }
 }
 
-export function useListasCompartidas() {
+// ── Contexto singleton para evitar múltiples canales realtime ─────────────────
+type ListasCtx = ReturnType<typeof _useListasCompartidasInternal>
+const ListasCompartidasContext = createContext<ListasCtx | null>(null)
+
+export function ListasCompartidasProvider({ children }: { children: React.ReactNode }) {
+  const value = _useListasCompartidasInternal()
+  return React.createElement(ListasCompartidasContext.Provider, { value }, children)
+}
+
+export function useListasCompartidas(): ListasCtx {
+  const ctx = useContext(ListasCompartidasContext)
+  if (!ctx) throw new Error('useListasCompartidas debe usarse dentro de ListasCompartidasProvider')
+  return ctx
+}
+
+function _useListasCompartidasInternal() {
   const { user } = useAuth()
   const [listas, setListas] = useState<ListaCompartida[]>([])
   const [loading, setLoading] = useState(true)
+  const [solicitudesPendientes, setSolicitudesPendientes] = useState(0)
 
   const cargar = useCallback(async () => {
     if (!user) { setLoading(false); return }
     setLoading(true)
     const { data } = await supabase
       .from('lista_compartida_miembros')
-      .select('lista_id, listas_compartidas(*)')
+      .select('lista_id, rol, listas_compartidas(*)')
       .eq('usuario_id', user.id)
     const resultado = (data ?? [])
       .map((r: { listas_compartidas: unknown }) => r.listas_compartidas)
       .filter(Boolean) as ListaCompartida[]
     setListas(resultado)
+
+    // Contar solicitudes pendientes en listas donde soy admin
+    const misListasAdmin = (data ?? [])
+      .filter((r: { rol: string }) => r.rol === 'admin')
+      .map((r: { lista_id: string }) => r.lista_id)
+    if (misListasAdmin.length > 0) {
+      const { count } = await supabase
+        .from('solicitudes_lista')
+        .select('*', { count: 'exact', head: true })
+        .in('lista_id', misListasAdmin)
+      setSolicitudesPendientes(count ?? 0)
+    } else {
+      setSolicitudesPendientes(0)
+    }
     setLoading(false)
   }, [user])
 
   useEffect(() => { cargar() }, [cargar])
 
+  // Realtime: recargar listas y solicitudes cuando cambien las membresías o solicitudes
+  useEffect(() => {
+    if (!user) return
+    const canal = supabase.channel('listas-usuario-' + user.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lista_compartida_miembros' }, cargar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes_lista' }, cargar)
+      .subscribe()
+    return () => { supabase.removeChannel(canal) }
+  }, [user, cargar])
+
   async function crearLista(nombre: string): Promise<{ lista: ListaCompartida | null; error?: string }> {
     if (!user) return { lista: null, error: 'No autenticado' }
+    if (listas.length >= 2) return { lista: null, error: 'Máximo 2 listas compartidas por cuenta.' }
     // Usar función SECURITY DEFINER para evitar problemas de RLS
     const { data, error } = await supabase.rpc('crear_lista_compartida', { p_nombre: nombre })
     if (error || !data) return { lista: null, error: error?.message ?? 'No se pudo crear la lista' }
@@ -184,7 +228,7 @@ export function useListasCompartidas() {
     return { lista }
   }
 
-  async function unirseConCodigo(codigo: string): Promise<{ ok: boolean; error?: string; lista?: ListaCompartida }> {
+  async function unirseConCodigo(codigo: string): Promise<{ ok: boolean; pendiente?: boolean; error?: string; lista?: ListaCompartida }> {
     if (!user) return { ok: false, error: 'No autenticado' }
     const { data: lista } = await supabase
       .from('listas_compartidas')
@@ -194,9 +238,14 @@ export function useListasCompartidas() {
     if (!lista) return { ok: false, error: 'Código incorrecto. Comprueba el código e inténtalo de nuevo.' }
     const yaMiembro = listas.some(l => l.id === lista.id)
     if (yaMiembro) return { ok: false, error: 'Ya eres miembro de esta lista.' }
-    await supabase.from('lista_compartida_miembros').insert({ lista_id: lista.id, usuario_id: user.id, rol: 'miembro' })
-    await cargar()
-    return { ok: true, lista: lista as ListaCompartida }
+    if (listas.length >= 2) return { ok: false, error: 'Máximo 2 listas compartidas por cuenta.' }
+    // Insertar solicitud en vez de unirse directamente
+    const { error } = await supabase
+      .from('solicitudes_lista')
+      .insert({ lista_id: lista.id, usuario_id: user.id })
+    if (error?.message?.includes('unique')) return { ok: false, error: 'Ya tienes una solicitud pendiente para esta lista.' }
+    if (error) return { ok: false, error: error.message }
+    return { ok: true, pendiente: true, lista: lista as ListaCompartida }
   }
 
   async function abandonarLista(listaId: string) {
@@ -205,5 +254,5 @@ export function useListasCompartidas() {
     setListas(prev => prev.filter(l => l.id !== listaId))
   }
 
-  return { listas, loading, crearLista, unirseConCodigo, abandonarLista, recargar: cargar }
+  return { listas, loading, solicitudesPendientes, crearLista, unirseConCodigo, abandonarLista, recargar: cargar }
 }

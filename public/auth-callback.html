@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volviendo a la app...</title>
+  <style>
+    body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: system-ui, sans-serif; background: #0f1a0f; color: #ccc; gap: 16px; }
+    .emoji { font-size: 56px; }
+    p { margin: 0; font-size: 16px; }
+    a { color: #22c55e; font-weight: 700; text-decoration: none; margin-top: 8px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="emoji">🥗</div>
+  <p>Volviendo a la app...</p>
+  <script>
+    // Construir URL del scheme nativo con los mismos params/hash que trajo OAuth
+    var destino = 'com.semanalista.app://auth/continue' + window.location.search + window.location.hash;
+    // Intentar redirect automático (funciona si viene de un gesto de usuario)
+    window.location.replace(destino);
+  </script>
+  <!-- Fallback: enlace que el usuario puede tocar si el redirect no es automático -->
+  <a id="btn" href="#">Toca aquí si no vuelve solo</a>
+  <script>
+    document.getElementById('btn').href = 'com.semanalista.app://auth/continue' + window.location.search + window.location.hash;
+  </script>
+</body>
+</html>

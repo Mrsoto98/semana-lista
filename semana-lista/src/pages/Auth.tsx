@@ -6,18 +6,17 @@ import { useAuth } from '../hooks/useAuth'
 import { useI18n } from '../hooks/useI18n'
 import { esNativo } from '../lib/ads'
 
-const REDIRECT_URL = esNativo() ? 'com.semanalista.app://auth/callback' : `${window.location.origin}/`
+// Para nativo usamos https:// como redirect — CCT lo abre sin problemas.
+// La página /auth/callback recibe los tokens y redirige al scheme desde JS,
+// lo que sí dispara el Intent de Android (a diferencia del redirect de servidor).
+const REDIRECT_URL = esNativo()
+  ? 'https://semana-lista-2wbr.vercel.app/auth/callback'
+  : `${window.location.origin}/`
 
-async function abrirOAuthNativo(url: string) {
-  try {
-    // @ts-ignore — @capacitor/browser solo disponible en build Android
-    const { Browser } = await import('@capacitor/browser')
-    await Browser.open({ url, windowName: '_self' })
-  } catch (e) {
-    // Fallback: abrir en el navegador del sistema si @capacitor/browser falla
-    console.error('Browser plugin error:', e)
-    window.open(url, '_system')
-  }
+function abrirOAuthNativo(url: string) {
+  // Abre en el navegador del sistema — funciona con la página intermedia /auth/callback
+  // que redirige al scheme com.semanalista.app:// desde JS, disparando el Intent de Android
+  window.open(url, '_system')
 }
 
 type Mode = 'login' | 'registro'

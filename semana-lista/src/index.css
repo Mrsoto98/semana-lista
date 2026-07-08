@@ -4,6 +4,17 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --accent: 22 163 74; /* verde #16a34a — canales RGB para opacity modifiers de Tailwind */
+}
+
+.bg-accent-light {
+  background-color: rgb(var(--accent) / 0.08);
+}
+.dark .bg-accent-light {
+  background-color: rgb(var(--accent) / 0.15);
+}
+
 @layer base {
   html {
     font-feature-settings: 'cv11', 'ss01';
@@ -11,21 +22,156 @@
     padding-top: env(safe-area-inset-top);
   }
   body {
-    @apply bg-warm-white text-gray-900 dark:bg-gray-950 dark:text-gray-100;
+    @apply text-gray-900 dark:text-gray-100;
     -webkit-font-smoothing: antialiased;
+    /* Liquid glass: fondo con más contraste y color para que el glass refracte bien */
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(134,239,172,0.28) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 60%, rgba(147,197,253,0.22) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 100%, rgba(216,180,254,0.15) 0%, transparent 50%),
+      linear-gradient(160deg, #f0fdf4 0%, #F8F8F6 50%, #eff6ff 100%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+  }
+  html.dark body {
+    background:
+      radial-gradient(ellipse at 15% 10%, rgba(16,185,129,0.18) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 55%, rgba(59,130,246,0.14) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 95%, rgba(139,92,246,0.12) 0%, transparent 50%),
+      linear-gradient(160deg, #0d2818 0%, #0a0f1a 45%, #0a1628 100%);
+    background-attachment: fixed;
   }
 }
 
 @layer components {
-  /* Card base — sombra en lugar de borde */
+  /* ── Liquid Glass card ──────────────────────────────────────────
+     3 capas: fondo traslúcido + blur + saturación + borde especular */
   .card {
-    @apply bg-white dark:bg-gray-900 rounded-card shadow-card;
+    @apply rounded-card;
+    background: rgba(255,255,255,0.58);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.75);
+    box-shadow:
+      0 2px 0 0 rgba(255,255,255,0.9) inset,          /* línea especular superior */
+      0 -1px 0 0 rgba(255,255,255,0.3) inset,          /* reflejo inferior sutil */
+      0 8px 32px rgba(0,0,0,0.07),
+      0 2px 8px rgba(0,0,0,0.04),
+      0 0 0 0.5px rgba(255,255,255,0.5);
   }
+  html.dark .card {
+    background: rgba(15,25,45,0.62);
+    border-color: rgba(255,255,255,0.12);
+    box-shadow:
+      0 1px 0 0 rgba(255,255,255,0.12) inset,
+      0 -1px 0 0 rgba(0,0,0,0.3) inset,
+      0 8px 32px rgba(0,0,0,0.45),
+      0 2px 8px rgba(0,0,0,0.3),
+      0 0 0 0.5px rgba(255,255,255,0.06);
+  }
+
   .card-interactive {
-    @apply card transition-shadow duration-150 cursor-pointer hover:shadow-card-md;
+    @apply card transition-all duration-200 cursor-pointer;
   }
+  .card-interactive:hover {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    box-shadow:
+      0 2px 0 0 rgba(255,255,255,0.95) inset,
+      0 12px 40px rgba(0,0,0,0.10),
+      0 3px 10px rgba(0,0,0,0.06),
+      0 0 0 0.5px rgba(255,255,255,0.6);
+    transform: translateY(-1px);
+  }
+  html.dark .card-interactive:hover {
+    background: rgba(20,35,60,0.72);
+  }
+
   .card-selected {
-    @apply shadow-card-md ring-2 ring-green-select/25 bg-green-50/60 dark:bg-green-950/40;
+    @apply ring-2 ring-green-select/30;
+    background: rgba(220,252,231,0.65);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border-color: rgba(134,239,172,0.6);
+    box-shadow:
+      0 2px 0 0 rgba(255,255,255,0.9) inset,
+      0 8px 32px rgba(22,163,74,0.10),
+      0 2px 8px rgba(22,163,74,0.06);
+  }
+  html.dark .card-selected {
+    background: rgba(5,46,22,0.55);
+    border-color: rgba(74,222,128,0.25);
+    box-shadow:
+      0 1px 0 0 rgba(74,222,128,0.15) inset,
+      0 8px 32px rgba(22,163,74,0.15);
+  }
+
+  /* ── Glass header ────────────────────────────────────────────── */
+  .glass-header {
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border-bottom: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  html.dark .glass-header {
+    background: rgba(8,15,30,0.80);
+    border-bottom-color: rgba(255,255,255,0.08);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  /* ── Glass utility (navbar, modals, etc.) ────────────────────── */
+  .glass {
+    background: rgba(255,255,255,0.60);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.7);
+    box-shadow:
+      0 2px 0 0 rgba(255,255,255,0.85) inset,
+      0 8px 32px rgba(0,0,0,0.08),
+      0 2px 8px rgba(0,0,0,0.04);
+  }
+  html.dark .glass {
+    background: rgba(12,20,40,0.68);
+    border-color: rgba(255,255,255,0.09);
+    box-shadow:
+      0 1px 0 0 rgba(255,255,255,0.08) inset,
+      0 8px 32px rgba(0,0,0,0.4),
+      0 2px 8px rgba(0,0,0,0.25);
+  }
+
+  /* ── Liquid button (primario verde) ─────────────────────────── */
+  .btn-liquid {
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .btn-liquid::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 60%);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* ── Shadow glass para el navbar ─────────────────────────────── */
+  .shadow-glass {
+    box-shadow:
+      0 2px 0 0 rgba(255,255,255,0.9) inset,
+      0 -1px 0 0 rgba(0,0,0,0.04) inset,
+      0 8px 40px rgba(0,0,0,0.10),
+      0 2px 12px rgba(0,0,0,0.06),
+      0 0 0 0.5px rgba(255,255,255,0.55);
+  }
+  html.dark .shadow-glass {
+    box-shadow:
+      0 1px 0 0 rgba(255,255,255,0.10) inset,
+      0 8px 40px rgba(0,0,0,0.50),
+      0 2px 12px rgba(0,0,0,0.35),
+      0 0 0 0.5px rgba(255,255,255,0.07);
   }
 }
 
@@ -41,11 +187,73 @@
 }
 .fade-slide-up { animation: fade-slide-up 0.25s ease-out both; }
 
-/* Transición suave entre páginas */
-.page-enter {
-  animation: fade-in 0.2s ease-out both;
+/* ── Transición entre páginas ─────────────────────────────────── */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.993); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
+.page-enter {
+  animation: page-in 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ── Feedback táctil global en botones ───────────────────────── */
+button:not([disabled]) {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.12s ease;
+}
+button:not([disabled]):active {
+  transform: scale(0.95) !important;
+}
+
+/* ── Animación icono tab activo ──────────────────────────────── */
+@keyframes tab-bounce {
+  0%   { transform: scale(1) translateY(0); }
+  40%  { transform: scale(1.2) translateY(-3px); }
+  70%  { transform: scale(0.95) translateY(0); }
+  100% { transform: scale(1.1) translateY(0); }
+}
+.tab-active-icon {
+  animation: tab-bounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── Animación items de lista ────────────────────────────────── */
+@keyframes item-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes item-check {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes item-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(16px); }
+}
+.item-enter { animation: item-in 0.2s ease-out both; }
+.item-check-anim { animation: item-check 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ── Skeleton page ───────────────────────────────────────────── */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.skeleton-page { animation: fade-in 0.15s ease-out both; }
+
+/* ── Liquid glass shimmer (para elementos premium/destacados) ── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.liquid-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.4) 40%,
+    rgba(255,255,255,0.6) 50%,
+    rgba(255,255,255,0.4) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.5s ease-in-out infinite;
 }

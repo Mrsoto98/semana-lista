@@ -1,7 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { recuperar } from '../lib/storage'
-import type { DificultadPreferida } from '../types'
+import { useI18n } from '../hooks/useI18n'
+import type { DificultadPreferida, Dia } from '../types'
+import { DIAS, DIAS_LABEL } from '../types'
+import { esNativo, mostrarAnuncioRewarded, mostrarAnuncioRewardedWeb } from '../lib/ads'
+
+const DIAS_FIN_SEMANA: Dia[] = ['sabado', 'domingo']
 
 interface ProductoMercadona {
   id: string; nombre: string; precio: number; tamaño: number; unidad: string
@@ -15,6 +20,7 @@ export interface ConfigGeneracion {
   dificultad: string
   tiempo: string
   ocasion: string
+  objetivo: string
   extra: string
   no_quiero: string
   modoIngredientes: 'libre' | 'nevera' | 'personalizada'
@@ -28,10 +34,20 @@ export interface ListaFuenteNevera {
   nombre: string
 }
 
+type DiasConfig = 'semana' | 'laboral' | 'personalizado'
+type FranjaConfig = 'ambas' | 'comida' | 'cena'
+
 interface Props {
   dificultadPerfil: DificultadPreferida
+  objetivoPerfil?: string
   ingredientesNevera: string[]
   listasCompartidas?: ListaFuenteNevera[]
+  diasConfig: DiasConfig
+  diasPersonalizados: Set<Dia>
+  franjaConfig: FranjaConfig
+  onDiasConfigChange: (v: DiasConfig) => void
+  onDiasPersonalizadosChange: (fn: (prev: Set<Dia>) => Set<Dia>) => void
+  onFranjaConfigChange: (v: FranjaConfig) => void
   onConfirmar: (config: ConfigGeneracion) => void
   onCancelar: () => void
 }
@@ -61,13 +77,13 @@ const OPCIONES_TIEMPO = [
   { value: 'sin prisa (más de 1 hora)', emoji: '🍲', label: 'Sin prisa' },
 ]
 
-const OPCIONES_OCASION = [
-  { value: 'semana normal',             emoji: '📅', label: 'Semana normal' },
-  { value: 'visita de amigos o familia', emoji: '👨‍👩‍👧', label: 'Con familia/amigos' },
-  { value: 'cena romántica',            emoji: '🕯️', label: 'Romántica' },
-  { value: 'comida con niños',          emoji: '👶', label: 'Con niños' },
-  { value: 'semana de dieta',           emoji: '⚖️', label: 'Dieta' },
-  { value: 'semana de caprichos',       emoji: '🎉', label: 'Caprichos' },
+const OPCIONES_OBJETIVO = [
+  { value: 'sin_restriccion', emoji: '🍽️', label: 'Sin restricciones' },
+  { value: 'bajar_peso',      emoji: '⚖️', label: 'Bajar peso' },
+  { value: 'mas_proteina',    emoji: '💪', label: 'Más proteína' },
+  { value: 'vegetariano',     emoji: '🥦', label: 'Vegetariano' },
+  { value: 'vegano',          emoji: '🌱', label: 'Vegano' },
+  { value: 'sin_gluten',      emoji: '🌾', label: 'Sin gluten' },
 ]
 
 function PillSelector({
@@ -99,12 +115,66 @@ function PillSelector({
   )
 }
 
-export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasCompartidas = [], onConfirmar, onCancelar }: Props) {
+export function ModalGenerarMenu({ dificultadPerfil, objetivoPerfil, ingredientesNevera, listasCompartidas = [], diasConfig, diasPersonalizados, franjaConfig, onDiasConfigChange, onDiasPersonalizadosChange, onFranjaConfigChange, onConfirmar, onCancelar }: Props) {
+  const { t } = useI18n()
+  const [semanaDesbloqueada, setSemanaDesbloqueada] = useState(false)
+  const [franjaDesbloqueada, setFranjaDesbloqueada] = useState(false)
+  const [mostrandoAdGate, setMostrandoAdGate] = useState<'semana' | 'franja' | null>(null)
+  const [cargandoAnuncio, setCargandoAnuncio] = useState(false)
+
+  async function verAnuncioYDesbloquear() {
+    setCargandoAnuncio(true)
+    try {
+      const resultado = esNativo()
+        ? await mostrarAnuncioRewarded()
+        : await mostrarAnuncioRewardedWeb()
+      if (resultado === 'recompensa') {
+        if (mostrandoAdGate === 'semana') { setSemanaDesbloqueada(true); onDiasConfigChange('semana') }
+        if (mostrandoAdGate === 'franja') { setFranjaDesbloqueada(true); onFranjaConfigChange('ambas') }
+        setMostrandoAdGate(null)
+      } else {
+        setMostrandoAdGate(null)
+      }
+    } finally {
+      setCargandoAnuncio(false)
+    }
+  }
+
+  function handleFranjaConfigChange(key: FranjaConfig) {
+    if (key === 'ambas' && !franjaDesbloqueada) {
+      setMostrandoAdGate('franja')
+      return
+    }
+    onFranjaConfigChange(key)
+  }
+
+  function handleDiasConfigChange(key: DiasConfig) {
+    if (key === 'semana' && !semanaDesbloqueada) {
+      setMostrandoAdGate('semana')
+      return
+    }
+    onDiasConfigChange(key)
+  }
+
+  function handleDiaPersonalizadoClick(d: Dia) {
+    const esDiaFinde = DIAS_FIN_SEMANA.includes(d)
+    if (esDiaFinde && !semanaDesbloqueada) {
+      setMostrandoAdGate('semana')
+      return
+    }
+    onDiasPersonalizadosChange(prev => {
+      const next = new Set(prev)
+      next.has(d) ? next.delete(d) : next.add(d)
+      return next
+    })
+  }
+
   const [config, setConfig] = useState<ConfigGeneracion>({
     cocina: 'variada e internacional',
     dificultad: dificultadPerfil,
     tiempo: 'combinado',
     ocasion: 'semana normal',
+    objetivo: objetivoPerfil ?? 'sin_restriccion',
     extra: '',
     no_quiero: '',
     modoIngredientes: 'libre',
@@ -150,7 +220,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
   useEffect(() => {
     if (config.modoIngredientes === 'personalizada' && !catalogo) {
-      import('../data/mercadona.json').then(m => setCatalogo(m.default as CatalogoMercadonaData))
+      fetch('/mercadona.json').then(r => r.json()).then((d: CatalogoMercadonaData) => setCatalogo(d))
     }
   }, [config.modoIngredientes, catalogo])
 
@@ -193,8 +263,8 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl w-full max-w-lg shadow-xl max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm pt-4 sm:pt-0">
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg shadow-xl max-h-[92vh] flex flex-col mx-4 sm:mx-0">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <h2 className="text-lg font-black tracking-tight">📅 Generar menú semanal</h2>
@@ -204,42 +274,73 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
 
-          {/* Qué lista usar — aplica a las 3 opciones de ingredientes: define de
-              dónde salen los "en casa" y a qué lista va la compra del menú */}
-          {listasCompartidas.length > 0 && (
+          {/* Días y franjas */}
+          <div className="space-y-3">
             <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0.5">¿Qué lista quieres usar?</p>
-              <p className="text-xs text-gray-400 mb-2">Ahí es donde irán los ingredientes en casa y la compra del menú</p>
-              <div className="space-y-1.5">
-                <button onClick={() => seleccionarLista(null)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${!config.listaDestinoId ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
-                  <span className="text-lg">👤</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Mi lista personal</p>
-                    <p className="text-xs text-gray-400">{ingredientesNevera.length} ingredientes en casa</p>
-                  </div>
-                  {!config.listaDestinoId && <span className="text-green-select">✓</span>}
-                </button>
-                {listasCompartidas.map(lista => (
-                  <button key={lista.id} onClick={() => seleccionarLista(lista.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-colors ${config.listaDestinoId === lista.id ? 'bg-green-50 dark:bg-green-900/20 border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select/60'}`}>
-                    <span className="text-lg">👥</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</p>
-                      <p className="text-xs text-gray-400">
-                        {cargandoCompartida && config.listaDestinoId === lista.id ? 'Cargando...' : config.listaDestinoId === lista.id ? `${itemsNeveraCompartida.length} ingredientes en casa` : 'Lista compartida'}
-                      </p>
-                    </div>
-                    {config.listaDestinoId === lista.id && !cargandoCompartida && <span className="text-green-select">✓</span>}
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_para_cuantos_dias}</p>
+              <div className="flex gap-2">
+                {([
+                  { key: 'semana',        label: t.modal_semana_completa, locked: !semanaDesbloqueada },
+                  { key: 'laboral',       label: t.modal_lun_vie,         locked: false },
+                  { key: 'personalizado', label: t.modal_personalizado,   locked: false },
+                ] as const).map(({ key, label, locked }) => (
+                  <button key={key} onClick={() => handleDiasConfigChange(key)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors relative ${
+                      locked
+                        ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-60'
+                        : diasConfig === key
+                          ? 'border-green-select bg-accent-light text-green-select'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500'
+                    }`}>
+                    {locked && <span className="mr-0.5">🔒</span>}{label}
+                  </button>
+                ))}
+              </div>
+              {diasConfig === 'personalizado' && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {DIAS.map(d => {
+                    const esFinde = DIAS_FIN_SEMANA.includes(d)
+                    const locked = esFinde && !semanaDesbloqueada
+                    return (
+                      <button key={d}
+                        onClick={() => handleDiaPersonalizadoClick(d)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border-2 transition-colors ${diasPersonalizados.has(d) ? 'border-green-select bg-accent-light text-green-select' : locked ? 'border-gray-200 dark:border-gray-700 text-gray-300 opacity-60' : 'border-gray-200 dark:border-gray-700 text-gray-400'}`}>
+                        {locked ? '🔒' : ''}{DIAS_LABEL[d].slice(0, 3)}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_que_comidas}</p>
+              <div className="flex gap-2">
+                {([
+                  { key: 'ambas',  label: t.modal_comida_cena, locked: !franjaDesbloqueada },
+                  { key: 'comida', label: t.modal_solo_comida, locked: false },
+                  { key: 'cena',   label: t.modal_solo_cena,   locked: false },
+                ] as const).map(({ key, label, locked }) => (
+                  <button key={key} onClick={() => handleFranjaConfigChange(key)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-colors ${
+                      locked
+                        ? 'border-gray-200 dark:border-gray-700 text-gray-400 opacity-60'
+                        : franjaConfig === key
+                          ? 'border-green-select bg-accent-light text-green-select'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500'
+                    }`}>
+                    {locked && <span className="mr-0.5">🔒</span>}{label}
                   </button>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+
+          <div className="border-t border-gray-100 dark:border-gray-800" />
+
 
           {/* Tipo de cocina */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tipo de cocina</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_tipo_cocina}</p>
             <div className="grid grid-cols-2 gap-2">
               {OPCIONES_COCINA.map(o => (
                 <button
@@ -261,10 +362,10 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
           {/* Dificultad */}
           <div>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Dificultad
+              {t.modal_dificultad}
               {config.dificultad === dificultadPerfil
-                ? <span className="ml-2 text-xs text-gray-400 font-normal">(según tu configuración)</span>
-                : <span className="ml-2 text-xs text-green-select font-normal">(modificado para esta semana)</span>
+                ? <span className="ml-2 text-xs text-gray-400 font-normal">{t.modal_dificultad_config}</span>
+                : <span className="ml-2 text-xs text-green-select font-normal">{t.modal_dificultad_mod}</span>
               }
             </p>
             <PillSelector opciones={OPCIONES_DIFICULTAD} value={config.dificultad} onChange={v => set('dificultad', v)} />
@@ -272,35 +373,35 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
           {/* Tiempo */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tiempo para cocinar</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_tiempo}</p>
             <PillSelector opciones={OPCIONES_TIEMPO} value={config.tiempo} onChange={v => set('tiempo', v)} />
           </div>
 
-          {/* Ocasión */}
+          {/* Objetivo nutricional */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ocasión de la semana</p>
-            <PillSelector opciones={OPCIONES_OCASION} value={config.ocasion} onChange={v => set('ocasion', v)} />
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.ajustes_objetivo}</p>
+            <PillSelector opciones={OPCIONES_OBJETIVO} value={config.objetivo} onChange={v => set('objetivo', v)} />
           </div>
 
           {/* Preferencias libres */}
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">¿Algo que quieras comer? <span className="font-normal text-gray-400">(opcional)</span></p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{t.modal_quieres_comer}</p>
               <input
                 type="text"
                 value={config.extra}
                 onChange={e => set('extra', e.target.value)}
-                placeholder="Ej: quiero pasta, algo con salmón, una buena hamburguesa..."
+                placeholder={t.modal_quieres_comer_ph}
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-select"
               />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">¿Algo que NO quieras? <span className="font-normal text-gray-400">(opcional)</span></p>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{t.modal_no_quieres}</p>
               <input
                 type="text"
                 value={config.no_quiero}
                 onChange={e => set('no_quiero', e.target.value)}
-                placeholder="Ej: nada de pasta esta semana, sin marisco, sin picante..."
+                placeholder={t.modal_no_quieres_ph}
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-select"
               />
             </div>
@@ -308,29 +409,87 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
 
           {/* Ingredientes */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ingredientes a usar</p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t.modal_ingredientes}</p>
             <div className="grid grid-cols-1 gap-2">
-              {([
-                { value: 'libre',        emoji: '🤖', label: 'La IA elige libremente',         desc: 'Sin restricciones de ingredientes' },
-                { value: 'nevera',       emoji: '🏠', label: 'Usar lo que tengo en casa',       desc: neveraActual.length ? `${neveraActual.length} ingredientes disponibles` : 'Sin ingredientes guardados aún' },
-                { value: 'personalizada', emoji: '📝', label: 'Lista personalizada',             desc: 'Busca en Mercadona o añade lo que quieras' },
-              ] as const).map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => set('modoIngredientes', opt.value)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-colors ${
-                    config.modoIngredientes === opt.value
-                      ? 'bg-green-50 dark:bg-green-900/20 border-green-select'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-green-select'
-                  }`}
-                >
-                  <span className="text-2xl">{opt.emoji}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{opt.label}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
+              {/* IA libre */}
+              {(['libre', 'personalizada'] as const).map(val => {
+                const opt = val === 'libre'
+                  ? { emoji: '🤖', label: t.modal_ia_libre, desc: t.modal_ia_libre_desc }
+                  : { emoji: '📝', label: t.modal_lista_personalizada, desc: t.modal_busca_escribe }
+                return (
+                  <button key={val} onClick={() => set('modoIngredientes', val)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-colors ${config.modoIngredientes === val ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700 hover:border-green-select'}`}>
+                    <span className="text-2xl">{opt.emoji}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{opt.label}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
+                    </div>
+                  </button>
+                )
+              })}
+
+              {/* Usar lo que tengo en casa — con selector de lista integrado */}
+              <div className={`rounded-xl border-2 transition-colors ${config.modoIngredientes === 'nevera' ? 'bg-accent-light border-green-select' : 'border-gray-200 dark:border-gray-700'}`}>
+                <button onClick={() => set('modoIngredientes', 'nevera')}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left">
+                  <span className="text-2xl">🏠</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t.modal_usar_casa}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {neveraActual.length ? `${neveraActual.length} ${t.modal_ingredientes_disponibles}` : t.modal_sin_ingredientes}
+                    </p>
                   </div>
                 </button>
-              ))}
+
+                {/* Panel expandible cuando está seleccionado */}
+                {config.modoIngredientes === 'nevera' && (
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* Advertencia mínimo */}
+                    <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${neveraActual.length >= 8 ? 'bg-green-select/10 text-green-select' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'}`}>
+                      <span className="shrink-0 mt-0.5">{neveraActual.length >= 8 ? '✓' : '⚠️'}</span>
+                      <span>
+                        {neveraActual.length >= 8
+                          ? `Se generarán recetas usando tus ${neveraActual.length} ingredientes en casa.`
+                          : `Necesitas al menos 8 artículos marcados como "en casa" en la lista seleccionada para que la IA genere menús variados (ahora: ${neveraActual.length}).`
+                        }
+                      </span>
+                    </div>
+
+                    {/* Selector de lista (solo si hay compartidas) */}
+                    {listasCompartidas.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Usar ingredientes en casa de:</p>
+                        <button onClick={() => seleccionarLista(null)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${!config.listaDestinoId ? 'bg-white dark:bg-gray-800 border-green-select' : 'bg-white/60 dark:bg-gray-800/40 border-gray-200 dark:border-gray-600 hover:border-green-select/60'}`}>
+                          <span>👤</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t.modal_mi_lista}</p>
+                            <p className="text-xs text-gray-400">{ingredientesNevera.length} {t.modal_en_casa_modal}</p>
+                          </div>
+                          {!config.listaDestinoId && <span className="text-green-select text-sm">✓</span>}
+                        </button>
+                        {listasCompartidas.map(lista => (
+                          <button key={lista.id} onClick={() => seleccionarLista(lista.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border-2 text-left transition-colors ${config.listaDestinoId === lista.id ? 'bg-white dark:bg-gray-800 border-green-select' : 'bg-white/60 dark:bg-gray-800/40 border-gray-200 dark:border-gray-600 hover:border-green-select/60'}`}>
+                            <span>👥</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{lista.nombre}</p>
+                              <p className="text-xs text-gray-400">
+                                {cargandoCompartida && config.listaDestinoId === lista.id
+                                  ? t.cargando
+                                  : config.listaDestinoId === lista.id
+                                    ? `${itemsNeveraCompartida.length} ${t.modal_en_casa_modal}`
+                                    : t.modal_lista_compartida}
+                              </p>
+                            </div>
+                            {config.listaDestinoId === lista.id && !cargandoCompartida && <span className="text-green-select text-sm">✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Lista personalizada — buscador + chips */}
@@ -342,7 +501,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                     onClick={cargarNevera}
                     className="text-xs text-green-select font-medium hover:underline"
                   >
-                    + Cargar lo que tengo en casa ({neveraActual.length})
+                    {t.modal_cargar_casa} ({neveraActual.length})
                   </button>
                 )}
 
@@ -353,7 +512,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                     type="text"
                     value={busqueda}
                     onChange={e => setBusqueda(e.target.value)}
-                    placeholder={catalogo ? 'Buscar en Mercadona...' : 'Cargando catálogo...'}
+                    placeholder={catalogo ? t.modal_buscar_mercadona : t.cargando}
                     disabled={!catalogo}
                     className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-green-select"
                   />
@@ -380,7 +539,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                     value={inputCustom}
                     onChange={e => setInputCustom(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); añadirIngrediente(inputCustom) } }}
-                    placeholder="O escribe un ingrediente personalizado..."
+                    placeholder={t.modal_ingrediente_personalizado}
                     className="flex-1 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-green-select"
                   />
                   <button
@@ -397,7 +556,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                     {config.ingredientesPersonalizados.map(ing => (
                       <span
                         key={ing}
-                        className="flex items-center gap-1 bg-green-50 dark:bg-green-900/30 text-green-select border border-green-select/20 text-xs px-2.5 py-1 rounded-full"
+                        className="flex items-center gap-1 bg-accent-light text-green-select border border-green-select/20 text-xs px-2.5 py-1 rounded-full"
                       >
                         {ing}
                         <button onClick={() => quitarIngrediente(ing)} className="ml-0.5 text-green-select/60 hover:text-green-select leading-none">✕</button>
@@ -407,7 +566,7 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
                 )}
 
                 {config.ingredientesPersonalizados.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-2">Busca o escribe ingredientes para añadirlos</p>
+                  <p className="text-xs text-gray-400 text-center py-2">{t.modal_busca_escribe}</p>
                 )}
               </div>
             )}
@@ -420,16 +579,43 @@ export function ModalGenerarMenu({ dificultadPerfil, ingredientesNevera, listasC
             onClick={onCancelar}
             className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl py-3 text-sm font-medium text-gray-600 dark:text-gray-300"
           >
-            Cancelar
+            {t.btn_cancelar}
           </button>
           <button
             onClick={() => onConfirmar({ ...config, neveraItems: config.modoIngredientes === 'nevera' ? neveraActual : undefined })}
             disabled={config.modoIngredientes === 'personalizada' && config.ingredientesPersonalizados.length === 0}
             className="flex-2 flex-grow-[2] bg-green-select text-white rounded-xl py-3 text-sm font-bold hover:bg-green-600 disabled:opacity-40 transition-colors"
           >
-            ✨ Generar menú
+            {t.modal_generar}
           </button>
         </div>
+        {/* Ad gate overlay */}
+        {mostrandoAdGate && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 dark:bg-gray-900/95 rounded-2xl px-8 text-center gap-5">
+            <div className="text-4xl">🔒</div>
+            <div>
+              <p className="text-base font-bold text-gray-800 dark:text-gray-100 mb-1">Contenido premium</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {mostrandoAdGate === 'semana'
+                  ? 'Ve un anuncio corto para desbloquear la semana completa en esta generación.'
+                  : 'Ve un anuncio corto para desbloquear comida + cena en esta generación.'}
+              </p>
+            </div>
+            {cargandoAnuncio ? (
+              <div className="flex items-center gap-2 text-green-select text-sm font-medium">
+                <span className="animate-spin">⏳</span> Cargando anuncio...
+              </div>
+            ) : (
+              <button
+                onClick={verAnuncioYDesbloquear}
+                className="bg-green-select text-white font-bold px-6 py-3 rounded-xl text-sm hover:bg-green-600 transition-colors"
+              >
+                📺 Ver anuncio y desbloquear
+              </button>
+            )}
+            <button onClick={() => setMostrandoAdGate(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+          </div>
+        )}
       </div>
     </div>
   )

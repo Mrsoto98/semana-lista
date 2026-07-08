@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Screenshots Semana Lista</title>
+<style>
+  body { background: #1a1a1a; font-family: Arial, sans-serif; padding: 20px; color: #fff; }
+  h1 { font-size: 20px; margin-bottom: 20px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 20px; }
+  .item { text-align: center; }
+  canvas { display: block; width: 270px; height: 540px; border-radius: 20px; }
+  button { margin-top: 8px; padding: 8px 16px; background: #22c55e; border: none; color: #fff; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  button:hover { background: #16a34a; }
+</style>
+</head>
+<body>
+<h1>Capturas de pantalla — Semana Lista (1080x2160)</h1>
+<div class="grid" id="grid"></div>
+
+<script>
+const W = 1080, H = 2160;
+const BG = '#0d1a0d';
+const CARD = '#162416';
+const GREEN = '#22c55e';
+const LGRAY = 'rgba(255,255,255,0.55)';
+const DGRAY = 'rgba(255,255,255,0.15)';
+
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+}
+
+function bg(ctx) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function topBar(ctx, title) {
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(0, 0, W, 160);
+  ctx.font = 'bold 52px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.fillText(title, 60, 108);
+}
+
+function navBar(ctx, active) {
+  ctx.fillStyle = '#0f1f0f';
+  ctx.fillRect(0, H - 180, W, 180);
+  const items = [
+    { icon: '📅', label: 'Menú', x: 135 },
+    { icon: '🛒', label: 'Lista', x: 405 },
+    { icon: '👥', label: 'Amigos', x: 675 },
+    { icon: '⚙️', label: 'Ajustes', x: 945 },
+  ];
+  items.forEach(({ icon, label, x }) => {
+    const isActive = label === active;
+    ctx.font = '52px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(icon, x, H - 110);
+    ctx.font = isActive ? 'bold 32px Arial' : '32px Arial';
+    ctx.fillStyle = isActive ? GREEN : LGRAY;
+    ctx.fillText(label, x, H - 60);
+    if (isActive) {
+      roundRect(ctx, x - 40, H - 28, 80, 8, 4, GREEN);
+    }
+  });
+}
+
+function pill(ctx, x, y, text, active) {
+  const tw = ctx.measureText(text).width + 60;
+  roundRect(ctx, x, y, tw, 80, 40, active ? GREEN : DGRAY);
+  ctx.font = active ? 'bold 36px Arial' : '36px Arial';
+  ctx.fillStyle = active ? '#fff' : LGRAY;
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x + tw / 2, y + 52);
+  return tw + 16;
+}
+
+/* ===== SCREEN 1: MENÚ SEMANAL ===== */
+function drawScreen1(c) {
+  const ctx = c.getContext('2d');
+  bg(ctx);
+  topBar(ctx, '📅 Menú semanal');
+
+  const days = [
+    { day: 'Lunes', meal: 'Comida', name: 'Pollo al horno con verduras', kcal: '520 kcal', emoji: '🍗' },
+    { day: 'Lunes', meal: 'Cena', name: 'Ensalada mediterránea', kcal: '310 kcal', emoji: '🥗' },
+    { day: 'Martes', meal: 'Comida', name: 'Lentejas con chorizo', kcal: '580 kcal', emoji: '🍲' },
+    { day: 'Martes', meal: 'Cena', name: 'Tortilla de patatas', kcal: '420 kcal', emoji: '🍳' },
+    { day: 'Miércoles', meal: 'Comida', name: 'Paella valenciana', kcal: '650 kcal', emoji: '🥘' },
+  ];
+
+  let y = 200;
+  let lastDay = '';
+  days.forEach(({ day, meal, name, kcal, emoji }) => {
+    if (day !== lastDay) {
+      ctx.font = 'bold 40px Arial';
+      ctx.fillStyle = GREEN;
+      ctx.textAlign = 'left';
+      ctx.fillText(day, 60, y + 44);
+      y += 80;
+      lastDay = day;
+    }
+    roundRect(ctx, 40, y, W - 80, 160, 24, CARD);
+    ctx.font = '60px serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(emoji, 80, y + 108);
+    ctx.font = 'bold 38px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(name, 180, y + 70);
+    ctx.font = '32px Arial';
+    ctx.fillStyle = LGRAY;
+    ctx.fillText(meal + '  ·  ' + kcal, 180, y + 118);
+    y += 188;
+  });
+
+  navBar(ctx, 'Menú');
+}
+
+/* ===== SCREEN 2: MODAL GENERAR MENÚ ===== */
+function drawScreen2(c) {
+  const ctx = c.getContext('2d');
+  bg(ctx);
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, W, H);
+
+  roundRect(ctx, 40, 400, W - 80, 1300, 40, '#1a2d1a');
+
+  ctx.font = 'bold 54px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.fillText('📅 Generar menú semanal', 80, 510);
+
+  ctx.font = 'bold 38px Arial';
+  ctx.fillStyle = LGRAY;
+  ctx.fillText('¿Para cuántos días?', 80, 610);
+
+  let px = 80;
+  const diasPills = [
+    { t: '🔒 Semana completa', a: false },
+    { t: 'Lun – Vie', a: true },
+    { t: 'Personalizado', a: false },
+  ];
+  ctx.font = '34px Arial';
+  diasPills.forEach(({ t, a }) => { px += pill(ctx, px, 640, t, a); });
+
+  ctx.font = 'bold 38px Arial';
+  ctx.fillStyle = LGRAY;
+  ctx.textAlign = 'left';
+  ctx.fillText('¿Qué comidas?', 80, 790);
+
+  px = 80;
+  ctx.font = '34px Arial';
+  [{ t: '🔒 Comida y cena', a: false }, { t: '☀️ Solo comida', a: true }, { t: '🌙 Solo cena', a: false }].forEach(({ t, a }) => {
+    px += pill(ctx, px, 820, t, a);
+  });
+
+  ctx.font = 'bold 38px Arial';
+  ctx.fillStyle = LGRAY;
+  ctx.textAlign = 'left';
+  ctx.fillText('Tipo de cocina', 80, 980);
+
+  const cocinas = ['🥘 Española', '🍝 Italiana', '🍜 Asiática', '🌍 Variada'];
+  cocinas.forEach((c, i) => {
+    const cx = 80 + (i % 2) * 490;
+    const cy = 1010 + Math.floor(i / 2) * 130;
+    roundRect(ctx, cx, cy, 460, 110, 20, i === 0 ? 'rgba(34,197,94,0.2)' : DGRAY, i === 0 ? GREEN : null);
+    ctx.font = '38px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = i === 0 ? GREEN : '#fff';
+    ctx.fillText(c, cx + 24, cy + 72);
+  });
+
+  roundRect(ctx, 80, 1560, W - 160, 100, 24, GREEN);
+  ctx.font = 'bold 44px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.fillText('✨ Generar menú con IA', W / 2, 1622);
+}
+
+/* ===== SCREEN 3: RECETA ===== */
+function drawScreen3(c) {
+  const ctx = c.getContext('2d');
+  bg(ctx);
+
+  ctx.font = '120px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🥘', W / 2, 400);
+
+  ctx.font = 'bold 58px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Paella valenciana', W / 2, 520);
+
+  ctx.font = '38px Arial';
+  ctx.fillStyle = GREEN;
+  ctx.fillText('Fácil  ·  45 min  ·  650 kcal/p', W / 2, 590);
+
+  roundRect(ctx, 40, 640, W - 80, 12, 6, DGRAY);
+
+  ctx.font = 'bold 44px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.fillText('Ingredientes', 60, 740);
+
+  const ings = ['🍚 Arroz bomba — 320 g', '🍗 Pollo — 400 g', '🦐 Gambas — 200 g', '🫑 Pimiento rojo — 1 ud', '🧅 Cebolla — 1 ud', '🧄 Ajo — 3 dientes', '🌿 Azafrán — 1 sobre', '🫙 Caldo de pollo — 800 ml'];
+  ings.forEach((ing, i) => {
+    ctx.font = '36px Arial';
+    ctx.fillStyle = LGRAY;
+    ctx.fillText(ing, 80, 820 + i * 88);
+  });
+
+  roundRect(ctx, 40, 1560, W - 80, 12, 6, DGRAY);
+
+  ctx.font = 'bold 44px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Preparación', 60, 1660);
+
+  const steps = ['1. Sofríe el pollo hasta dorar.', '2. Añade las verduras y el ajo.', '3. Incorpora el arroz y el azafrán.', '4. Vierte el caldo caliente.', '5. Cocina 20 min sin remover.'];
+  steps.forEach((s, i) => {
+    ctx.font = '36px Arial';
+    ctx.fillStyle = LGRAY;
+    ctx.fillText(s, 80, 1750 + i * 88);
+  });
+
+  navBar(ctx, 'Menú');
+}
+
+/* ===== SCREEN 4: LISTA DE LA COMPRA ===== */
+function drawScreen4(c) {
+  const ctx = c.getContext('2d');
+  bg(ctx);
+  topBar(ctx, '🛒 Lista de la compra');
+
+  const items = [
+    { name: 'Arroz bomba', qty: '320 g', done: true },
+    { name: 'Pollo entero', qty: '1 kg', done: true },
+    { name: 'Gambas', qty: '200 g', done: false },
+    { name: 'Pimiento rojo', qty: '2 ud', done: false },
+    { name: 'Cebolla', qty: '3 ud', done: false },
+    { name: 'Ajo', qty: '1 cabeza', done: false },
+    { name: 'Azafrán', qty: '2 sobres', done: false },
+    { name: 'Caldo de pollo', qty: '1,5 L', done: false },
+    { name: 'Lentejas', qty: '400 g', done: false },
+    { name: 'Huevos', qty: '6 ud', done: true },
+  ];
+
+  let y = 210;
+  items.forEach(({ name, qty, done }) => {
+    roundRect(ctx, 40, y, W - 80, 130, 20, done ? 'rgba(34,197,94,0.07)' : CARD);
+    roundRect(ctx, 70, y + 35, 60, 60, 30, done ? GREEN : 'transparent', done ? GREEN : LGRAY);
+    if (done) {
+      ctx.font = 'bold 38px Arial';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText('✓', 100, y + 76);
+    }
+    ctx.textAlign = 'left';
+    ctx.font = done ? '38px Arial' : 'bold 38px Arial';
+    ctx.fillStyle = done ? LGRAY : '#fff';
+    ctx.fillText(name, 160, y + 70);
+    ctx.font = '32px Arial';
+    ctx.fillStyle = LGRAY;
+    ctx.textAlign = 'right';
+    ctx.fillText(qty, W - 80, y + 70);
+    y += 154;
+  });
+
+  navBar(ctx, 'Lista');
+}
+
+const screens = [
+  { id: 's1', title: 'Menú semanal', fn: drawScreen1, file: 'screenshot-1-menu.png' },
+  { id: 's2', title: 'Generar con IA', fn: drawScreen2, file: 'screenshot-2-generar.png' },
+  { id: 's3', title: 'Receta detallada', fn: drawScreen3, file: 'screenshot-3-receta.png' },
+  { id: 's4', title: 'Lista de la compra', fn: drawScreen4, file: 'screenshot-4-lista.png' },
+];
+
+const grid = document.getElementById('grid');
+screens.forEach(({ id, title, fn, file }) => {
+  const div = document.createElement('div');
+  div.className = 'item';
+  const c = document.createElement('canvas');
+  c.id = id; c.width = W; c.height = H;
+  fn(c);
+  const btn = document.createElement('button');
+  btn.textContent = '⬇ ' + title;
+  btn.onclick = () => {
+    const a = document.createElement('a');
+    a.download = file;
+    a.href = c.toDataURL('image/png');
+    a.click();
+  };
+  div.appendChild(c);
+  div.appendChild(btn);
+  grid.appendChild(div);
+});
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ export interface UsuarioPublico {
   username?: string
   avatar_emoji?: string
   avatar_url?: string
+  codigo_usuario?: string
 }
 
 export interface Amistad {
@@ -46,7 +47,7 @@ export function useAmigos() {
     if (otrosIds.length) {
       const { data: p } = await supabase
         .from('usuarios')
-        .select('id, nombre_display, username, avatar_emoji, avatar_url')
+        .select('id, nombre_display, username, avatar_emoji, avatar_url, codigo_usuario')
         .in('id', otrosIds)
       perfiles = (p ?? []) as UsuarioPublico[]
     }
@@ -79,13 +80,13 @@ export function useAmigos() {
 
   async function buscarUsuario(query: string): Promise<UsuarioPublico[]> {
     if (!query.trim() || query.length < 2) return []
-    const q = query.startsWith('@') ? query.slice(1) : query
+    const q = query.trim()
     const { data } = await supabase
       .from('usuarios')
-      .select('id, nombre_display, username, avatar_emoji, avatar_url')
-      .or(`username.ilike.%${q}%,nombre_display.ilike.%${q}%`)
+      .select('id, nombre_display, username, avatar_emoji, avatar_url, codigo_usuario')
+      .ilike('codigo_usuario', `%${q}%`)
       .neq('id', user?.id ?? '')
-      .limit(8)
+      .limit(5)
     return (data ?? []) as UsuarioPublico[]
   }
 
