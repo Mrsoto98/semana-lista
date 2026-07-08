@@ -939,6 +939,7 @@ export default function ListaCompartida() {
               }
               añadirItem(nombre, { precio, cantidad: 1, unidad: 'ud' })
             }}
+            onAddItems={nombres => nombres.forEach(n => añadirItem(n, {}, true))}
           />
 
         {/* ── CATÁLOGO MERCADONA ────────────────────────────────────────────── */}
@@ -1017,10 +1018,10 @@ export default function ListaCompartida() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <button onClick={() => añadirItemEnCasa(prod.nombre, prod.precio)}
-                            className="text-base px-1.5 py-0.5 rounded-full border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors" title={t.lista_tengo_casa}>🏠</button>
                           <button onClick={() => añadir(prod.nombre, prod.precio, prod.unidad)}
                             className="text-xs px-2.5 py-1 rounded-full border border-gray-300 text-gray-500 hover:border-green-400 hover:text-green-600 shrink-0 transition-colors">🛒</button>
+                          <button onClick={() => añadirItemEnCasa(prod.nombre, prod.precio)}
+                            className="text-base px-1.5 py-0.5 rounded-full border border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors" title={t.lista_tengo_casa}>🏠</button>
                         </div>
                       )}
                     </div>

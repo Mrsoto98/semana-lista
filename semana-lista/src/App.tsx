@@ -23,15 +23,24 @@ if (esNativo()) {
       // Convertir el scheme propio a https:// para poder parsear la URL
       const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
       const code = parsed.searchParams.get('code')
-      if (code) {
-        await supabase.auth.exchangeCodeForSession(code)
-      } else {
-        const params = new URLSearchParams(parsed.hash.slice(1))
-        const access_token = params.get('access_token')
-        const refresh_token = params.get('refresh_token')
-        if (access_token && refresh_token) {
-          await supabase.auth.setSession({ access_token, refresh_token })
+      try {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (error) throw error
+        } else {
+          const params = new URLSearchParams(parsed.hash.slice(1))
+          const access_token = params.get('access_token')
+          const refresh_token = params.get('refresh_token')
+          if (access_token && refresh_token) {
+            const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+            if (error) throw error
+          }
         }
+        // Forzar navegación al menú tras login exitoso
+        const { data } = await supabase.from('perfiles').select('id').eq('usuario_id', (await supabase.auth.getUser()).data.user!.id).maybeSingle()
+        window.location.href = data ? '/menu' : '/onboarding'
+      } catch (err) {
+        console.error('OAuth callback error:', err)
       }
     })
   }).catch(() => {})

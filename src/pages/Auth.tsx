@@ -9,10 +9,14 @@ import { esNativo } from '../lib/ads'
 const REDIRECT_URL = esNativo() ? 'com.semanalista.app://auth/callback' : `${window.location.origin}/`
 
 async function abrirOAuthNativo(url: string) {
-  // En Android usamos @capacitor/browser para abrir el OAuth en un Custom Tab
-  // que puede ser interceptado por el intent-filter cuando redirige a nuestro scheme
-  const { Browser } = await import('@capacitor/browser')
-  await Browser.open({ url, windowName: '_self' })
+  try {
+    const { Browser } = await import('@capacitor/browser')
+    await Browser.open({ url, windowName: '_self' })
+  } catch (e) {
+    // Fallback: abrir en el navegador del sistema si @capacitor/browser falla
+    console.error('Browser plugin error:', e)
+    window.open(url, '_system')
+  }
 }
 
 type Mode = 'login' | 'registro'
@@ -78,17 +82,29 @@ export default function Auth() {
   }
 
   async function handleGoogle() {
-    if (esNativo()) {
-      const { data } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: REDIRECT_URL, skipBrowserRedirect: true },
-      })
-      if (data.url) await abrirOAuthNativo(data.url)
-    } else {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: REDIRECT_URL },
-      })
+    setError(null)
+    setEnviando(true)
+    try {
+      if (esNativo()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: REDIRECT_URL, skipBrowserRedirect: true },
+        })
+        if (error) throw error
+        if (data.url) await abrirOAuthNativo(data.url)
+        else throw new Error('No se recibió URL de autenticación')
+      } else {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: REDIRECT_URL },
+        })
+        if (error) throw error
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al iniciar con Google'
+      setError(traducirError(msg))
+    } finally {
+      setEnviando(false)
     }
   }
 

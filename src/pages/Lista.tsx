@@ -973,6 +973,7 @@ export default function Lista() {
             onRemove={removeCasa}
             enCarrito={comprar}
             onAddToCart={addCasaToCart}
+            onAddItems={nombres => { const n = new Set(enCasa); nombres.forEach(x => n.add(x)); saveCasa(n) }}
           />
 
         {/* ── CATÁLOGO MERCADONA ────────────────────────────────────────────── */}

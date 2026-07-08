@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { getInstallPrompt } from '../lib/installPrompt'
+import { esNativo } from '../lib/ads'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../hooks/useI18n'
 import { useNavigate } from 'react-router-dom'
@@ -670,7 +671,7 @@ export default function Ajustes() {
         >
           {t.ajustes_privacidad}
         </button>
-        {!window.matchMedia('(display-mode: standalone)').matches && (
+        {!esNativo() && !window.matchMedia('(display-mode: standalone)').matches && (
           <button
             onClick={async () => {
               const p = getInstallPrompt()
