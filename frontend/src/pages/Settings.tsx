@@ -309,19 +309,6 @@ export default function Settings() {
           maxLength={10}
           className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white"
         />
-        <input
-          type="date"
-          value={birthDate}
-          onChange={e => {
-            setBirthDate(e.target.value)
-            if (e.target.value) {
-              const [y,m,d] = e.target.value.split('-')
-              setBirthText(`${d}/${m}/${y}`)
-            }
-          }}
-          max={new Date().toISOString().split('T')[0]}
-          className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white/40 [color-scheme:dark]"
-        />
         <div className="flex flex-col gap-2 mt-1">
           {([
             { value: 'date', icon: '📅', label: 'Mostrar fecha completa' },

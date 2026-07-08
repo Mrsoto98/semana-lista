@@ -6,6 +6,8 @@ import { useAuthStore } from '../lib/store'
 import { applyTheme, DEFAULT_THEME } from '../lib/themes'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { IOSInstallPrompt } from '../components/ui/IOSInstallPrompt'
+import { AndroidInstallPrompt } from '../components/ui/AndroidInstallPrompt'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -38,6 +40,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <IOSInstallPrompt />
+      <AndroidInstallPrompt />
       {/* Background orbs */}
       <div
         className="orb w-[500px] h-[500px] top-[-150px] left-[-150px] opacity-30"

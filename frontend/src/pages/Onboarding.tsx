@@ -168,43 +168,26 @@ export default function Onboarding() {
               <h2 className="text-white font-semibold text-lg mb-1">¿Cuándo naciste?</h2>
               <p className="text-white/35 text-sm">Opcional. Lo usamos para personalizar tu experiencia.</p>
             </div>
-            <div className="flex flex-col gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="DD/MM/AAAA"
-                value={birthText}
-                onChange={e => {
-                  let raw = e.target.value.replace(/[^\d]/g, '')
-                  if (raw.length > 8) raw = raw.slice(0, 8)
-                  let fmt = raw
-                  if (raw.length > 4) fmt = raw.slice(0,2) + '/' + raw.slice(2,4) + '/' + raw.slice(4)
-                  else if (raw.length > 2) fmt = raw.slice(0,2) + '/' + raw.slice(2)
-                  setBirthText(fmt)
-                  if (raw.length === 8) {
-                    const d = raw.slice(0,2), m = raw.slice(2,4), y = raw.slice(4,8)
-                    setBirthDate(`${y}-${m}-${d}`)
-                  } else {
-                    setBirthDate('')
-                  }
-                }}
-                maxLength={10}
-                className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white"
-              />
-              <input
-                type="date"
-                value={birthDate}
-                onChange={e => {
-                  setBirthDate(e.target.value)
-                  if (e.target.value) {
-                    const [y,m,d] = e.target.value.split('-')
-                    setBirthText(`${d}/${m}/${y}`)
-                  }
-                }}
-                max={new Date().toISOString().split('T')[0]}
-                className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white/40 [color-scheme:dark]"
-              />
-            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="DD/MM/AAAA"
+              value={birthText}
+              onChange={e => {
+                let raw = e.target.value.replace(/[^\d]/g, '')
+                if (raw.length > 8) raw = raw.slice(0, 8)
+                let fmt = raw
+                if (raw.length > 4) fmt = raw.slice(0,2) + '/' + raw.slice(2,4) + '/' + raw.slice(4)
+                else if (raw.length > 2) fmt = raw.slice(0,2) + '/' + raw.slice(2)
+                setBirthText(fmt)
+                if (raw.length === 8) {
+                  const d = raw.slice(0,2), m = raw.slice(2,4), y = raw.slice(4,8)
+                  setBirthDate(`${y}-${m}-${d}`)
+                } else setBirthDate('')
+              }}
+              maxLength={10}
+              className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white"
+            />
 
             {/* Visibility preference — always shown so user can decide even si no pone fecha */}
             <div>
