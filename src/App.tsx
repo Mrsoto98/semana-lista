@@ -15,11 +15,12 @@ import { esNativo } from './lib/ads'
 
 // En Android, interceptar deep links de autenticación (com.semanalista.app://auth/callback?...)
 if (esNativo()) {
-  import('@capacitor/app').then(({ App }) => {
-    App.addListener('appUrlOpen', async ({ url }) => {
+  // @ts-ignore — @capacitor/app solo está disponible en el build Android
+  import('@capacitor/app').then(({ App }: { App: any }) => {
+    App.addListener('appUrlOpen', async ({ url }: { url: string }) => {
       if (!url.includes('auth/callback')) return
-      // Cerrar el Custom Tab antes de procesar el token
-      import('@capacitor/browser').then(({ Browser }) => Browser.close()).catch(() => {})
+      // @ts-ignore — @capacitor/browser solo está disponible en el build Android
+      import('@capacitor/browser').then(({ Browser }: { Browser: any }) => Browser.close()).catch(() => {})
       // Convertir el scheme propio a https:// para poder parsear la URL
       const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
       const code = parsed.searchParams.get('code')

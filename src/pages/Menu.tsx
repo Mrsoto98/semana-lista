@@ -47,10 +47,6 @@ function isoWeek(d: Date): number {
   return Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
-function semanaKey(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-W${isoWeek(now)}`
-}
 
 function perfilConNevera(perfil: object, extraPrompt?: string, ingredientesEvitar: string[] = [], cocina?: string, objetivo?: string): object {
   const p = perfil as { nevera?: string[]; ingredientes_no?: string[] }

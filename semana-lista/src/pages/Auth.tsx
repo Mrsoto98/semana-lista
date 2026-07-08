@@ -10,6 +10,7 @@ const REDIRECT_URL = esNativo() ? 'com.semanalista.app://auth/callback' : `${win
 
 async function abrirOAuthNativo(url: string) {
   try {
+    // @ts-ignore — @capacitor/browser solo disponible en build Android
     const { Browser } = await import('@capacitor/browser')
     await Browser.open({ url, windowName: '_self' })
   } catch (e) {
