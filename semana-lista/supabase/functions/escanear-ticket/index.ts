@@ -87,11 +87,14 @@ Deno.serve(async (req) => {
           {
             type: 'text',
             text: `Eres un asistente que lee tickets de compra de supermercado.
-Extrae TODOS los productos comprados del ticket.
-Para cada producto, devuelve su nombre genérico en español (no la marca comercial, sino el tipo de producto).
-Por ejemplo: "HACENDADO LECHE ENTERA" → "leche entera", "HUEVOS CAMPEROS M" → "huevos", "PECHUGA POLLO" → "pechuga de pollo".
-Devuelve ÚNICAMENTE un array JSON con los nombres, sin explicación ni texto adicional. Ejemplo:
-["leche entera","huevos","pechuga de pollo","tomates","pan de molde"]`,
+Analiza la imagen y extrae los productos comprados.
+
+Para cada producto:
+- Si lo puedes identificar claramente, ponlo en "confirmados" con su nombre genérico en español (sin marca). Ejemplo: "HACENDADO LECHE ENTERA 1L" → "leche entera"
+- Si el texto es ilegible, ambiguo o no estás seguro de qué producto es, ponlo en "dudosos" con el texto exacto del ticket tal como aparece.
+
+Devuelve ÚNICAMENTE este JSON sin ningún texto adicional:
+{"confirmados":["leche entera","huevos","pan de molde"],"dudosos":["HCND CR VRD 500","????"]}`,
           },
         ],
       }],
@@ -107,17 +110,22 @@ Devuelve ÚNICAMENTE un array JSON con los nombres, sin explicación ni texto ad
   const claudeData = await anthropicRes.json()
   const texto = claudeData.content?.[0]?.text ?? ''
 
-  let productos: string[] = []
+  let confirmados: string[] = []
+  let dudosos: string[] = []
   try {
-    // Extraer el array JSON de la respuesta
-    const match = texto.match(/\[[\s\S]*\]/)
-    if (match) productos = JSON.parse(match[0])
+    const match = texto.match(/\{[\s\S]*\}/)
+    if (match) {
+      const parsed = JSON.parse(match[0])
+      confirmados = Array.isArray(parsed.confirmados) ? parsed.confirmados : []
+      dudosos = Array.isArray(parsed.dudosos) ? parsed.dudosos : []
+    }
   } catch {
-    productos = []
+    confirmados = []
+    dudosos = []
   }
 
   return new Response(
-    JSON.stringify({ productos }),
+    JSON.stringify({ confirmados, dudosos }),
     { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } },
   )
 })

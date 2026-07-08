@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { expandirCatalogo } from '../lib/matchMercadona'
 import { useI18n } from '../hooks/useI18n'
 import { supabase } from '../lib/supabase'
+import { NeveraSearch } from './ui/NeveraSearch'
 
 interface Producto { id?: string; nombre: string; precio: number; foto?: string | null; tamaño?: number; unidad?: string }
 
@@ -30,12 +31,18 @@ const CAT_EMOJI: Record<string, string> = {
   'Salsas y especias': '🧂', 'Zumos': '🍊',
 }
 
+interface ResultadoScan {
+  confirmados: string[]   // nombres ya matcheados al catálogo
+  dudosos: { texto: string; seleccionados: string[] }[]  // texto del ticket + lo que el usuario elige
+}
+
 export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarrito, onAddItems }: Props) {
   const { t } = useI18n()
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
   const [abierto, setAbierto] = useState(false)
   const [escaneando, setEscaneando] = useState(false)
-  const [scanMsg, setScanMsg] = useState<string | null>(null)
+  const [resultado, setResultado] = useState<ResultadoScan | null>(null)
+  const [scanError, setScanError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
@@ -58,7 +65,6 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     return map
   }, [catalogoExpandido])
 
-  // Índice de nombres del catálogo en minúsculas para matching rápido
   const catalogoNombres = useMemo(() => {
     if (!catalogoExpandido) return []
     const nombres: string[] = []
@@ -82,16 +88,12 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     })
   }, [enCasa, infoMap])
 
-  // Busca el mejor match del catálogo para un nombre extraído del ticket
   function matchCatalogo(nombre: string): string {
     const q = nombre.toLowerCase().trim()
-    // 1. Coincidencia exacta
     const exacto = catalogoNombres.find(n => n.toLowerCase() === q)
     if (exacto) return exacto
-    // 2. El nombre del catálogo contiene el término del ticket
     const contiene = catalogoNombres.find(n => n.toLowerCase().includes(q))
     if (contiene) return contiene
-    // 3. El término del ticket contiene palabras del catálogo (palabra más larga que coincida)
     const palabras = q.split(/\s+/).filter(p => p.length > 3)
     let mejorMatch = ''
     let mejorScore = 0
@@ -101,7 +103,6 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
       if (score > mejorScore) { mejorScore = score; mejorMatch = n }
     }
     if (mejorScore > 0) return mejorMatch
-    // 4. Sin match — devolver el nombre tal cual en minúsculas
     return q
   }
 
@@ -109,19 +110,14 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-
     setEscaneando(true)
-    setScanMsg(null)
+    setScanError(null)
+    setResultado(null)
 
     try {
-      // Convertir imagen a base64
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => {
-          const result = reader.result as string
-          // Quitar el prefijo "data:image/jpeg;base64,"
-          resolve(result.split(',')[1])
-        }
+        reader.onload = () => resolve((reader.result as string).split(',')[1])
         reader.onerror = reject
         reader.readAsDataURL(file)
       })
@@ -134,81 +130,144 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
         body: { imagen: base64, tipo: file.type || 'image/jpeg' },
         headers: { Authorization: `Bearer ${token}` },
       })
-
       if (res.error) throw res.error
 
-      const productos: string[] = res.data?.productos ?? []
+      const confirmadosRaw: string[] = res.data?.confirmados ?? []
+      const dudososRaw: string[] = res.data?.dudosos ?? []
 
-      if (productos.length === 0) {
-        setScanMsg(t.encasa_scan_vacio)
-        return
+      // Match confirmados al catálogo
+      const confirmados = [...new Set(confirmadosRaw.map(p => matchCatalogo(p)))].filter(n => !enCasa.has(n))
+      // Dudosos: el usuario tiene que elegir
+      const dudosos = dudososRaw.map(texto => ({ texto, seleccionados: [] as string[] }))
+
+      if (confirmados.length === 0 && dudosos.length === 0) {
+        setScanError(t.encasa_scan_vacio)
+      } else {
+        setResultado({ confirmados, dudosos })
+        if (!abierto) setAbierto(true)
       }
-
-      // Hacer match con el catálogo de Mercadona
-      const matched = productos.map(p => matchCatalogo(p))
-      // Filtrar duplicados y los que ya están en casa
-      const nuevos = [...new Set(matched)].filter(n => !enCasa.has(n))
-
-      if (nuevos.length === 0) {
-        setScanMsg(t.encasa_scan_vacio)
-        return
-      }
-
-      onAddItems?.(nuevos)
-      setScanMsg(typeof t.encasa_scan_ok === 'function' ? t.encasa_scan_ok(nuevos.length) : '')
-      if (!abierto) setAbierto(true)
     } catch (err) {
       console.error('Scan error:', err)
-      setScanMsg(t.encasa_scan_error)
+      setScanError(t.encasa_scan_error)
     } finally {
       setEscaneando(false)
-      setTimeout(() => setScanMsg(null), 4000)
+      if (scanError) setTimeout(() => setScanError(null), 4000)
     }
+  }
+
+  function confirmarResultado() {
+    if (!resultado) return
+    const dudososElegidos = resultado.dudosos.flatMap(d => d.seleccionados)
+    const todos = [...resultado.confirmados, ...dudososElegidos].filter(n => !enCasa.has(n))
+    if (todos.length > 0) onAddItems?.(todos)
+    setResultado(null)
   }
 
   return (
     <>
       <div data-tutorial="en-casa">
+        {/* Cabecera: título | botón escanear | flecha */}
         <div className="flex items-center gap-2 mb-2">
           <button
             data-tutorial="en-casa-btn"
             onClick={() => setAbierto(v => !v)}
-            className="flex items-center gap-2 flex-1 text-left py-1"
+            className="flex-1 text-left py-1"
           >
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.encasa_titulo}</h2>
-            <span className={`ml-auto w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 ${abierto ? 'rotate-0' : '-rotate-90'}`}>▾</span>
           </button>
 
-          {/* Botón escanear ticket */}
+          {/* Botón escanear — a la izquierda de la flecha */}
           <button
             onClick={() => fileRef.current?.click()}
             disabled={escaneando}
             className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50 shrink-0"
           >
-            {escaneando ? (
-              <span className="animate-spin text-sm">⟳</span>
-            ) : (
-              <span className="text-sm">📷</span>
-            )}
-            {escaneando ? t.encasa_escaneando : t.encasa_escanear}
+            {escaneando
+              ? <span className="animate-spin inline-block">⟳</span>
+              : <span>📷</span>
+            }
+            <span>{escaneando ? t.encasa_escaneando : t.encasa_escanear}</span>
           </button>
 
-          {/* Input oculto para la cámara — funciona en web (iOS/Android/desktop) */}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleScan}
-          />
+          {/* Flecha desplegable — siempre al final */}
+          <button
+            onClick={() => setAbierto(v => !v)}
+            className={`w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm transition-transform duration-200 shrink-0 ${abierto ? 'rotate-0' : '-rotate-90'}`}
+          >▾</button>
         </div>
 
-        {/* Mensaje de resultado del escaneo */}
-        {scanMsg && (
-          <p className="text-xs text-center py-1 px-3 rounded-full mb-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300">
-            {scanMsg}
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleScan} />
+
+        {scanError && (
+          <p className="text-xs text-center py-1 px-3 rounded-full mb-2 bg-red-50 dark:bg-red-900/20 text-red-500">
+            {scanError}
           </p>
+        )}
+
+        {/* Panel de revisión del ticket */}
+        {resultado && (
+          <div className="mb-3 bg-white dark:bg-gray-900 border border-blue-100 dark:border-blue-800 rounded-card p-3 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resultado del ticket</p>
+
+            {/* Confirmados */}
+            {resultado.confirmados.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-green-600 dark:text-green-400 mb-1.5">✓ Reconocidos ({resultado.confirmados.length})</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {resultado.confirmados.map((nombre, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setResultado(r => r ? {
+                        ...r,
+                        confirmados: r.confirmados.filter((_, j) => j !== i)
+                      } : r)}
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700"
+                    >
+                      {nombre} <span className="text-green-400 hover:text-red-400">✕</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Dudosos */}
+            {resultado.dudosos.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-semibold text-orange-500 dark:text-orange-400 mb-1">? No reconocidos — elige el producto:</p>
+                {resultado.dudosos.map((d, i) => (
+                  <div key={i} className="space-y-1">
+                    <p className="text-[10px] text-gray-400 font-mono bg-gray-50 dark:bg-gray-800 rounded px-2 py-0.5 inline-block">«{d.texto}»</p>
+                    <NeveraSearch
+                      items={d.seleccionados}
+                      onChange={sel => setResultado(r => {
+                        if (!r) return r
+                        const dudosos = [...r.dudosos]
+                        dudosos[i] = { ...dudosos[i], seleccionados: sel }
+                        return { ...r, dudosos }
+                      })}
+                      placeholder="Buscar en catálogo..."
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={confirmarResultado}
+                className="flex-1 bg-green-select text-white text-xs font-semibold py-2 rounded-xl"
+              >
+                Añadir a En Casa
+              </button>
+              <button
+                onClick={() => setResultado(null)}
+                className="px-3 py-2 text-xs text-gray-400 hover:text-gray-600 rounded-xl border border-gray-200 dark:border-gray-700"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         )}
 
         {abierto && (
@@ -226,13 +285,9 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
                     const yaEnCarrito = enCarrito?.has(item) ?? false
                     return (
                       <div key={item} className="flex rounded-full overflow-hidden border border-blue-100 dark:border-blue-800 shadow-sm">
-                        {/* foto + nombre */}
                         <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-medium pl-0.5 pr-2 py-0.5">
                           {foto ? (
-                            <img
-                              src={foto}
-                              alt=""
-                              loading="lazy"
+                            <img src={foto} alt="" loading="lazy"
                               className="w-6 h-6 rounded-full object-cover shrink-0 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 cursor-zoom-in"
                               onError={e => { e.currentTarget.style.display = 'none' }}
                               onClick={() => setFotoAmpliada(foto)}
@@ -242,24 +297,14 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
                           )}
                           <span className="leading-tight">{item}</span>
                         </div>
-                        {/* añadir al carrito */}
                         {onAddToCart && (
-                          <button
-                            onClick={() => onAddToCart(item)}
-                            title={t.encasa_anadir_carrito}
+                          <button onClick={() => onAddToCart(item)} title={t.encasa_anadir_carrito}
                             className={`text-xs px-2 py-0.5 border-l border-blue-100 dark:border-blue-800 transition-colors ${yaEnCarrito ? 'bg-green-500 text-white' : 'bg-blue-50 dark:bg-blue-900/40 text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60'}`}
-                          >
-                            {yaEnCarrito ? '✓' : '🛒'}
-                          </button>
+                          >{yaEnCarrito ? '✓' : '🛒'}</button>
                         )}
-                        {/* quitar de en casa */}
-                        <button
-                          onClick={() => onRemove(item)}
-                          title={t.encasa_quitar}
+                        <button onClick={() => onRemove(item)} title={t.encasa_quitar}
                           className="text-xs px-2 py-0.5 border-l border-blue-100 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/40 text-blue-300 dark:text-blue-600 hover:bg-red-50 hover:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors"
-                        >
-                          ✕
-                        </button>
+                        >✕</button>
                       </div>
                     )
                   })}
@@ -271,16 +316,8 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
       </div>
 
       {fotoAmpliada && createPortal(
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-          onClick={() => setFotoAmpliada(null)}
-        >
-          <img
-            src={fotoAmpliada}
-            alt=""
-            className="max-w-[80vw] max-h-[80vh] rounded-2xl shadow-2xl object-contain"
-            onClick={e => e.stopPropagation()}
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setFotoAmpliada(null)}>
+          <img src={fotoAmpliada} alt="" className="max-w-[80vw] max-h-[80vh] rounded-2xl shadow-2xl object-contain" onClick={e => e.stopPropagation()} />
         </div>,
         document.body
       )}
