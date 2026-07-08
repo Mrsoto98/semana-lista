@@ -8,3 +8,4 @@ dist/
 .env*
 scripts/sync-zonas.ps1
 scripts/scrape-local.mjs
+.claude/settings.local.json
