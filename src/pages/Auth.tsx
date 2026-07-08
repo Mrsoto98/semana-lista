@@ -8,6 +8,13 @@ import { esNativo } from '../lib/ads'
 
 const REDIRECT_URL = esNativo() ? 'com.semanalista.app://auth/callback' : `${window.location.origin}/`
 
+async function abrirOAuthNativo(url: string) {
+  // En Android usamos @capacitor/browser para abrir el OAuth en un Custom Tab
+  // que puede ser interceptado por el intent-filter cuando redirige a nuestro scheme
+  const { Browser } = await import('@capacitor/browser')
+  await Browser.open({ url, windowName: '_self' })
+}
+
 type Mode = 'login' | 'registro'
 
 export default function Auth() {
@@ -71,10 +78,18 @@ export default function Auth() {
   }
 
   async function handleGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: REDIRECT_URL },
-    })
+    if (esNativo()) {
+      const { data } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: REDIRECT_URL, skipBrowserRedirect: true },
+      })
+      if (data.url) await abrirOAuthNativo(data.url)
+    } else {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: REDIRECT_URL },
+      })
+    }
   }
 
 

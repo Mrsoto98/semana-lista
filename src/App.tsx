@@ -18,13 +18,14 @@ if (esNativo()) {
   import('@capacitor/app').then(({ App }) => {
     App.addListener('appUrlOpen', async ({ url }) => {
       if (!url.includes('auth/callback')) return
+      // Cerrar el Custom Tab antes de procesar el token
+      import('@capacitor/browser').then(({ Browser }) => Browser.close()).catch(() => {})
       // Convertir el scheme propio a https:// para poder parsear la URL
       const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
       const code = parsed.searchParams.get('code')
       if (code) {
         await supabase.auth.exchangeCodeForSession(code)
       } else {
-        // Flujo implícito: tokens en el hash
         const params = new URLSearchParams(parsed.hash.slice(1))
         const access_token = params.get('access_token')
         const refresh_token = params.get('refresh_token')
