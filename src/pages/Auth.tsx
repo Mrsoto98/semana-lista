@@ -4,21 +4,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useI18n } from '../hooks/useI18n'
-import { esNativo } from '../lib/ads'
-
-const REDIRECT_URL = esNativo() ? 'com.semanalista.app://auth/callback' : `${window.location.origin}/`
-
-async function abrirOAuthNativo(url: string) {
-  try {
-    // @ts-ignore — @capacitor/browser solo disponible en build Android
-    const { Browser } = await import('@capacitor/browser')
-    await Browser.open({ url, windowName: '_self' })
-  } catch (e) {
-    // Fallback: abrir en el navegador del sistema si @capacitor/browser falla
-    console.error('Browser plugin error:', e)
-    window.open(url, '_system')
-  }
-}
+const REDIRECT_URL = `${window.location.origin}/`
 
 type Mode = 'login' | 'registro'
 
@@ -86,21 +72,11 @@ export default function Auth() {
     setError(null)
     setEnviando(true)
     try {
-      if (esNativo()) {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: REDIRECT_URL, skipBrowserRedirect: true },
-        })
-        if (error) throw error
-        if (data.url) await abrirOAuthNativo(data.url)
-        else throw new Error('No se recibió URL de autenticación')
-      } else {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: REDIRECT_URL },
-        })
-        if (error) throw error
-      }
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: REDIRECT_URL },
+      })
+      if (error) throw error
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al iniciar con Google'
       setError(traducirError(msg))
