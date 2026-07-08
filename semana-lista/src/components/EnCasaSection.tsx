@@ -199,8 +199,12 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.error) {
-        console.error('Scan edge function error:', res.error)
-        throw res.error
+        const msg = (res.error as { message?: string })?.message ?? String(res.error)
+        console.error('Scan edge function error:', msg, res.error)
+        throw new Error(msg)
+      }
+      if (res.data?.error) {
+        throw new Error(res.data.error)
       }
 
       const confirmadosRaw: Array<{
@@ -229,8 +233,9 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
         if (!abierto) setAbierto(true)
       }
     } catch (err) {
-      console.error('Scan error:', err)
-      setScanError(t.encasa_scan_error)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Scan error:', msg)
+      setScanError(msg.length < 80 ? msg : t.encasa_scan_error)
     } finally {
       setEscaneando(false)
     }
