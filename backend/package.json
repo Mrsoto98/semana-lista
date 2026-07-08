@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsx src/index.ts",
+    "build": "echo 'no build step'",
     "start": "tsx src/index.ts"
   },
   "dependencies": {
