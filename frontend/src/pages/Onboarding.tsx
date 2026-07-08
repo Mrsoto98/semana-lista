@@ -22,6 +22,7 @@ export default function Onboarding() {
   const [name, setName]               = useState(user?.name ?? '')
   const [bio, setBio]                 = useState('')
   const [birthDate, setBirthDate]     = useState('')
+  const [birthText, setBirthText]     = useState('')
   const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'none'>('age')
   const [avatarMode, setAvatarMode]   = useState<'emoji' | 'photo'>('emoji')
   const [selectedEmoji, setSelectedEmoji] = useState('🌙')
@@ -172,19 +173,18 @@ export default function Onboarding() {
                 type="text"
                 inputMode="numeric"
                 placeholder="DD/MM/AAAA"
-                value={birthDate ? birthDate.split('-').reverse().join('/') : ''}
+                value={birthText}
                 onChange={e => {
-                  const val = e.target.value.replace(/[^\d/]/g, '')
-                  // Auto-insert slashes
-                  let formatted = val.replace(/\//g, '')
-                  if (formatted.length > 2) formatted = formatted.slice(0,2) + '/' + formatted.slice(2)
-                  if (formatted.length > 5) formatted = formatted.slice(0,5) + '/' + formatted.slice(5,9)
-                  e.target.value = formatted
-                  // Convert DD/MM/AAAA → AAAA-MM-DD for storage
-                  const parts = formatted.split('/')
-                  if (parts.length === 3 && parts[2].length === 4) {
-                    setBirthDate(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`)
-                  } else if (formatted === '') {
+                  let raw = e.target.value.replace(/[^\d]/g, '')
+                  if (raw.length > 8) raw = raw.slice(0, 8)
+                  let fmt = raw
+                  if (raw.length > 4) fmt = raw.slice(0,2) + '/' + raw.slice(2,4) + '/' + raw.slice(4)
+                  else if (raw.length > 2) fmt = raw.slice(0,2) + '/' + raw.slice(2)
+                  setBirthText(fmt)
+                  if (raw.length === 8) {
+                    const d = raw.slice(0,2), m = raw.slice(2,4), y = raw.slice(4,8)
+                    setBirthDate(`${y}-${m}-${d}`)
+                  } else {
                     setBirthDate('')
                   }
                 }}
@@ -194,9 +194,15 @@ export default function Onboarding() {
               <input
                 type="date"
                 value={birthDate}
-                onChange={e => setBirthDate(e.target.value)}
+                onChange={e => {
+                  setBirthDate(e.target.value)
+                  if (e.target.value) {
+                    const [y,m,d] = e.target.value.split('-')
+                    setBirthText(`${d}/${m}/${y}`)
+                  }
+                }}
                 max={new Date().toISOString().split('T')[0]}
-                className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white/40 [color-scheme:dark] text-xs"
+                className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white/40 [color-scheme:dark]"
               />
             </div>
 
