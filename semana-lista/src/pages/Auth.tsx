@@ -40,7 +40,9 @@ export default function Auth() {
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('oauth_error') ? 'Error al iniciar sesión con Google. Vuelve a intentarlo.' : null
+  )
   const [enviando, setEnviando] = useState(false)
   const [confirmacionEnviada, setConfirmacionEnviada] = useState(false)
 

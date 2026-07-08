@@ -81,9 +81,7 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
   const { t } = useI18n()
   const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
   const [abierto, setAbierto] = useState(false)
-  const [escaneando, setEscaneando] = useState(false)
   const [resultado, setResultado] = useState<ResultadoScan | null>(null)
-  const [scanError, setScanError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
@@ -183,8 +181,6 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
-    setEscaneando(true)
-    setScanError(null)
     setResultado(null)
 
     try {
@@ -199,45 +195,28 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.error) {
-        const msg = (res.error as { message?: string })?.message ?? String(res.error)
-        console.error('Scan edge function error:', msg, res.error)
-        throw new Error(msg)
+        console.error('Scan edge function error:', res.error)
+        throw res.error
       }
-      if (res.data?.error) {
-        throw new Error(res.data.error)
-      }
+      if (res.data?.error) throw new Error(res.data.error)
 
       const confirmadosRaw: Array<{
-        textoTicket: string
-        nombreEs: string
-        nombreCa: string | null
-        precio: number | null
-        fuente: 'db' | 'ia'
+        textoTicket: string; nombreEs: string; nombreCa: string | null
+        precio: number | null; fuente: 'db' | 'ia'
       }> = res.data?.confirmados ?? []
       const dudososRaw: string[] = res.data?.dudosos ?? []
 
-      // Hacer match al catálogo Mercadona para cada confirmado
       const confirmados: ItemConfirmado[] = confirmadosRaw
-        .map(p => ({
-          ...p,
-          nombreMercadona: matchCatalogo(p.nombreEs, p.precio),
-        }))
+        .map(p => ({ ...p, nombreMercadona: matchCatalogo(p.nombreEs, p.precio) }))
         .filter(p => !enCasa.has(p.nombreMercadona))
-
       const dudosos = dudososRaw.map(texto => ({ texto, seleccionados: [] as string[] }))
 
-      if (confirmados.length === 0 && dudosos.length === 0) {
-        setScanError(t.encasa_scan_vacio)
-      } else {
+      if (confirmados.length > 0 || dudosos.length > 0) {
         setResultado({ confirmados, dudosos })
         if (!abierto) setAbierto(true)
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error('Scan error:', msg)
-      setScanError(msg.length < 80 ? msg : t.encasa_scan_error)
-    } finally {
-      setEscaneando(false)
+      console.error('Scan error:', err)
     }
   }
 
@@ -287,19 +266,6 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.encasa_titulo}</h2>
           </button>
 
-          {/* Botón escanear — a la izquierda de la flecha */}
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={escaneando}
-            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50 shrink-0"
-          >
-            {escaneando
-              ? <span className="animate-spin inline-block">⟳</span>
-              : <span>📷</span>
-            }
-            <span>{escaneando ? t.encasa_escaneando : t.encasa_escanear}</span>
-          </button>
-
           {/* Flecha desplegable — siempre al final */}
           <button
             onClick={() => setAbierto(v => !v)}
@@ -308,12 +274,6 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
         </div>
 
         <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleScan} />
-
-        {scanError && (
-          <p className="text-xs text-center py-1 px-3 rounded-full mb-2 bg-red-50 dark:bg-red-900/20 text-red-500">
-            {scanError}
-          </p>
-        )}
 
         {/* Panel de revisión del ticket */}
         {resultado && (

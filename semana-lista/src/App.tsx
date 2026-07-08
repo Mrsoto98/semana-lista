@@ -19,29 +19,43 @@ if (esNativo()) {
   import('@capacitor/app').then(({ App }: { App: any }) => {
     App.addListener('appUrlOpen', async ({ url }: { url: string }) => {
       if (!url.includes('auth/callback')) return
-      // @ts-ignore — @capacitor/browser solo está disponible en el build Android
+
+      // Cerrar el navegador externo inmediatamente
+      // @ts-ignore
       import('@capacitor/browser').then(({ Browser }: { Browser: any }) => Browser.close()).catch(() => {})
-      // Convertir el scheme propio a https:// para poder parsear la URL
+
       const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
       const code = parsed.searchParams.get('code')
+      const hashParams = new URLSearchParams(parsed.hash.slice(1))
+      const access_token = parsed.searchParams.get('access_token') ?? hashParams.get('access_token')
+      const refresh_token = parsed.searchParams.get('refresh_token') ?? hashParams.get('refresh_token')
+
       try {
+        let userId: string | null = null
+
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
           if (error) throw error
-        } else {
-          const params = new URLSearchParams(parsed.hash.slice(1))
-          const access_token = params.get('access_token')
-          const refresh_token = params.get('refresh_token')
-          if (access_token && refresh_token) {
-            const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-            if (error) throw error
-          }
+          userId = data.user?.id ?? null
+        } else if (access_token && refresh_token) {
+          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
+          if (error) throw error
+          userId = data.user?.id ?? null
         }
-        // Forzar navegación al menú tras login exitoso
-        const { data } = await supabase.from('perfiles').select('id').eq('usuario_id', (await supabase.auth.getUser()).data.user!.id).maybeSingle()
-        window.location.href = data ? '/menu' : '/onboarding'
+
+        if (!userId) throw new Error('No se obtuvo usuario tras OAuth')
+
+        const { data: perfil } = await supabase
+          .from('perfiles')
+          .select('id')
+          .eq('usuario_id', userId)
+          .maybeSingle()
+
+        window.location.href = perfil ? '/menu' : '/onboarding'
       } catch (err) {
         console.error('OAuth callback error:', err)
+        // Redirigir al login con indicador de error para que el usuario lo vea
+        window.location.href = '/login?oauth_error=1'
       }
     })
   }).catch(() => {})
