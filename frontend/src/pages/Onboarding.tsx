@@ -167,13 +167,38 @@ export default function Onboarding() {
               <h2 className="text-white font-semibold text-lg mb-1">¿Cuándo naciste?</h2>
               <p className="text-white/35 text-sm">Opcional. Lo usamos para personalizar tu experiencia.</p>
             </div>
-            <input
-              type="date"
-              value={birthDate}
-              onChange={e => setBirthDate(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white [color-scheme:dark]"
-            />
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="DD/MM/AAAA"
+                value={birthDate ? birthDate.split('-').reverse().join('/') : ''}
+                onChange={e => {
+                  const val = e.target.value.replace(/[^\d/]/g, '')
+                  // Auto-insert slashes
+                  let formatted = val.replace(/\//g, '')
+                  if (formatted.length > 2) formatted = formatted.slice(0,2) + '/' + formatted.slice(2)
+                  if (formatted.length > 5) formatted = formatted.slice(0,5) + '/' + formatted.slice(5,9)
+                  e.target.value = formatted
+                  // Convert DD/MM/AAAA → AAAA-MM-DD for storage
+                  const parts = formatted.split('/')
+                  if (parts.length === 3 && parts[2].length === 4) {
+                    setBirthDate(`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`)
+                  } else if (formatted === '') {
+                    setBirthDate('')
+                  }
+                }}
+                maxLength={10}
+                className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white"
+              />
+              <input
+                type="date"
+                value={birthDate}
+                onChange={e => setBirthDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white/40 [color-scheme:dark] text-xs"
+              />
+            </div>
 
             {/* Visibility preference — always shown so user can decide even si no pone fecha */}
             <div>
