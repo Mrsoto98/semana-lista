@@ -13,11 +13,10 @@ router.get('/', async (req, res) => {
             f.status,
             CASE WHEN f.requester_id = $1 THEN 'sent' ELSE 'received' END AS direction
      FROM friendships f
-     JOIN users u ON u.id = CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END
+     JOIN profiles u ON u.id = CASE WHEN f.requester_id = $1 THEN f.addressee_id ELSE f.requester_id END
      WHERE (f.requester_id = $1 OR f.addressee_id = $1)
        AND f.status != 'blocked'
-       AND u.deleted_at IS NULL
-     ORDER BY f.updated_at DESC`,
+            ORDER BY f.updated_at DESC`,
     [userId]
   )
   res.json(rows)
@@ -34,7 +33,7 @@ router.post('/request', async (req, res) => {
   }
 
   // Check target exists
-  const target = await query('SELECT id FROM users WHERE id = $1 AND deleted_at IS NULL', [targetId])
+  const target = await query('SELECT id FROM profiles WHERE id = $1', [targetId])
   if (!target.rowCount) {
     res.status(404).json({ error: 'Usuario no encontrado' })
     return
@@ -147,14 +146,35 @@ router.get('/search', async (req, res) => {
     return
   }
 
+  // Parse formatted user number (e.g. "0001" → 1, "A0001" → 10000)
+  function parseFormattedNumber(s: string): number | null {
+    const upper = s.trim().toUpperCase()
+    const pureDigits = /^(\d{1,4})$/.exec(upper)
+    if (pureDigits) return parseInt(pureDigits[1], 10)
+    const withLetter = /^([A-Z])(\d{1,4})$/.exec(upper)
+    if (withLetter) {
+      const letterIndex = withLetter[1].charCodeAt(0) - 64
+      const remainder   = parseInt(withLetter[2], 10)
+      return 9999 + (letterIndex - 1) * 9999 + remainder
+    }
+    return null
+  }
+
+  const parsedNum = parseFormattedNumber(q)
+  const isFormattedNumber = parsedNum !== null
+
   const { rows } = await query(
-    `SELECT id, name, avatar_url, bio
-     FROM users
-     WHERE (name ILIKE $1 OR email ILIKE $1)
-       AND id != $2
-       AND deleted_at IS NULL
-     LIMIT 20`,
-    [`%${q}%`, userId]
+    isFormattedNumber
+      ? `SELECT id, name, avatar_url, bio, user_number
+         FROM profiles
+         WHERE user_number = $1 AND id != $2
+         LIMIT 10`
+      : `SELECT id, name, avatar_url, bio, user_number
+         FROM profiles
+         WHERE (name ILIKE $1 OR email ILIKE $1)
+           AND id != $2
+         LIMIT 20`,
+    isFormattedNumber ? [parsedNum, userId] : [`%${q}%`, userId]
   )
 
   res.json(rows)

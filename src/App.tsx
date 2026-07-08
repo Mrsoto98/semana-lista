@@ -10,6 +10,31 @@ import { setInstallPrompt, getInstallPrompt, clearInstallPrompt } from './lib/in
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { OfflineBanner } from './components/OfflineBanner'
 import { Tutorial } from './components/Tutorial'
+import { supabase } from './lib/supabase'
+import { esNativo } from './lib/ads'
+
+// En Android, interceptar deep links de autenticación (com.semanalista.app://auth/callback?...)
+if (esNativo()) {
+  import('@capacitor/app').then(({ App }) => {
+    App.addListener('appUrlOpen', async ({ url }) => {
+      if (!url.includes('auth/callback')) return
+      // Convertir el scheme propio a https:// para poder parsear la URL
+      const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
+      const code = parsed.searchParams.get('code')
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code)
+      } else {
+        // Flujo implícito: tokens en el hash
+        const params = new URLSearchParams(parsed.hash.slice(1))
+        const access_token = params.get('access_token')
+        const refresh_token = params.get('refresh_token')
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({ access_token, refresh_token })
+        }
+      }
+    })
+  }).catch(() => {})
+}
 
 
 const Landing    = lazy(() => import('./pages/Landing'))

@@ -9,7 +9,7 @@ router.use(requireAuth)
 router.get('/', async (req, res) => {
   const userId = req.user!.id
 
-  const [totals, byVisibility, byMonth, lucid, topEmotions, topTags, topSymbols, streak] =
+  const [totals, byVisibility, byMonth, lucid, topEmotions, topTags, topSymbols, streak, byWeekday] =
     await Promise.all([
       // Total counts
       query<{ total: string; lucid: string; avg_quality: string }>(
@@ -68,6 +68,13 @@ router.get('/', async (req, res) => {
          GROUP BY symbol ORDER BY count DESC LIMIT 10`,
         [userId]
       ),
+      // Dreams by weekday
+      query(
+        `SELECT EXTRACT(DOW FROM dream_date)::int AS dow, COUNT(*) AS count
+         FROM dreams WHERE user_id = $1
+         GROUP BY dow ORDER BY dow`,
+        [userId]
+      ),
       // Current streak (consecutive days with at least one dream)
       query<{ streak: string }>(
         `WITH dated AS (
@@ -94,6 +101,7 @@ router.get('/', async (req, res) => {
     streak: Number(streak.rows[0]?.streak ?? 0),
     byVisibility: byVisibility.rows,
     byMonth: byMonth.rows,
+    byWeekday: byWeekday.rows,
     topEmotions: topEmotions.rows,
     topTags: topTags.rows,
     topSymbols: topSymbols.rows,

@@ -1,4 +1,4 @@
-import { useEffect, HTMLAttributes } from 'react'
+import { useEffect } from 'react'
 import { cn } from '../../lib/utils'
 
 interface ModalProps {
@@ -20,22 +20,24 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
+      {/* Panel */}
       <div
         className={cn(
-          'relative bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up',
+          'relative glass rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up',
           className
         )}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+            <h2 className="text-base font-semibold text-white">{title}</h2>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white transition-colors p-1"
+              className="text-white/30 hover:text-white/80 transition-colors p-1 rounded-lg hover:bg-white/8"
             >
               ✕
             </button>

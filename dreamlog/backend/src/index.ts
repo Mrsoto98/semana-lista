@@ -4,6 +4,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 
+import cron from 'node-cron'
 import authRouter from './routes/auth.js'
 import dreamsRouter from './routes/dreams.js'
 import feedRouter from './routes/feed.js'
@@ -12,6 +13,7 @@ import analysisRouter from './routes/analysis.js'
 import coincidencesRouter from './routes/coincidences.js'
 import statsRouter from './routes/stats.js'
 import userRouter from './routes/user.js'
+import notificationsRouter, { sendMorningReminders } from './routes/notifications.js'
 import { startEmbeddingWorker } from './jobs/embedding.queue.js'
 
 const app = express()
@@ -35,6 +37,7 @@ app.use('/dreams', analysisRouter)       // POST /dreams/:id/analyze
 app.use('/coincidences', coincidencesRouter)
 app.use('/stats', statsRouter)
 app.use('/user', userRouter)
+app.use('/notifications', notificationsRouter)
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
@@ -43,3 +46,6 @@ app.listen(PORT, () => {
   startEmbeddingWorker()
   console.log('Embedding worker started')
 })
+
+cron.schedule('0 8 * * *', sendMorningReminders, { timezone: 'Europe/Madrid' })
+console.log('Morning reminder cron scheduled (8am Europe/Madrid)')

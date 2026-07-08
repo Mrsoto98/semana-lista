@@ -4,6 +4,9 @@ import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useI18n } from '../hooks/useI18n'
+import { esNativo } from '../lib/ads'
+
+const REDIRECT_URL = esNativo() ? 'com.semanalista.app://auth/callback' : `${window.location.origin}/`
 
 type Mode = 'login' | 'registro'
 
@@ -70,7 +73,7 @@ export default function Auth() {
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: REDIRECT_URL },
     })
   }
 

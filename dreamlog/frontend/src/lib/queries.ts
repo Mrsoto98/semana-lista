@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { Dream, FeedDream, Friend, Coincidence, Stats, DreamAnalysis, User } from '../types'
+import type { Dream, FeedDream, Friend, Coincidence, Stats, DreamAnalysis, User, DreamComment, DreamPoll } from '../types'
 
 // ── Auth ─────────────────────────────────────────────────────
 export const authApi = {
@@ -26,10 +26,16 @@ export const dreamsApi = {
 
 // ── Feed ─────────────────────────────────────────────────────
 export const feedApi = {
-  friends: (params?: { limit?: number; offset?: number }) =>
+  friends: (params?: { limit?: number; offset?: number; sort?: 'recent' | 'popular' }) =>
     api.get<FeedDream[]>('/feed/friends', { params }),
-  public: (params?: { limit?: number; offset?: number; search?: string }) =>
+  public: (params?: { limit?: number; offset?: number; search?: string; sort?: 'recent' | 'popular' }) =>
     api.get<FeedDream[]>('/feed/public', { params }),
+}
+
+// ── Likes ─────────────────────────────────────────────────────
+export const likesApi = {
+  like:   (dreamId: string) => api.post<{ like_count: number; user_liked: boolean }>(`/dreams/${dreamId}/like`),
+  unlike: (dreamId: string) => api.delete<{ like_count: number; user_liked: boolean }>(`/dreams/${dreamId}/like`),
 }
 
 // ── Friends ──────────────────────────────────────────────────
@@ -51,9 +57,32 @@ export const coincidencesApi = {
   dismiss: (id: string) => api.post(`/coincidences/${id}/dismiss`),
 }
 
+// ── Comments ─────────────────────────────────────────────────
+export const commentsApi = {
+  list: (dreamId: string) => api.get<DreamComment[]>(`/dreams/${dreamId}/comments`),
+  post: (dreamId: string, body: string, parentCommentId?: string) =>
+    api.post<DreamComment>(`/dreams/${dreamId}/comments`, { body, parent_comment_id: parentCommentId }),
+  remove: (commentId: string) => api.delete(`/dreams/comments/${commentId}`),
+}
+
+export const pollApi = {
+  get:    (dreamId: string) => api.get<DreamPoll | null>(`/dreams/${dreamId}/poll`),
+  create: (dreamId: string, data: { question: string; options: string[] }) =>
+    api.post<DreamPoll>(`/dreams/${dreamId}/poll`, data),
+  vote:   (dreamId: string, optionIndex: number) =>
+    api.post(`/dreams/${dreamId}/poll/vote`, { option_index: optionIndex }),
+  unvote: (dreamId: string) => api.delete(`/dreams/${dreamId}/poll/vote`),
+}
+
 // ── Stats ────────────────────────────────────────────────────
 export const statsApi = {
   get: () => api.get<Stats>('/stats'),
+}
+
+// ── Push notifications ────────────────────────────────────────
+export const pushApi = {
+  subscribe:   (sub: unknown) => api.post('/notifications/subscribe', sub),
+  unsubscribe: ()              => api.delete('/notifications/subscribe'),
 }
 
 // ── User ─────────────────────────────────────────────────────

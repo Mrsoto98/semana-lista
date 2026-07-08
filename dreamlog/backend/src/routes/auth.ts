@@ -1,14 +1,17 @@
 import { Router } from 'express'
-import argon2 from 'argon2'
-import { randomBytes } from 'crypto'
+import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { query } from '../db/client.js'
-import { signAccess, signRefresh, verifyRefresh } from '../utils/jwt.js'
-import { sendVerificationEmail } from '../utils/email.js'
 import { validate } from '../middleware/validate.js'
 import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
+
+// Admin client (service role) — only used server-side
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 const RegisterSchema = z.object({
   name: z.string().min(1).max(80),
@@ -25,84 +28,54 @@ const LoginSchema = z.object({
 router.post('/register', validate(RegisterSchema), async (req, res) => {
   const { name, email, password } = req.body
 
-  const exists = await query('SELECT id FROM users WHERE email = $1', [email])
-  if (exists.rowCount) {
-    res.status(409).json({ error: 'El email ya está registrado' })
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { name } },
+  })
+
+  if (error) {
+    res.status(400).json({ error: error.message })
     return
   }
-
-  const password_hash = await argon2.hash(password)
-  const email_verify_token = randomBytes(32).toString('hex')
-
-  const { rows } = await query<{ id: string }>(
-    `INSERT INTO users (name, email, password_hash, email_verify_token)
-     VALUES ($1, $2, $3, $4) RETURNING id`,
-    [name, email, password_hash, email_verify_token]
-  )
-
-  await sendVerificationEmail(email, email_verify_token).catch((err) =>
-    console.error('Email send failed', err)
-  )
 
   res.status(201).json({
     message: 'Cuenta creada. Revisa tu correo para verificarla.',
-    userId: rows[0].id,
+    userId: data.user?.id,
   })
-})
-
-// ── GET /auth/verify-email ───────────────────────────────────
-router.get('/verify-email', async (req, res) => {
-  const { token } = req.query
-  if (typeof token !== 'string') {
-    res.status(400).json({ error: 'Token requerido' })
-    return
-  }
-
-  const { rowCount } = await query(
-    `UPDATE users
-     SET email_verified = TRUE, email_verify_token = NULL
-     WHERE email_verify_token = $1 AND deleted_at IS NULL`,
-    [token]
-  )
-
-  if (!rowCount) {
-    res.status(400).json({ error: 'Token inválido o ya usado' })
-    return
-  }
-
-  res.json({ message: 'Email verificado. Ya puedes iniciar sesión.' })
 })
 
 // ── POST /auth/login ─────────────────────────────────────────
 router.post('/login', validate(LoginSchema), async (req, res) => {
   const { email, password } = req.body
 
-  const { rows } = await query<{
-    id: string; password_hash: string; email_verified: boolean; name: string
-  }>(
-    `SELECT id, password_hash, email_verified, name
-     FROM users WHERE email = $1 AND deleted_at IS NULL`,
-    [email]
-  )
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
-  if (!rows.length || !(await argon2.verify(rows[0].password_hash, password))) {
+  if (error) {
     res.status(401).json({ error: 'Credenciales incorrectas' })
     return
   }
 
-  if (!rows[0].email_verified) {
-    res.status(403).json({ error: 'Verifica tu email antes de entrar' })
-    return
-  }
+  // Fetch profile
+  const { rows } = await query(
+    `SELECT id, name, avatar_url, avatar_emoji, bio, instagram_username,
+            default_visibility, user_number, birth_date, birth_visibility, onboarding_done, created_at
+     FROM profiles WHERE id = $1`,
+    [data.user.id]
+  )
 
-  const payload = { sub: rows[0].id, email }
-  const accessToken = signAccess(payload)
-  const refreshToken = signRefresh(payload)
-
-  const refreshHash = await argon2.hash(refreshToken)
-  await query('UPDATE users SET refresh_token_hash = $1 WHERE id = $2', [refreshHash, rows[0].id])
-
-  res.json({ accessToken, refreshToken, user: { id: rows[0].id, name: rows[0].name, email } })
+  const profile = rows[0] ?? {}
+  res.json({
+    accessToken: data.session!.access_token,
+    refreshToken: data.session!.refresh_token,
+    user: {
+      ...profile,
+      id: data.user.id,
+      email: data.user.email,
+      email_verified: !!data.user.email_confirmed_at,
+      name: profile.name ?? data.user.user_metadata?.name ?? '',
+    },
+  })
 })
 
 // ── POST /auth/refresh ───────────────────────────────────────
@@ -113,50 +86,78 @@ router.post('/refresh', async (req, res) => {
     return
   }
 
-  let payload: { sub: string; email: string }
-  try {
-    payload = verifyRefresh(refreshToken) as { sub: string; email: string }
-  } catch {
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken })
+
+  if (error || !data.session) {
     res.status(401).json({ error: 'Refresh token inválido' })
     return
   }
 
-  const { rows } = await query<{ refresh_token_hash: string }>(
-    'SELECT refresh_token_hash FROM users WHERE id = $1 AND deleted_at IS NULL',
-    [payload.sub]
-  )
-
-  if (!rows.length || !(await argon2.verify(rows[0].refresh_token_hash ?? '', refreshToken))) {
-    res.status(401).json({ error: 'Refresh token inválido o revocado' })
-    return
-  }
-
-  const newAccess = signAccess(payload)
-  const newRefresh = signRefresh(payload)
-  const newHash = await argon2.hash(newRefresh)
-  await query('UPDATE users SET refresh_token_hash = $1 WHERE id = $2', [newHash, payload.sub])
-
-  res.json({ accessToken: newAccess, refreshToken: newRefresh })
+  res.json({
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+  })
 })
 
 // ── POST /auth/logout ────────────────────────────────────────
-router.post('/logout', requireAuth, async (req, res) => {
-  await query('UPDATE users SET refresh_token_hash = NULL WHERE id = $1', [req.user!.id])
+router.post('/logout', requireAuth, async (_req, res) => {
+  // Supabase tokens expire naturally; client should discard them
   res.json({ message: 'Sesión cerrada' })
 })
 
 // ── GET /auth/me ─────────────────────────────────────────────
 router.get('/me', requireAuth, async (req, res) => {
-  const { rows } = await query(
-    `SELECT id, email, name, avatar_url, bio, email_verified, default_visibility, created_at
-     FROM users WHERE id = $1 AND deleted_at IS NULL`,
-    [req.user!.id]
-  )
-  if (!rows.length) {
-    res.status(404).json({ error: 'Usuario no encontrado' })
-    return
+  try {
+    const { rows } = await query(
+      'SELECT id, name, avatar_url, avatar_emoji, bio, instagram_username, default_visibility, user_number, birth_date, onboarding_done, created_at FROM profiles WHERE id = $1',
+      [req.user!.id]
+    )
+    if (!rows.length) {
+      res.status(404).json({ error: 'Perfil no encontrado' })
+      return
+    }
+    res.json({ ...rows[0], email: req.user!.email, email_verified: true })
+  } catch (err) {
+    console.error('[GET /auth/me] DB error:', err)
+    res.status(500).json({ error: 'Error al obtener perfil' })
   }
-  res.json(rows[0])
+})
+
+const OAuthProfileSchema = z.object({
+  name: z.string().min(1).max(80).optional(),
+  avatar_url: z.string().url().nullable().optional(),
+})
+
+// ── POST /auth/oauth-profile ─────────────────────────────────
+router.post('/oauth-profile', requireAuth, validate(OAuthProfileSchema), async (req, res) => {
+  const { name, avatar_url } = req.body
+  const userId = req.user!.id
+  const email  = req.user!.email
+  const fallbackName = name ?? (email ? email.split('@')[0] : 'Soñador')
+
+  try {
+    // Assign next user_number atomically
+    await query(
+      `INSERT INTO profiles (id, name, avatar_url, user_number)
+       VALUES ($1, $2, $3, (SELECT COALESCE(MAX(user_number), 0) + 1 FROM profiles))
+       ON CONFLICT (id) DO UPDATE SET
+         name       = CASE WHEN profiles.name = '' THEN EXCLUDED.name ELSE profiles.name END,
+         avatar_url = COALESCE(profiles.avatar_url, EXCLUDED.avatar_url),
+         user_number = COALESCE(profiles.user_number, EXCLUDED.user_number)`,
+      [userId, fallbackName, avatar_url ?? null]
+    )
+    res.status(201).json({ ok: true })
+  } catch (err) {
+    console.error('[POST /auth/oauth-profile] error:', err)
+    res.status(500).json({ error: 'Error al crear perfil' })
+  }
+})
+
+// ── GET /auth/verify-email ───────────────────────────────────
+// Supabase handles email verification automatically via magic link.
+// This endpoint is just for the frontend redirect after clicking the link.
+router.get('/verify-email', (_req, res) => {
+  res.json({ message: 'Email verificado por Supabase.' })
 })
 
 export default router

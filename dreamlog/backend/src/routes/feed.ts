@@ -5,27 +5,30 @@ import { requireAuth } from '../middleware/auth.js'
 const router = Router()
 router.use(requireAuth)
 
-const DREAM_SELECT = `
+const dreamSelect = (userId: string) => `
   d.id, d.title, d.body, d.dream_date, d.visibility,
   d.is_lucid, d.sleep_quality, d.tags, d.emotions, d.created_at,
+  d.allow_comments,
   u.id AS author_id, u.name AS author_name, u.avatar_url AS author_avatar,
-  da.summary, da.themes, da.symbols, da.emotional_tone
+  da.summary, da.themes, da.symbols, da.emotional_tone,
+  (SELECT COUNT(*) FROM dream_comments dc WHERE dc.dream_id = d.id)::int AS comment_count,
+  (SELECT COUNT(*) FROM dream_likes dl WHERE dl.dream_id = d.id)::int AS like_count,
+  EXISTS(SELECT 1 FROM dream_likes dl WHERE dl.dream_id = d.id AND dl.user_id = '${userId}') AS user_liked
 `
 
 // ── GET /feed/friends ────────────────────────────────────────
-// Dreams from mutual friends with visibility 'friends' or 'public'
 router.get('/friends', async (req, res) => {
   const userId = req.user!.id
-  const limit = Math.min(Number(req.query.limit ?? 20), 100)
+  const limit  = Math.min(Number(req.query.limit ?? 20), 100)
   const offset = Number(req.query.offset ?? 0)
+  const sort   = req.query.sort === 'popular' ? 'like_count DESC, d.created_at DESC' : 'd.dream_date DESC, d.created_at DESC'
 
   const { rows } = await query(
-    `SELECT ${DREAM_SELECT}
+    `SELECT ${dreamSelect(userId)}
      FROM dreams d
-     JOIN users u ON u.id = d.user_id
+     JOIN profiles u ON u.id = d.user_id
      LEFT JOIN dream_analyses da ON da.dream_id = d.id
      WHERE d.visibility IN ('friends','public')
-       AND u.deleted_at IS NULL
        AND d.user_id != $1
        AND EXISTS (
          SELECT 1 FROM friendships f
@@ -33,24 +36,23 @@ router.get('/friends', async (req, res) => {
            AND ((f.requester_id = $1 AND f.addressee_id = d.user_id)
              OR (f.requester_id = d.user_id AND f.addressee_id = $1))
        )
-     ORDER BY d.dream_date DESC, d.created_at DESC
+     ORDER BY ${sort}
      LIMIT $2 OFFSET $3`,
     [userId, limit, offset]
   )
-
   res.json(rows)
 })
 
 // ── GET /feed/public ─────────────────────────────────────────
-// All public dreams from non-deleted users
 router.get('/public', async (req, res) => {
   const userId = req.user!.id
-  const limit = Math.min(Number(req.query.limit ?? 20), 100)
+  const limit  = Math.min(Number(req.query.limit ?? 20), 100)
   const offset = Number(req.query.offset ?? 0)
   const search = req.query.search as string | undefined
+  const sort   = req.query.sort === 'popular' ? 'like_count DESC, d.created_at DESC' : 'd.dream_date DESC, d.created_at DESC'
 
   let searchClause = ''
-  const params: unknown[] = [userId, limit, offset]
+  const params: unknown[] = [limit, offset]
 
   if (search) {
     params.push(`%${search}%`)
@@ -59,19 +61,16 @@ router.get('/public', async (req, res) => {
   }
 
   const { rows } = await query(
-    `SELECT ${DREAM_SELECT}
+    `SELECT ${dreamSelect(userId)}
      FROM dreams d
-     JOIN users u ON u.id = d.user_id
+     JOIN profiles u ON u.id = d.user_id
      LEFT JOIN dream_analyses da ON da.dream_id = d.id
      WHERE d.visibility = 'public'
-       AND u.deleted_at IS NULL
-       AND d.user_id != $1
        ${searchClause}
-     ORDER BY d.dream_date DESC, d.created_at DESC
-     LIMIT $2 OFFSET $3`,
+     ORDER BY ${sort}
+     LIMIT $1 OFFSET $2`,
     params
   )
-
   res.json(rows)
 })
 

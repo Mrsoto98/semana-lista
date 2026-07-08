@@ -1,14 +1,16 @@
-// Uses Groq free tier (Llama 3.1) instead of Anthropic Claude
-import Groq from 'groq-sdk'
+// Uses Z.ai (ZhipuAI) — OpenAI-compatible API, free tier
+import OpenAI from 'openai'
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY })
+const client = new OpenAI({
+  apiKey: process.env.ZAI_API_KEY,
+  baseURL: 'https://api.z.ai/api/paas/v4',
+  timeout: 60_000,
+})
 
-export const MODEL = 'llama-3.1-8b-instant'
+export const MODEL = 'glm-4.5-air'  // lighter & faster than glm-4.6
 
-const SYSTEM_PROMPT = `Eres un asistente de interpretación onírica. Analizas sueños desde una perspectiva
-simbólica y reflexiva, sin diagnósticos médicos ni psicológicos. Siempre recuerda que tus
-interpretaciones son especulativas y de exploración personal, no verdades literales.
-Responde SIEMPRE en JSON válido con la estructura indicada, sin texto adicional fuera del JSON.`
+const SYSTEM_PROMPT = `Eres un intérprete onírico. Analizas sueños de forma simbólica y reflexiva,
+nunca como diagnóstico médico o psicológico. Responde ÚNICAMENTE con JSON válido, sin texto extra.`
 
 interface DreamAnalysisResult {
   summary: string
@@ -27,28 +29,32 @@ export async function analyzeDream(title: string | null, body: string): Promise<
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Analiza este sueño y devuelve un JSON con esta estructura exacta:
+        content: `Analiza este sueño. Devuelve SOLO este JSON:
 {
   "summary": "resumen en 2-3 oraciones",
   "themes": ["tema1", "tema2"],
   "symbols": ["símbolo1", "símbolo2"],
-  "emotional_tone": "tono emocional predominante en una frase",
+  "emotional_tone": "tono emocional en una frase",
   "interpretations": [
-    { "text": "interpretación simbólica (interpretación reflexiva, no diagnóstico)", "confidence": 0.8 }
+    { "text": "interpretación reflexiva (no diagnóstico)", "confidence": 0.85 }
   ]
 }
 
-Incluye 2-4 interpretaciones ordenadas de más a menos probable.
-
-Sueño:
-${dreamText}`,
+Sueño: ${dreamText}`,
       },
     ],
-    temperature: 0.7,
-    max_tokens: 1024,
-    response_format: { type: 'json_object' },
+    max_tokens: 600,
   })
 
   const text = completion.choices[0]?.message?.content ?? '{}'
-  return JSON.parse(text) as DreamAnalysisResult
+  const clean = text.replace(/^```json?\s*/m, '').replace(/```\s*$/m, '').trim()
+
+  try {
+    return JSON.parse(clean) as DreamAnalysisResult
+  } catch {
+    // Fallback if model wraps output in extra text
+    const match = clean.match(/\{[\s\S]*\}/)
+    if (match) return JSON.parse(match[0]) as DreamAnalysisResult
+    throw new Error('No se pudo parsear la respuesta de Z.ai')
+  }
 }

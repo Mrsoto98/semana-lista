@@ -7,7 +7,7 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
 })
 
-const FROM = process.env.SMTP_FROM ?? 'noreply@dreamlog.app'
+const FROM = process.env.SMTP_FROM ?? 'noreply@bitacoradelsueño.app'
 const BASE = process.env.FRONTEND_URL ?? 'http://localhost:5173'
 
 export async function sendVerificationEmail(to: string, token: string) {
@@ -15,7 +15,7 @@ export async function sendVerificationEmail(to: string, token: string) {
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: 'Verifica tu cuenta en DreamLog',
+    subject: 'Verifica tu cuenta en Bitácora del Sueño',
     html: `
       <p>Hola,</p>
       <p>Confirma tu dirección de correo haciendo clic en el enlace:</p>
@@ -30,7 +30,7 @@ export async function sendPasswordResetEmail(to: string, token: string) {
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: 'Restablecer contraseña — DreamLog',
+    subject: 'Restablecer contraseña — Bitácora del Sueño',
     html: `
       <p>Solicita este enlace para restablecer tu contraseña:</p>
       <p><a href="${link}">${link}</a></p>
