@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useAuthStore } from '../lib/store'
@@ -35,6 +35,15 @@ export default function Settings() {
   const [uploading, setUploading] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url ?? null)
   const [lightbox, setLightbox]   = useState(false)
+  const [avatarMode, setAvatarMode] = useState<'photo' | 'emoji'>(user?.avatar_emoji ? 'emoji' : 'photo')
+  const [selectedEmoji, setSelectedEmoji] = useState(user?.avatar_emoji ?? '🌙')
+  const [birthDate, setBirthDate] = useState(user?.birth_date ?? '')
+  const [birthText, setBirthText] = useState(() => {
+    if (!user?.birth_date) return ''
+    const [y, m, d] = user.birth_date.split('-')
+    return `${d}/${m}/${y}`
+  })
+  const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'none'>(user?.birth_visibility ?? 'age')
   const [deleteModal, setDeleteModal] = useState(false)
   const [deleteText, setDeleteText]   = useState('')
   const [deleting, setDeleting]       = useState(false)
@@ -61,8 +70,22 @@ export default function Settings() {
     }
   }
 
+  const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
+
   const mutation = useMutation({
-    mutationFn: () => userApi.updateProfile({ name, bio, default_visibility: vis, instagram_username: instagram.replace('@', '').trim() || null }).then(r => r.data),
+    mutationFn: () => {
+      const updates: Record<string, unknown> = {
+        name, bio, default_visibility: vis,
+        instagram_username: instagram.replace('@', '').trim() || null,
+        birth_date: birthDate || null,
+        birth_visibility: birthDate ? birthVisibility : 'none',
+      }
+      if (avatarMode === 'emoji') {
+        updates.avatar_emoji = selectedEmoji
+        updates.avatar_url = null
+      }
+      return userApi.updateProfile(updates).then(r => r.data)
+    },
     onSuccess: (updated) => {
       if (user) setAuth({ ...user, ...updated }, accessToken!, refreshToken!)
       setSaved(true)
@@ -137,7 +160,60 @@ export default function Settings() {
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
         </div>
-        <p className="text-[11px] text-white/30 mt-2">Toca el icono para cambiar foto</p>
+        <p className="text-[11px] text-white/30 mt-2">Foto de perfil</p>
+      </div>
+
+      {/* Avatar mode tabs */}
+      <div className="glass rounded-3xl p-5 mb-4">
+        <label className="text-[11px] text-white/40 uppercase tracking-wider mb-3 block">Avatar</label>
+        <div className="flex rounded-xl bg-white/5 p-1 gap-1 mb-4">
+          {(['photo', 'emoji'] as const).map(mode => (
+            <button key={mode} onClick={() => setAvatarMode(mode)}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                avatarMode === mode ? 'glass-nav-active text-white' : 'text-white/35 hover:text-white/60'
+              }`}>
+              {mode === 'photo' ? '📷 Foto' : '✨ Emoji'}
+            </button>
+          ))}
+        </div>
+        {avatarMode === 'photo' && (
+          <div className="flex flex-col items-center gap-3">
+            {avatarUrl
+              ? <img src={avatarUrl} className="w-20 h-20 rounded-full object-cover ring-2 ring-white/20" alt="" />
+              : <div className="w-20 h-20 rounded-full bg-white/8 border-2 border-dashed border-white/15 flex flex-col items-center justify-center gap-1">
+                  <span className="text-2xl">📷</span>
+                  <span className="text-[10px] text-white/30">Sin foto</span>
+                </div>
+            }
+            <button onClick={() => fileRef.current?.click()} disabled={uploading}
+              className="glass-btn-secondary px-5 py-2.5 rounded-xl text-sm text-white/70 transition-all active:scale-95 disabled:opacity-40">
+              {uploading ? 'Subiendo...' : 'Cambiar foto'}
+            </button>
+          </div>
+        )}
+        {avatarMode === 'emoji' && (
+          <>
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              {DREAM_EMOJIS.map(emoji => (
+                <button key={emoji} onClick={() => setSelectedEmoji(emoji)}
+                  className={`aspect-square rounded-xl text-2xl flex items-center justify-center transition-all ${
+                    selectedEmoji === emoji
+                      ? 'glass-nav-active ring-2 ring-white/30 scale-110'
+                      : 'bg-white/5 hover:bg-white/10 hover:scale-105'
+                  }`}>
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/8">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center text-2xl shrink-0"
+                style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.4), rgba(var(--glass-tint),0.5))' }}>
+                {selectedEmoji}
+              </div>
+              <p className="text-xs text-white/40">Así te verán otros soñadores</p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Account info */}
@@ -202,6 +278,51 @@ export default function Settings() {
               </div>
               {vis === opt.value && (
                 <svg className="ml-auto accent-text" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Birth date */}
+      <div className="glass rounded-3xl p-5 mb-4 flex flex-col gap-3">
+        <label className="text-[11px] text-white/40 uppercase tracking-wider block">Fecha de nacimiento</label>
+        <input
+          type="text"
+          inputMode="numeric"
+          placeholder="DD/MM/AAAA"
+          value={birthText}
+          onChange={e => {
+            let raw = e.target.value.replace(/[^\d]/g, '')
+            if (raw.length > 8) raw = raw.slice(0, 8)
+            let fmt = raw
+            if (raw.length > 4) fmt = raw.slice(0,2) + '/' + raw.slice(2,4) + '/' + raw.slice(4)
+            else if (raw.length > 2) fmt = raw.slice(0,2) + '/' + raw.slice(2)
+            setBirthText(fmt)
+            if (raw.length === 8) {
+              const d = raw.slice(0,2), m = raw.slice(2,4), y = raw.slice(4,8)
+              setBirthDate(`${y}-${m}-${d}`)
+            } else setBirthDate('')
+          }}
+          maxLength={10}
+          className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white"
+        />
+        <div className="flex flex-col gap-2 mt-1">
+          {([
+            { value: 'date', icon: '📅', label: 'Mostrar fecha completa' },
+            { value: 'age',  icon: '🎂', label: 'Mostrar solo edad' },
+            { value: 'none', icon: '🙈', label: 'No mostrar' },
+          ] as const).map(opt => (
+            <button key={opt.value} onClick={() => setBirthVisibility(opt.value)}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all ${
+                birthVisibility === opt.value ? 'glass-nav-active' : 'bg-white/4 hover:bg-white/7'
+              }`}>
+              <span>{opt.icon}</span>
+              <span className={`text-sm ${birthVisibility === opt.value ? 'text-white font-medium' : 'text-white/50'}`}>{opt.label}</span>
+              {birthVisibility === opt.value && (
+                <svg className="ml-auto accent-text" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               )}

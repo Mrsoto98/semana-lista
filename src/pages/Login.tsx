@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '../lib/queries'
 import { signInWithGoogle } from '../lib/supabase'
@@ -6,6 +6,16 @@ import { useAuthStore } from '../lib/store'
 import { applyTheme, DEFAULT_THEME } from '../lib/themes'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { IOSInstallPrompt } from '../components/ui/IOSInstallPrompt'
+import { AndroidInstallPrompt } from '../components/ui/AndroidInstallPrompt'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
+function isAndroid() { return /android/i.test(navigator.userAgent) }
+function isStandalone() { return window.matchMedia('(display-mode: standalone)').matches }
 
 export default function Login() {
   const navigate = useNavigate()
@@ -15,10 +25,37 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [showAndroidBtn, setShowAndroidBtn] = useState(false)
+  const [showManual, setShowManual] = useState(false)
+  const [installing, setInstalling] = useState(false)
+  const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
     applyTheme(themeId ?? DEFAULT_THEME)
   }, [themeId])
+
+  useEffect(() => {
+    if (!isAndroid() || isStandalone()) return
+    setShowAndroidBtn(true)
+    const handler = (e: Event) => {
+      e.preventDefault()
+      deferredPrompt.current = e as BeforeInstallPromptEvent
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  async function handleAndroidInstall() {
+    if (deferredPrompt.current) {
+      setInstalling(true)
+      await deferredPrompt.current.prompt()
+      const { outcome } = await deferredPrompt.current.userChoice
+      setInstalling(false)
+      if (outcome === 'accepted') setShowAndroidBtn(false)
+    } else {
+      setShowManual(true)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,6 +75,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <IOSInstallPrompt />
+      <AndroidInstallPrompt />
       {/* Background orbs */}
       <div
         className="orb w-[500px] h-[500px] top-[-150px] left-[-150px] opacity-30"
@@ -113,6 +152,45 @@ export default function Login() {
             </svg>
             {googleLoading ? 'Redirigiendo...' : 'Google'}
           </button>
+
+          {showAndroidBtn && (
+            <>
+              <div className="flex items-center gap-3 my-3">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-white/25 text-xs">o</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+              <button
+                type="button"
+                disabled={installing}
+                onClick={handleAndroidInstall}
+                className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition-colors text-white/80 text-sm font-medium disabled:opacity-50"
+              >
+                {installing ? (
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2v13M5 9l7 7 7-7"/><rect x="3" y="18" width="18" height="3" rx="1"/>
+                  </svg>
+                )}
+                {installing ? 'Instalando…' : 'Instalar app en Android'}
+              </button>
+
+              {showManual && (
+                <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs text-white/60 font-semibold mb-2">Cómo instalar en Chrome:</p>
+                  <ol className="text-xs text-white/50 space-y-1.5 list-none">
+                    <li>1. Toca el menú <span className="font-bold text-white/70">⋮</span> (tres puntos) arriba a la derecha</li>
+                    <li>2. Selecciona <span className="font-bold text-white/70">"Añadir a pantalla de inicio"</span></li>
+                    <li>3. Toca <span className="font-bold text-white/70">"Añadir"</span> para confirmar</li>
+                  </ol>
+                  <button onClick={() => setShowManual(false)} className="mt-3 text-xs text-white/30 hover:text-white/50">Cerrar</button>
+                </div>
+              )}
+            </>
+          )}
 
           <p className="text-center text-xs text-white/25 mt-5">
             ¿No tienes cuenta?{' '}
