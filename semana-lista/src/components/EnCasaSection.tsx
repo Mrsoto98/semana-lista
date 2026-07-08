@@ -31,9 +31,50 @@ const CAT_EMOJI: Record<string, string> = {
   'Salsas y especias': '🧂', 'Zumos': '🍊',
 }
 
+interface ItemConfirmado {
+  textoTicket: string
+  nombreEs: string
+  nombreCa: string | null
+  precio: number | null
+  nombreMercadona: string   // resultado de matchCatalogo
+  fuente: 'db' | 'ia'
+}
+
 interface ResultadoScan {
-  confirmados: string[]   // nombres ya matcheados al catálogo
-  dudosos: { texto: string; seleccionados: string[] }[]  // texto del ticket + lo que el usuario elige
+  confirmados: ItemConfirmado[]
+  dudosos: { texto: string; seleccionados: string[] }[]
+}
+
+// Comprime la imagen a max 1200px y calidad 0.82 antes de enviar
+async function comprimirImagen(file: File): Promise<{ base64: string; tipo: string }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const MAX = 1200
+      let { width, height } = img
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+        else { width = Math.round(width * MAX / height); height = MAX }
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error('canvas blob failed')); return }
+        const reader = new FileReader()
+        reader.onload = () => resolve({
+          base64: (reader.result as string).split(',')[1],
+          tipo: 'image/jpeg',
+        })
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      }, 'image/jpeg', 0.82)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img load failed')) }
+    img.src = url
+  })
 }
 
 export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarrito, onAddItems }: Props) {
@@ -55,11 +96,11 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
   const catalogoExpandido = useMemo(() => catalogo ? expandirCatalogo(catalogo) : catalogo, [catalogo])
 
   const infoMap = useMemo(() => {
-    const map = new Map<string, { foto?: string | null; categoria: string }>()
+    const map = new Map<string, { foto?: string | null; categoria: string; precio?: number; unidad?: string }>()
     if (!catalogoExpandido) return map
     for (const [cat, prods] of Object.entries(catalogoExpandido)) {
       for (const p of prods) {
-        if (!map.has(p.nombre)) map.set(p.nombre, { foto: p.foto, categoria: cat })
+        if (!map.has(p.nombre)) map.set(p.nombre, { foto: p.foto, categoria: cat, precio: p.precio, unidad: p.unidad })
       }
     }
     return map
@@ -88,25 +129,20 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     })
   }, [enCasa, infoMap])
 
-  // Match por nombre + precio opcional como desempate
-  function matchCatalogo(nombre: string, precio?: number): string {
-    const q = nombre.toLowerCase().trim()
-
-    // 1. Coincidencia exacta de nombre
+  // Match por nombre + precio como desempate
+  function matchCatalogo(nombreEs: string, precio?: number | null): string {
+    const q = nombreEs.toLowerCase().trim()
     const exacto = catalogoNombres.find(n => n.toLowerCase() === q)
     if (exacto) return exacto
 
-    // 2. Candidatos que contienen el término
     const candidatos = catalogoNombres.filter(n => n.toLowerCase().includes(q))
     if (candidatos.length === 1) return candidatos[0]
     if (candidatos.length > 1 && precio) {
-      // Usar precio para desempatar: elegir el que tenga precio más cercano
-      const catalogoExpandidoLocal = catalogoExpandido
-      if (catalogoExpandidoLocal) {
+      if (catalogoExpandido) {
         let mejorNombre = candidatos[0]
         let mejorDiff = Infinity
         for (const n of candidatos) {
-          for (const prods of Object.values(catalogoExpandidoLocal)) {
+          for (const prods of Object.values(catalogoExpandido)) {
             const p = prods.find(p => p.nombre === n)
             if (p?.precio) {
               const diff = Math.abs(p.precio - precio)
@@ -120,7 +156,6 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     }
     if (candidatos.length > 1) return candidatos[0]
 
-    // 3. Palabras clave con precio como desempate
     const palabras = q.split(/\s+/).filter(p => p.length > 3)
     let mejorMatch = ''
     let mejorScore = 0
@@ -128,19 +163,14 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     for (const n of catalogoNombres) {
       const nl = n.toLowerCase()
       const score = palabras.filter(p => nl.includes(p)).length
-      if (score > mejorScore || (score === mejorScore && precio)) {
-        if (score > mejorScore) {
-          mejorScore = score; mejorMatch = n; mejorPrecioDiff = Infinity
-        }
-        if (precio && catalogoExpandido) {
-          for (const prods of Object.values(catalogoExpandido)) {
-            const prod = prods.find(p => p.nombre === n)
-            if (prod?.precio) {
-              const diff = Math.abs(prod.precio - precio)
-              if (score === mejorScore && diff < mejorPrecioDiff) {
-                mejorPrecioDiff = diff; mejorMatch = n
-              }
-            }
+      if (score > mejorScore) {
+        mejorScore = score; mejorMatch = n; mejorPrecioDiff = Infinity
+      } else if (score === mejorScore && score > 0 && precio && catalogoExpandido) {
+        for (const prods of Object.values(catalogoExpandido)) {
+          const prod = prods.find(p => p.nombre === n)
+          if (prod?.precio) {
+            const diff = Math.abs(prod.precio - precio)
+            if (diff < mejorPrecioDiff) { mejorPrecioDiff = diff; mejorMatch = n }
           }
         }
       }
@@ -158,29 +188,38 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     setResultado(null)
 
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve((reader.result as string).split(',')[1])
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
+      const { base64, tipo } = await comprimirImagen(file)
 
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       if (!token) throw new Error('Sin sesión')
 
       const res = await supabase.functions.invoke('escanear-ticket', {
-        body: { imagen: base64, tipo: file.type || 'image/jpeg' },
+        body: { imagen: base64, tipo },
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.error) throw res.error
+      if (res.error) {
+        console.error('Scan edge function error:', res.error)
+        throw res.error
+      }
 
-      const confirmadosRaw: { nombre: string; precio?: number }[] = res.data?.confirmados ?? []
+      const confirmadosRaw: Array<{
+        textoTicket: string
+        nombreEs: string
+        nombreCa: string | null
+        precio: number | null
+        fuente: 'db' | 'ia'
+      }> = res.data?.confirmados ?? []
       const dudososRaw: string[] = res.data?.dudosos ?? []
 
-      // Match confirmados al catálogo usando nombre + precio
-      const confirmados = [...new Set(confirmadosRaw.map(p => matchCatalogo(p.nombre, p.precio)))].filter(n => !enCasa.has(n))
-      // Dudosos: el usuario tiene que elegir
+      // Hacer match al catálogo Mercadona para cada confirmado
+      const confirmados: ItemConfirmado[] = confirmadosRaw
+        .map(p => ({
+          ...p,
+          nombreMercadona: matchCatalogo(p.nombreEs, p.precio),
+        }))
+        .filter(p => !enCasa.has(p.nombreMercadona))
+
       const dudosos = dudososRaw.map(texto => ({ texto, seleccionados: [] as string[] }))
 
       if (confirmados.length === 0 && dudosos.length === 0) {
@@ -194,15 +233,39 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
       setScanError(t.encasa_scan_error)
     } finally {
       setEscaneando(false)
-      if (scanError) setTimeout(() => setScanError(null), 4000)
     }
   }
 
-  function confirmarResultado() {
+  async function confirmarResultado() {
     if (!resultado) return
     const dudososElegidos = resultado.dudosos.flatMap(d => d.seleccionados)
-    const todos = [...resultado.confirmados, ...dudososElegidos].filter(n => !enCasa.has(n))
+    const todos = [...resultado.confirmados.map(c => c.nombreMercadona), ...dudososElegidos].filter(n => !enCasa.has(n))
     if (todos.length > 0) onAddItems?.(todos)
+
+    // Guardar aprendizaje en BD (fire & forget)
+    if (resultado.confirmados.length > 0) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (token) {
+          const productosParaGuardar = resultado.confirmados.map(c => ({
+            textoTicket: c.textoTicket,
+            nombreEs: c.nombreEs,
+            nombreCa: c.nombreCa,
+            nombreMercadona: c.nombreMercadona,
+            precio: c.precio,
+            unidad: infoMap.get(c.nombreMercadona)?.unidad ?? null,
+          }))
+          supabase.functions.invoke('escanear-ticket', {
+            body: { action: 'guardar', productos: productosParaGuardar },
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(e => console.warn('guardar aprendizaje error:', e))
+        }
+      } catch (e) {
+        console.warn('confirmar guardar error:', e)
+      }
+    }
+
     setResultado(null)
   }
 
@@ -255,19 +318,25 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
             {/* Confirmados */}
             {resultado.confirmados.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold text-green-600 dark:text-green-400 mb-1.5">✓ Reconocidos ({resultado.confirmados.length})</p>
+                <p className="text-[10px] font-semibold text-green-600 dark:text-green-400 mb-1.5">
+                  ✓ Reconocidos ({resultado.confirmados.length})
+                </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {resultado.confirmados.map((nombre, i) => (
+                  {resultado.confirmados.map((item, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => setResultado(r => r ? {
                         ...r,
-                        confirmados: r.confirmados.filter((_, j) => j !== i)
+                        confirmados: r.confirmados.filter((_, j) => j !== i),
                       } : r)}
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700"
+                      title={`Texto en ticket: ${item.textoTicket}${item.fuente === 'db' ? ' · aprendido' : ''}`}
                     >
-                      {nombre} <span className="text-green-400 hover:text-red-400">✕</span>
+                      {item.fuente === 'db' && <span className="text-[9px] opacity-60">🧠</span>}
+                      {item.nombreMercadona}
+                      {item.precio != null && <span className="text-[10px] opacity-60 ml-0.5">{item.precio.toFixed(2)}€</span>}
+                      <span className="text-green-400 hover:text-red-400 ml-0.5">✕</span>
                     </button>
                   ))}
                 </div>
