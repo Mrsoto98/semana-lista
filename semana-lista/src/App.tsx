@@ -669,8 +669,8 @@ function AppRoutes() {
 
     if (CapApp) {
       // Caso 1: app en background, Android llama onNewIntent → appUrlOpen
-      CapApp.addListener('appUrlOpen', ({ url }: { url: string }) => handleOAuthUrl(url))
-        .then((h: any) => { removeListener = () => h.remove() })
+      const handle = CapApp.addListener('appUrlOpen', ({ url }: { url: string }) => handleOAuthUrl(url))
+      removeListener = () => handle?.remove?.()
 
       // Caso 2: app fue matada y relanzada via deep link → getLaunchUrl
       CapApp.getLaunchUrl()
