@@ -10,7 +10,6 @@ import { setInstallPrompt, getInstallPrompt, clearInstallPrompt } from './lib/in
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { OfflineBanner } from './components/OfflineBanner'
 import { Tutorial } from './components/Tutorial'
-import { esNativo } from './lib/ads'
 
 
 
