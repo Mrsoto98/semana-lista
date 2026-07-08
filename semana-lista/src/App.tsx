@@ -13,53 +13,6 @@ import { Tutorial } from './components/Tutorial'
 import { supabase } from './lib/supabase'
 import { esNativo } from './lib/ads'
 
-// En Android, interceptar deep links de autenticación (com.semanalista.app://auth/callback?...)
-if (esNativo()) {
-  // @ts-ignore — @capacitor/app solo está disponible en el build Android
-  import('@capacitor/app').then(({ App }: { App: any }) => {
-    App.addListener('appUrlOpen', async ({ url }: { url: string }) => {
-      if (!url.includes('auth/callback')) return
-
-      // Cerrar el navegador externo inmediatamente
-      // @ts-ignore
-      import('@capacitor/browser').then(({ Browser }: { Browser: any }) => Browser.close()).catch(() => {})
-
-      const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
-      const code = parsed.searchParams.get('code')
-      const hashParams = new URLSearchParams(parsed.hash.slice(1))
-      const access_token = parsed.searchParams.get('access_token') ?? hashParams.get('access_token')
-      const refresh_token = parsed.searchParams.get('refresh_token') ?? hashParams.get('refresh_token')
-
-      try {
-        let userId: string | null = null
-
-        if (code) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-          if (error) throw error
-          userId = data.user?.id ?? null
-        } else if (access_token && refresh_token) {
-          const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
-          if (error) throw error
-          userId = data.user?.id ?? null
-        }
-
-        if (!userId) throw new Error('No se obtuvo usuario tras OAuth')
-
-        const { data: perfil } = await supabase
-          .from('perfiles')
-          .select('id')
-          .eq('usuario_id', userId)
-          .maybeSingle()
-
-        window.location.href = perfil ? '/menu' : '/onboarding'
-      } catch (err) {
-        console.error('OAuth callback error:', err)
-        // Redirigir al login con indicador de error para que el usuario lo vea
-        window.location.href = '/login?oauth_error=1'
-      }
-    })
-  }).catch(() => {})
-}
 
 
 const Landing    = lazy(() => import('./pages/Landing'))
@@ -675,6 +628,46 @@ function AppRoutes() {
   const location = useLocation()
   const swipeStart = useRef<{ x: number; y: number } | null>(null)
   const { listas } = useListasCompartidas()
+
+  // Listener OAuth deep link — dentro de React para garantizar que está listo antes del evento
+  useEffect(() => {
+    if (!esNativo()) return
+    let removeListener: (() => void) | undefined
+    // @ts-ignore
+    import('@capacitor/app').then(({ App }: { App: any }) => {
+      App.addListener('appUrlOpen', async ({ url }: { url: string }) => {
+        if (!url.includes('auth/callback')) return
+        // @ts-ignore
+        import('@capacitor/browser').then(({ Browser }: { Browser: any }) => Browser.close()).catch(() => {})
+        try {
+          const parsed = new URL(url.replace('com.semanalista.app://', 'https://localhost/'))
+          const hash = new URLSearchParams(parsed.hash.slice(1))
+          const access_token = hash.get('access_token') ?? parsed.searchParams.get('access_token')
+          const refresh_token = hash.get('refresh_token') ?? parsed.searchParams.get('refresh_token')
+          const code = parsed.searchParams.get('code')
+
+          let userId: string | null = null
+          if (access_token && refresh_token) {
+            const { data, error } = await supabase.auth.setSession({ access_token, refresh_token })
+            if (error) throw error
+            userId = data.user?.id ?? null
+          } else if (code) {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+            if (error) throw error
+            userId = data.user?.id ?? null
+          }
+
+          if (!userId) throw new Error('Sin usuario tras OAuth')
+          const { data: perfil } = await supabase.from('perfiles').select('id').eq('usuario_id', userId).maybeSingle()
+          window.location.href = perfil ? '/menu' : '/onboarding'
+        } catch (err) {
+          console.error('OAuth callback error:', err)
+          window.location.href = '/login?oauth_error=1'
+        }
+      }).then((h: any) => { removeListener = () => h.remove() })
+    }).catch(() => {})
+    return () => { removeListener?.() }
+  }, [])
 
   const NAV_PATHS = ['/ajustes', '/exportar', '/menu', '/lista', '/lista-compartida']
 
