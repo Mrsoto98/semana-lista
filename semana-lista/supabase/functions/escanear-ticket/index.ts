@@ -86,15 +86,19 @@ Deno.serve(async (req) => {
           },
           {
             type: 'text',
-            text: `Eres un asistente que lee tickets de compra de supermercado.
-Analiza la imagen y extrae los productos comprados.
+            text: `Eres un asistente experto en tickets de compra de supermercado español.
+El ticket puede estar en español o en catalán (Mercadona en Cataluña imprime en catalán).
+Analiza la imagen con cuidado: lee el nombre del producto Y el precio que aparece junto a él.
 
-Para cada producto:
-- Si lo puedes identificar claramente, ponlo en "confirmados" con su nombre genérico en español (sin marca). Ejemplo: "HACENDADO LECHE ENTERA 1L" → "leche entera"
-- Si el texto es ilegible, ambiguo o no estás seguro de qué producto es, ponlo en "dudosos" con el texto exacto del ticket tal como aparece.
+Para cada línea de producto del ticket:
+- Traduce al español si está en catalán. Ejemplos: "llet sencera" → "leche entera", "ous" → "huevos", "pa de motlle" → "pan de molde", "pollastre" → "pollo", "vedella" → "ternera"
+- Elimina la marca (Hacendado, Deliplus, etc.) y quédate con el tipo de producto genérico en español
+- Extrae también el precio si es legible (número con decimales, p.ej. 1.25)
+- Si lo identificas claramente → ponlo en "confirmados" como objeto {nombre, precio}
+- Si el texto es ilegible o muy ambiguo → ponlo en "dudosos" con el texto exacto del ticket
 
 Devuelve ÚNICAMENTE este JSON sin ningún texto adicional:
-{"confirmados":["leche entera","huevos","pan de molde"],"dudosos":["HCND CR VRD 500","????"]}`,
+{"confirmados":[{"nombre":"leche entera","precio":0.89},{"nombre":"huevos","precio":2.15}],"dudosos":["HCND CR VRD 500","????"]}`,
           },
         ],
       }],
@@ -110,13 +114,17 @@ Devuelve ÚNICAMENTE este JSON sin ningún texto adicional:
   const claudeData = await anthropicRes.json()
   const texto = claudeData.content?.[0]?.text ?? ''
 
-  let confirmados: string[] = []
+  let confirmados: { nombre: string; precio?: number }[] = []
   let dudosos: string[] = []
   try {
     const match = texto.match(/\{[\s\S]*\}/)
     if (match) {
       const parsed = JSON.parse(match[0])
-      confirmados = Array.isArray(parsed.confirmados) ? parsed.confirmados : []
+      const raw = Array.isArray(parsed.confirmados) ? parsed.confirmados : []
+      // Acepta tanto objetos {nombre, precio} como strings planos
+      confirmados = raw.map((item: unknown) =>
+        typeof item === 'string' ? { nombre: item } : item as { nombre: string; precio?: number }
+      )
       dudosos = Array.isArray(parsed.dudosos) ? parsed.dudosos : []
     }
   } catch {

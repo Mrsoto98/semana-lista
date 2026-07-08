@@ -88,19 +88,62 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
     })
   }, [enCasa, infoMap])
 
-  function matchCatalogo(nombre: string): string {
+  // Match por nombre + precio opcional como desempate
+  function matchCatalogo(nombre: string, precio?: number): string {
     const q = nombre.toLowerCase().trim()
+
+    // 1. Coincidencia exacta de nombre
     const exacto = catalogoNombres.find(n => n.toLowerCase() === q)
     if (exacto) return exacto
-    const contiene = catalogoNombres.find(n => n.toLowerCase().includes(q))
-    if (contiene) return contiene
+
+    // 2. Candidatos que contienen el término
+    const candidatos = catalogoNombres.filter(n => n.toLowerCase().includes(q))
+    if (candidatos.length === 1) return candidatos[0]
+    if (candidatos.length > 1 && precio) {
+      // Usar precio para desempatar: elegir el que tenga precio más cercano
+      const catalogoExpandidoLocal = catalogoExpandido
+      if (catalogoExpandidoLocal) {
+        let mejorNombre = candidatos[0]
+        let mejorDiff = Infinity
+        for (const n of candidatos) {
+          for (const prods of Object.values(catalogoExpandidoLocal)) {
+            const p = prods.find(p => p.nombre === n)
+            if (p?.precio) {
+              const diff = Math.abs(p.precio - precio)
+              if (diff < mejorDiff) { mejorDiff = diff; mejorNombre = n }
+            }
+          }
+        }
+        return mejorNombre
+      }
+      return candidatos[0]
+    }
+    if (candidatos.length > 1) return candidatos[0]
+
+    // 3. Palabras clave con precio como desempate
     const palabras = q.split(/\s+/).filter(p => p.length > 3)
     let mejorMatch = ''
     let mejorScore = 0
+    let mejorPrecioDiff = Infinity
     for (const n of catalogoNombres) {
       const nl = n.toLowerCase()
       const score = palabras.filter(p => nl.includes(p)).length
-      if (score > mejorScore) { mejorScore = score; mejorMatch = n }
+      if (score > mejorScore || (score === mejorScore && precio)) {
+        if (score > mejorScore) {
+          mejorScore = score; mejorMatch = n; mejorPrecioDiff = Infinity
+        }
+        if (precio && catalogoExpandido) {
+          for (const prods of Object.values(catalogoExpandido)) {
+            const prod = prods.find(p => p.nombre === n)
+            if (prod?.precio) {
+              const diff = Math.abs(prod.precio - precio)
+              if (score === mejorScore && diff < mejorPrecioDiff) {
+                mejorPrecioDiff = diff; mejorMatch = n
+              }
+            }
+          }
+        }
+      }
     }
     if (mejorScore > 0) return mejorMatch
     return q
@@ -132,11 +175,11 @@ export function EnCasaSection({ enCasa, catalogo, onRemove, onAddToCart, enCarri
       })
       if (res.error) throw res.error
 
-      const confirmadosRaw: string[] = res.data?.confirmados ?? []
+      const confirmadosRaw: { nombre: string; precio?: number }[] = res.data?.confirmados ?? []
       const dudososRaw: string[] = res.data?.dudosos ?? []
 
-      // Match confirmados al catálogo
-      const confirmados = [...new Set(confirmadosRaw.map(p => matchCatalogo(p)))].filter(n => !enCasa.has(n))
+      // Match confirmados al catálogo usando nombre + precio
+      const confirmados = [...new Set(confirmadosRaw.map(p => matchCatalogo(p.nombre, p.precio)))].filter(n => !enCasa.has(n))
       // Dudosos: el usuario tiene que elegir
       const dudosos = dudososRaw.map(texto => ({ texto, seleccionados: [] as string[] }))
 
