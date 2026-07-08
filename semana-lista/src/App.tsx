@@ -662,18 +662,21 @@ function AppRoutes() {
       }
     }
 
+    // Accedemos al plugin via el global window.Capacitor.Plugins para evitar
+    // el problema de resolución de módulos con @capacitor/core externalizado
+    const CapApp = (window as any).Capacitor?.Plugins?.App
     let removeListener: (() => void) | undefined
-    // @ts-ignore
-    import('@capacitor/app').then(({ App }: { App: any }) => {
-      // Caso 1: app ya estaba en memoria, Android llama onNewIntent
-      App.addListener('appUrlOpen', ({ url }: { url: string }) => handleOAuthUrl(url))
+
+    if (CapApp) {
+      // Caso 1: app en background, Android llama onNewIntent → appUrlOpen
+      CapApp.addListener('appUrlOpen', ({ url }: { url: string }) => handleOAuthUrl(url))
         .then((h: any) => { removeListener = () => h.remove() })
 
-      // Caso 2: Android mató la app y la relanzó via deep link (onCreate)
-      App.getLaunchUrl()
+      // Caso 2: app fue matada y relanzada via deep link → getLaunchUrl
+      CapApp.getLaunchUrl()
         .then(({ url }: { url: string }) => { if (url) handleOAuthUrl(url) })
         .catch(() => {})
-    }).catch(() => {})
+    }
 
     return () => { removeListener?.() }
   }, [])
