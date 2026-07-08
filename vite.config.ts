@@ -17,7 +17,10 @@ function buildVersionPlugin() {
 export default defineConfig({
   build: {
     rollupOptions: {
-      external: ['@capacitor/core', '@capacitor-community/admob', '@capacitor/android'],
+      external: ['@capacitor/core', '@capacitor-community/admob', '@capacitor/android', '@capacitor/app', '@capacitor/browser'],
+    },
+    rolldownOptions: {
+      external: ['@capacitor/core', '@capacitor-community/admob', '@capacitor/android', '@capacitor/app', '@capacitor/browser'],
     },
   },
   plugins: [
