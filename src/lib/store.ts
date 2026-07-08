@@ -1,14 +1,17 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { User } from '../types'
+import { applyTheme, DEFAULT_THEME } from './themes'
 
 interface AuthState {
   user: User | null
   accessToken: string | null
   refreshToken: string | null
+  themeId: string
   setAuth: (user: User, accessToken: string, refreshToken: string) => void
   logout: () => void
   refresh: () => Promise<string>
+  setTheme: (id: string) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -17,6 +20,12 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       refreshToken: null,
+      themeId: DEFAULT_THEME,
+
+      setTheme: (id) => {
+        set({ themeId: id })
+        applyTheme(id)
+      },
 
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken }),
@@ -49,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
         user: s.user,
         accessToken: s.accessToken,
         refreshToken: s.refreshToken,
+        themeId: s.themeId,
       }),
     }
   )
