@@ -11,7 +11,7 @@ const ALLOWED_ORIGINS = new Set([
 
 function corsHeaders(req: Request) {
   const origin = req.headers.get('origin') ?? ''
-  const isAllowed = ALLOWED_ORIGINS.has(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://192.168.')
+  const isAllowed = ALLOWED_ORIGINS.has(origin) || origin.startsWith('http://localhost') || origin.startsWith('https://localhost') || origin.startsWith('http://192.168.') || origin.startsWith('capacitor://') || origin === ''
   const allowed = isAllowed ? origin : ALLOWED_ORIGIN
   return {
     'Access-Control-Allow-Origin': allowed,

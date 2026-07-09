@@ -20,19 +20,11 @@ export function esNativo(): boolean {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let admobMod: any = null
-
-async function getAdMob() {
+// Accedemos al plugin via el global de Capacitor para evitar el problema
+// de resolución de módulos con @capacitor/core (que está externalizado)
+function getAdMob() {
   if (!esNativo()) return null
-  if (admobMod) return admobMod
-  try {
-    // @ts-ignore — solo disponible en build Android
-    admobMod = await import('@capacitor-community/admob')
-    return admobMod
-  } catch {
-    return null
-  }
+  return (window as any).Capacitor?.Plugins?.AdMob ?? null
 }
 
 export function mostrarAnuncioRewardedWeb(): Promise<'recompensa' | 'cancelado' | 'error'> {
@@ -64,33 +56,29 @@ export function mostrarAnuncioRewardedWeb(): Promise<'recompensa' | 'cancelado' 
 }
 
 export async function inicializarAdMob() {
-  const mod = await getAdMob()
-  if (!mod) return
-  await mod.AdMob.initialize({ testingDevices: [], initializeForTesting: false })
+  const AdMob = getAdMob()
+  if (!AdMob) return
+  await AdMob.initialize({ testingDevices: [], initializeForTesting: false })
 }
 
 export async function mostrarAnuncioRewarded(): Promise<'recompensa' | 'cancelado' | 'error'> {
-  const mod = await getAdMob()
-  if (!mod) return 'error'
-  const { AdMob, RewardAdPluginEvents } = mod
+  const AdMob = getAdMob()
+  if (!AdMob) return 'error'
 
   try {
     await AdMob.prepareRewardVideoAd({ adId: ADMOB_REWARDED_ID_ANDROID })
 
     return new Promise((resolve) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handles: any[] = []
+      function limpiar() { handles.forEach((h: any) => h?.remove?.()) }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      function limpiar() { handles.forEach((h: any) => h.then((r: any) => r.remove())) }
-
-      handles.push(AdMob.addListener(RewardAdPluginEvents.Rewarded, () => {
+      handles.push(AdMob.addListener('onRewardedVideoAdReward', () => {
         limpiar(); resolve('recompensa')
       }))
-      handles.push(AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+      handles.push(AdMob.addListener('onRewardedVideoAdDismissed', () => {
         limpiar(); resolve('cancelado')
       }))
-      handles.push(AdMob.addListener(RewardAdPluginEvents.FailedToLoad, () => {
+      handles.push(AdMob.addListener('onRewardedVideoAdFailedToLoad', () => {
         limpiar(); resolve('error')
       }))
 
