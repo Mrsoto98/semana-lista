@@ -186,7 +186,7 @@ export default function Onboarding() {
                 } else setBirthDate('')
               }}
               maxLength={10}
-              className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white"
+              className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/40"
             />
 
             {/* Visibility preference — always shown so user can decide even si no pone fecha */}
