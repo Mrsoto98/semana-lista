@@ -23,6 +23,12 @@ export function AppLayout() {
     }
   }, [])
 
+  useEffect(() => {
+    const handler = () => setTutorialOpen(true)
+    window.addEventListener('open-tutorial', handler)
+    return () => window.removeEventListener('open-tutorial', handler)
+  }, [])
+
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
   const touchStartTime = useRef(0)

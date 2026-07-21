@@ -4,41 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { dreamsApi, friendsApi } from '../lib/queries'
 import { useAuthStore } from '../lib/store'
-import { DreamCard } from '../components/dreams/DreamCard'
 import { DreamForm } from '../components/dreams/DreamForm'
 import { Modal } from '../components/ui/Modal'
 import { AnuncioRewarded } from '../components/AnuncioRewarded'
-import { CommentSection } from '../components/dreams/CommentSection'
 import { ShareModal } from '../components/dreams/ShareModal'
-import { likesApi } from '../lib/queries'
+import { DreamNotebook } from '../components/dreams/DreamNotebook'
 import type { Dream, Visibility } from '../types'
 
 const VIS_CYCLE: Visibility[] = ['private', 'friends', 'public']
-const VIS_META: Record<Visibility, { icon: string; label: string; color: string }> = {
-  private: { icon: '🔒', label: 'Privado',   color: 'text-white/35' },
-  friends: { icon: '👥', label: 'Amigos',    color: 'text-blue-400/70' },
-  public:  { icon: '🌐', label: 'Público',   color: 'text-emerald-400/70' },
-}
-
-// ── Lucid badge ───────────────────────────────────────────────
-function LucidBadge({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 font-bold rounded-full select-none ${
-        size === 'lg' ? 'text-xs px-3 py-1' : 'text-[10px] px-2 py-0.5'
-      }`}
-      style={{
-        background: 'linear-gradient(135deg, rgba(var(--glow-color),0.28) 0%, rgba(var(--glass-tint),0.18) 100%)',
-        border: '1px solid rgba(var(--glow-color),0.45)',
-        color: `rgb(var(--glow-color))`,
-        boxShadow: '0 0 12px rgba(var(--glow-color),0.35), inset 0 1px 0 rgba(255,255,255,0.12)',
-        textShadow: '0 0 8px rgba(var(--glow-color),0.6)',
-      }}
-    >
-      ✦ Lúcido
-    </span>
-  )
-}
 
 // ── Streak badge ──────────────────────────────────────────────
 function StreakBadge({ streak }: { streak: number }) {
@@ -69,14 +42,9 @@ export default function Diary() {
   const [editing, setEditing] = useState<Dream | null>(null)
   const [analyzing, setAnalyzing] = useState<string | null>(null)
   const [adDreamId, setAdDreamId] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [lightbox, setLightbox] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [shareTarget, setShareTarget] = useState<Dream | null>(null)
-
-  function toggleExpand(id: string) {
-    setExpanded(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }
 
   const { data: dreams = [], isLoading } = useQuery({
     queryKey: ['dreams'],
@@ -234,10 +202,10 @@ export default function Diary() {
         Registrar sueño
       </button>
 
-      {/* ── Dreams list ── */}
+      {/* ── Dreams notebook ── */}
       {isLoading ? (
-        <div className="flex flex-col gap-3">
-          {[1,2,3].map(i => <div key={i} className="glass-card rounded-2xl h-32 shimmer" />)}
+        <div className="flex flex-col gap-2">
+          {[1,2,3].map(i => <div key={i} className="glass-card rounded-2xl h-20 shimmer" />)}
         </div>
       ) : dreams.length === 0 ? (
         <div className="text-center py-14 animate-scale-in">
@@ -246,113 +214,15 @@ export default function Diary() {
           <p className="text-white/25 text-sm mt-1">Los sueños se olvidan en minutos — anótalos ahora.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {dreams.map((dream, i) => {
-            const vis = VIS_META[dream.visibility]
-            const isExpanded = expanded.has(dream.id)
-            return (
-              <div key={dream.id} style={{ animationDelay: `${i * 35}ms` }} className="animate-fade-in">
-                <div className="glass-card rounded-2xl p-4">
-
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex-1 min-w-0">
-                      {dream.title && (
-                        <h3 className="font-semibold text-white text-sm leading-snug">{dream.title}</h3>
-                      )}
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-[11px] text-white/30">
-                          {new Date(dream.dream_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                        </span>
-                        {dream.is_lucid && <LucidBadge />}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => cycleVisibility(dream)}
-                        title={`Visibilidad: ${vis.label}`}
-                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all active:scale-95 ${vis.color} bg-white/5 hover:bg-white/10`}>
-                        <span>{vis.icon}</span><span>{vis.label}</span>
-                      </button>
-                      <button
-                        onClick={() => dream.summary ? analyzeMutation.mutate(dream.id) : setAdDreamId(dream.id)}
-                        disabled={analyzing === dream.id}
-                        className="w-7 h-7 rounded-lg glass-btn-secondary flex items-center justify-center text-[11px] transition-all active:scale-95 disabled:opacity-40"
-                        title={dream.summary ? 'Re-analizar con IA' : 'Analizar con IA'}>
-                        {analyzing === dream.id
-                          ? <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
-                          : '✦'}
-                      </button>
-                      <button onClick={() => setShareTarget(dream)}
-                        className="w-7 h-7 rounded-lg glass-btn-secondary flex items-center justify-center transition-all active:scale-95"
-                        title="Compartir sueño">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                        </svg>
-                      </button>
-                      <button onClick={() => { setEditing(dream); setFormOpen(true) }}
-                        className="w-7 h-7 rounded-lg glass-btn-secondary flex items-center justify-center text-[11px] transition-all active:scale-95">✎</button>
-                      <button onClick={() => { if (confirm('¿Borrar este sueño?')) deleteMutation.mutate(dream.id) }}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-all active:scale-95">✕</button>
-                    </div>
-                  </div>
-
-                  <p className="text-white/55 text-sm leading-relaxed line-clamp-3">{dream.body}</p>
-
-                  {/* Counters + expand */}
-                  <div className="flex items-center gap-4 mt-3 pt-2.5 border-t border-white/6">
-                    <span className="flex items-center gap-1.5 text-xs text-white/30">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                      </svg>
-                      {dream.like_count ?? 0}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-white/30">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                      </svg>
-                      {dream.comment_count ?? 0}
-                    </span>
-                    <button onClick={() => toggleExpand(dream.id)}
-                      className={`ml-auto flex items-center gap-1.5 text-xs font-medium transition-all px-2.5 py-1 rounded-lg ${
-                        isExpanded ? 'text-white/60 bg-white/8' : 'text-white/30 hover:text-white/55 hover:bg-white/5'
-                      }`}>
-                      {isExpanded ? 'Esconder' : 'Ver más'}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                        className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                        <polyline points="6 9 12 15 18 9"/>
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Expandable */}
-                  {isExpanded && (
-                    <div className="mt-3 flex flex-col gap-3 animate-fade-in">
-                      {dream.summary && (
-                        <div className="px-3 py-2.5 rounded-xl border border-white/8 bg-white/3">
-                          <p className="text-[11px] text-white/40 mb-1 font-medium uppercase tracking-wider">✦ Análisis IA</p>
-                          <p className="text-xs text-white/60 italic leading-relaxed">{dream.summary}</p>
-                        </div>
-                      )}
-                      {(dream.emotions.length > 0 || dream.tags.length > 0) && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {dream.emotions.slice(0,4).map(e => (
-                            <span key={e} className="text-[10px] px-2 py-0.5 rounded-full bg-white/8 text-white/50">{e}</span>
-                          ))}
-                          {dream.tags.slice(0,3).map(t => (
-                            <span key={t} className="text-[10px] px-2 py-0.5 rounded-full glass-pill accent-text">#{t}</span>
-                          ))}
-                        </div>
-                      )}
-                      <CommentSection dreamId={dream.id} allowComments={dream.allow_comments} forceOpen />
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <DreamNotebook
+          dreams={dreams}
+          onEdit={d => { setEditing(d); setFormOpen(true) }}
+          onDelete={id => deleteMutation.mutate(id)}
+          onShare={d => setShareTarget(d)}
+          onAnalyze={d => d.summary ? analyzeMutation.mutate(d.id) : setAdDreamId(d.id)}
+          onCycleVis={cycleVisibility}
+          analyzing={analyzing}
+        />
       )}
 
       {dreams.some(d => d.summary) && (
