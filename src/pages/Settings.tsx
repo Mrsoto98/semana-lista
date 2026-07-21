@@ -382,6 +382,16 @@ export default function Settings() {
         <ThemePicker />
       </div>
 
+      {/* Tutorial */}
+      <button onClick={() => { localStorage.removeItem('tutorial-seen'); window.dispatchEvent(new CustomEvent('open-tutorial')) }}
+        className="w-full mt-4 py-3.5 rounded-2xl text-sm font-medium border transition-all flex items-center justify-center gap-2"
+        style={{ color: 'rgba(0,194,255,0.8)', borderColor: 'rgba(0,194,255,0.2)', background: 'rgba(0,194,255,0.06)' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>
+        </svg>
+        Ver tutorial de la app
+      </button>
+
       {/* Logout */}
       <button onClick={handleLogout}
         className="w-full mt-4 py-3.5 rounded-2xl text-sm font-medium text-red-400/70 hover:text-red-400 border border-red-400/15 hover:border-red-400/30 hover:bg-red-400/5 transition-all flex items-center justify-center gap-2">

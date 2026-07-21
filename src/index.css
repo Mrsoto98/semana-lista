@@ -101,10 +101,21 @@
     transition: border-color 0.15s, box-shadow 0.15s;
   }
 
+  .glass-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
   .glass-input:focus {
     border-color: rgba(var(--glow-color), 0.6);
     box-shadow: 0 0 0 3px rgba(var(--glow-color), 0.12);
     outline: none;
+  }
+
+  /* Hide browser date/calendar picker indicator on text inputs */
+  input[type="text"]::-webkit-calendar-picker-indicator,
+  input[type="text"]::-webkit-inner-spin-button {
+    display: none !important;
+    opacity: 0 !important;
   }
 
   /* Primary button */
