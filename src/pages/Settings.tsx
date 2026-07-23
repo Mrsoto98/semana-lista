@@ -9,6 +9,56 @@ import { ThemePicker } from '../components/ui/ThemePicker'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import type { Visibility } from '../types'
 
+const NB_SKINS = [
+  { id: 'cosmic',     label: 'Pergamino cósmico',   src: '/notebook/cosmic.jpg'     },
+  { id: 'leather',    label: 'Cuero lunar',          src: '/notebook/leather.jpg'    },
+  { id: 'glass',      label: 'Cristal líquido',      src: '/notebook/glass.jpg'      },
+  { id: 'manuscript', label: 'Manuscrito antiguo',   src: '/notebook/manuscript.jpg' },
+  { id: 'nebula',     label: 'Nebulosa profunda',    src: '/notebook/nebula.jpg'     },
+  { id: 'rose',       label: 'Polvo de luna rosa',   src: '/notebook/rose.jpg'       },
+  { id: 'botanical',  label: 'Jardín de medianoche', src: '/notebook/botanical.jpg'  },
+  { id: 'velvet',     label: 'Terciopelo lila',      src: '/notebook/velvet.jpg'     },
+]
+
+function NotebookSkinPicker() {
+  const [skin, setSkin] = useState(() => localStorage.getItem('nb-skin') ?? 'cosmic')
+  return (
+    <div className="glass rounded-3xl p-5 mt-4">
+      <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Estilo de la bitácora</p>
+      <p className="text-xs text-white/30 mb-4">Elige el fondo de tus sueños</p>
+      <div className="grid grid-cols-4 gap-3">
+        {NB_SKINS.map(s => (
+          <button key={s.id} onClick={() => { setSkin(s.id); localStorage.setItem('nb-skin', s.id) }}
+            className="flex flex-col items-center gap-1.5 group">
+            <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden relative transition-all duration-200 active:scale-95"
+              style={{
+                backgroundImage: `url(${s.src})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                border: skin === s.id ? '2.5px solid rgba(255,255,255,0.7)' : '2px solid rgba(255,255,255,0.1)',
+                boxShadow: skin === s.id ? '0 0 16px rgba(255,255,255,0.25)' : 'none',
+              }}>
+              {skin === s.id && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <div className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </div>
+            <span className="text-[9px] text-center leading-tight px-0.5"
+              style={{ color: skin === s.id ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)' }}>
+              {s.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const VIS_OPTIONS: { value: Visibility; icon: string; label: string; desc: string }[] = [
   { value: 'private', icon: '🔒', label: 'Privado',  desc: 'Solo tú puedes verlos' },
   { value: 'friends', icon: '👥', label: 'Amigos',   desc: 'Solo tus amigos' },
@@ -381,6 +431,9 @@ export default function Settings() {
         <p className="text-[11px] text-white/40 uppercase tracking-wider mb-3">Tema de color</p>
         <ThemePicker />
       </div>
+
+      {/* Notebook skin */}
+      <NotebookSkinPicker />
 
       {/* Tutorial */}
       <button onClick={() => { localStorage.removeItem('tutorial-seen'); window.dispatchEvent(new CustomEvent('open-tutorial')) }}

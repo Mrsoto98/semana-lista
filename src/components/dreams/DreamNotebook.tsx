@@ -48,7 +48,6 @@ interface Props {
 
 export function DreamNotebook({ dreams, onEdit, onDelete, onShare, onAnalyze, onCycleVis, analyzing }: Props) {
   const [skin, setSkin]             = useState<SkinId>(() => (localStorage.getItem('nb-skin') as SkinId) ?? 'cosmic')
-  const [showSkins, setShowSkins]   = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [anim, setAnim]             = useState('')
@@ -57,7 +56,12 @@ export function DreamNotebook({ dreams, onEdit, onDelete, onShare, onAnalyze, on
 
   const S = SKINS.find(s => s.id === skin)!
 
-  function changeSkin(id: SkinId) { setSkin(id); localStorage.setItem('nb-skin', id); setShowSkins(false) }
+  // Re-read skin from localStorage when component re-renders (Settings changed it)
+  useEffect(() => {
+    const onStorage = () => setSkin((localStorage.getItem('nb-skin') as SkinId) ?? 'cosmic')
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   function go(dir: 'prev'|'next') {
     if (dir === 'next' && weekOffset >= 0) return
@@ -90,41 +94,6 @@ export function DreamNotebook({ dreams, onEdit, onDelete, onShare, onAnalyze, on
 
   return (
     <div>
-      {/* Skin selector */}
-      <div className="mb-3">
-        <button onClick={() => setShowSkins(v => !v)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] transition-all"
-          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}>
-          <span>🎨</span><span>{S.label}</span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-            className={`transition-transform ${showSkins ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-
-        {showSkins && (
-          <div className="mt-2 p-3 rounded-2xl animate-fade-in"
-            style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="grid grid-cols-4 gap-2">
-              {SKINS.map(s => (
-                <button key={s.id} onClick={() => changeSkin(s.id)} className="flex flex-col items-center gap-1">
-                  <div className="w-full aspect-[3/4] rounded-xl overflow-hidden relative"
-                    style={{
-                      backgroundImage: `url(${s.src})`, backgroundSize: 'cover', backgroundPosition: 'center',
-                      border: skin === s.id ? `2px solid rgba(${s.accent},1)` : '2px solid rgba(255,255,255,0.1)',
-                      boxShadow: skin === s.id ? `0 0 12px rgba(${s.accent},0.5)` : 'none',
-                    }}>
-                    {skin === s.id && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                        <span className="text-white text-sm font-bold">✓</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[9px] text-white/35 text-center">{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Week nav */}
       <div className="flex items-center gap-3 mb-4">
