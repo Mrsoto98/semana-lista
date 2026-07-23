@@ -1,53 +1,41 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { Dream, Visibility } from '../../types'
 import { CommentSection } from './CommentSection'
 
-// ── Skins ────────────────────────────────────────────────────
 const SKINS = [
-  { id: 'cosmic',     label: 'Pergamino cósmico',   src: '/notebook/cosmic.jpg',     accent: '120,140,200' },
-  { id: 'leather',    label: 'Cuero lunar',          src: '/notebook/leather.jpg',    accent: '140,130,100' },
-  { id: 'glass',      label: 'Cristal líquido',      src: '/notebook/glass.jpg',      accent: '80,210,200'  },
-  { id: 'manuscript', label: 'Manuscrito antiguo',   src: '/notebook/manuscript.jpg', accent: '160,140,80'  },
-  { id: 'nebula',     label: 'Nebulosa profunda',    src: '/notebook/nebula.jpg',     accent: '140,100,200' },
-  { id: 'rose',       label: 'Polvo de luna rosa',   src: '/notebook/rose.jpg',       accent: '190,130,140' },
-  { id: 'botanical',  label: 'Jardín de medianoche', src: '/notebook/botanical.jpg',  accent: '80,150,100'  },
-  { id: 'velvet',     label: 'Terciopelo lila',      src: '/notebook/velvet.jpg',     accent: '160,100,190' },
+  { id: 'cosmic',     label: 'Cósmico',    src: '/notebook/cosmic.jpg',     accent: '120,160,220' },
+  { id: 'leather',    label: 'Cuero',      src: '/notebook/leather.jpg',    accent: '160,140,100' },
+  { id: 'glass',      label: 'Cristal',    src: '/notebook/glass.jpg',      accent: '60,210,200'  },
+  { id: 'manuscript', label: 'Manuscrito', src: '/notebook/manuscript.jpg', accent: '180,150,80'  },
+  { id: 'nebula',     label: 'Nebulosa',   src: '/notebook/nebula.jpg',     accent: '160,100,220' },
+  { id: 'rose',       label: 'Rosa',       src: '/notebook/rose.jpg',       accent: '210,140,160' },
+  { id: 'botanical',  label: 'Botánico',   src: '/notebook/botanical.jpg',  accent: '80,170,100'  },
+  { id: 'velvet',     label: 'Terciopelo', src: '/notebook/velvet.jpg',     accent: '170,100,210' },
 ] as const
-
 type SkinId = typeof SKINS[number]['id']
-const LS_SKIN = 'notebook-skin'
 
-// ── Helpers ──────────────────────────────────────────────────
-const VIS_CYCLE: Visibility[] = ['private', 'friends', 'public']
-const VIS_META: Record<Visibility, { icon: string; label: string; color: string }> = {
-  private: { icon: '🔒', label: 'Privado', color: 'rgba(255,255,255,0.4)' },
-  friends: { icon: '👥', label: 'Amigos',  color: 'rgba(96,165,250,0.9)'  },
-  public:  { icon: '🌐', label: 'Público', color: 'rgba(52,211,153,0.9)'  },
+const VIS_META: Record<Visibility, { icon: string; label: string }> = {
+  private: { icon: '🔒', label: 'Privado' },
+  friends: { icon: '👥', label: 'Amigos'  },
+  public:  { icon: '🌐', label: 'Público' },
 }
 
-const DAYS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
-const MONTHS_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
-function getWeekRange(offset: number) {
-  const now = new Date()
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7)
-  monday.setHours(0, 0, 0, 0)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
-  return { start: monday, end: sunday }
+function weekStart(offset: number) {
+  const d = new Date()
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + offset * 7)
+  d.setHours(0,0,0,0)
+  return d
+}
+function toISO(d: Date) { return d.toISOString().slice(0,10) }
+function weekLabel(s: Date) {
+  const e = new Date(s); e.setDate(s.getDate() + 6)
+  if (s.getMonth() === e.getMonth())
+    return `${s.getDate()}–${e.getDate()} ${MONTHS[s.getMonth()]}`
+  return `${s.getDate()} ${MONTHS[s.getMonth()]} – ${e.getDate()} ${MONTHS[e.getMonth()]}`
 }
 
-function toISO(d: Date) { return d.toISOString().slice(0, 10) }
-
-function weekLabel(start: Date, end: Date) {
-  if (start.getMonth() === end.getMonth())
-    return `${start.getDate()} – ${end.getDate()} de ${MONTHS_ES[start.getMonth()]} ${start.getFullYear()}`
-  return `${start.getDate()} ${MONTHS_ES[start.getMonth()]} – ${end.getDate()} ${MONTHS_ES[end.getMonth()]} ${start.getFullYear()}`
-}
-
-// ── Props ─────────────────────────────────────────────────────
 interface Props {
   dreams:     Dream[]
   onEdit:     (d: Dream) => void
@@ -58,391 +46,264 @@ interface Props {
   analyzing:  string | null
 }
 
-// ── Component ─────────────────────────────────────────────────
 export function DreamNotebook({ dreams, onEdit, onDelete, onShare, onAnalyze, onCycleVis, analyzing }: Props) {
-  const [skin, setSkin]             = useState<SkinId>(() => (localStorage.getItem(LS_SKIN) as SkinId) ?? 'cosmic')
+  const [skin, setSkin]             = useState<SkinId>(() => (localStorage.getItem('nb-skin') as SkinId) ?? 'cosmic')
   const [showSkins, setShowSkins]   = useState(false)
   const [weekOffset, setWeekOffset] = useState(0)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [anim, setAnim]             = useState('')
+  const pending                     = useRef(0)
+  const touchX                      = useRef(0)
 
-  // Page-flip animation
-  const [phase, setPhase]     = useState<'idle' | 'out' | 'in'>('idle')
-  const [flipDir, setFlipDir] = useState<'left' | 'right'>('left')
-  const pendingOffset         = useRef<number>(0)
-  const touchX                = useRef(0)
+  const S = SKINS.find(s => s.id === skin)!
 
-  const currentSkin = SKINS.find(s => s.id === skin) ?? SKINS[0]
+  function changeSkin(id: SkinId) { setSkin(id); localStorage.setItem('nb-skin', id); setShowSkins(false) }
 
-  function changeSkin(id: SkinId) {
-    setSkin(id)
-    localStorage.setItem(LS_SKIN, id)
-    setShowSkins(false)
-  }
-
-  function navigate(dir: 'prev' | 'next') {
+  function go(dir: 'prev'|'next') {
     if (dir === 'next' && weekOffset >= 0) return
-    pendingOffset.current = weekOffset + (dir === 'prev' ? -1 : 1)
-    setFlipDir(dir === 'prev' ? 'left' : 'right')
-    setPhase('out')
+    pending.current = weekOffset + (dir === 'prev' ? -1 : 1)
+    setAnim(dir === 'prev' ? 'slide-out-left' : 'slide-out-right')
   }
 
   useEffect(() => {
-    if (phase !== 'out') return
+    if (!anim.startsWith('slide-out')) return
     const t = setTimeout(() => {
-      setWeekOffset(pendingOffset.current)
+      setWeekOffset(pending.current)
       setExpandedId(null)
-      setPhase('in')
-    }, 280)
+      setAnim(anim.includes('left') ? 'slide-in-right' : 'slide-in-left')
+    }, 220)
     return () => clearTimeout(t)
-  }, [phase])
+  }, [anim])
 
   useEffect(() => {
-    if (phase !== 'in') return
-    const t = setTimeout(() => setPhase('idle'), 340)
+    if (!anim.startsWith('slide-in')) return
+    const t = setTimeout(() => setAnim(''), 260)
     return () => clearTimeout(t)
-  }, [phase])
+  }, [anim])
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchX.current = e.touches[0].clientX
-  }, [])
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - touchX.current
-    if (Math.abs(dx) < 50) return
-    navigate(dx < 0 ? 'prev' : 'next')
-  }, [weekOffset]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const { start, end } = getWeekRange(weekOffset)
-  const today = new Date(); today.setHours(23, 59, 59, 999)
-  const isCurrentWeek = weekOffset === 0
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(start); d.setDate(start.getDate() + i); return d
-  }).filter(d => d <= today || !isCurrentWeek)
-
-  const byDate = dreams.reduce<Record<string, Dream[]>>((acc, dr) => {
-    if (!acc[dr.dream_date]) acc[dr.dream_date] = []
-    acc[dr.dream_date].push(dr)
-    return acc
-  }, {})
-
-  const weekDays = days.map(d => ({
-    date: d, key: toISO(d),
-    dreams: (byDate[toISO(d)] ?? []).sort((a, b) => a.created_at > b.created_at ? -1 : 1),
-  }))
-
-  const totalDreams = weekDays.reduce((s, d) => s + d.dreams.length, 0)
-  const lucidDreams = weekDays.reduce((s, d) => s + d.dreams.filter(dr => dr.is_lucid).length, 0)
-  const A = currentSkin.accent
-
-  const pageClass = phase === 'out'
-    ? (flipDir === 'left'  ? 'nb-out-left'  : 'nb-out-right')
-    : phase === 'in'
-    ? (flipDir === 'left'  ? 'nb-in-left'   : 'nb-in-right')
-    : ''
+  const start   = weekStart(weekOffset)
+  const end     = new Date(start); end.setDate(start.getDate() + 6); end.setHours(23,59,59,999)
+  const today   = toISO(new Date())
+  const weekDreams = dreams
+    .filter(d => d.dream_date >= toISO(start) && d.dream_date <= toISO(end))
+    .sort((a,b) => b.dream_date.localeCompare(a.dream_date))
 
   return (
-    <div className="relative">
-
-      {/* ── Skin picker ── */}
-      <div className="flex items-center justify-between mb-2 px-0.5">
+    <div>
+      {/* Skin selector */}
+      <div className="mb-3">
         <button onClick={() => setShowSkins(v => !v)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] text-white/50 transition-all active:scale-95"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <span>🎨</span>
-          <span>{currentSkin.label}</span>
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] transition-all"
+          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}>
+          <span>🎨</span><span>{S.label}</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-            className={`transition-transform duration-200 ${showSkins ? 'rotate-180' : ''}`}>
-            <path d="M6 9l6 6 6-6"/>
-          </svg>
+            className={`transition-transform ${showSkins ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6"/></svg>
         </button>
+
+        {showSkins && (
+          <div className="mt-2 p-3 rounded-2xl animate-fade-in"
+            style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="grid grid-cols-4 gap-2">
+              {SKINS.map(s => (
+                <button key={s.id} onClick={() => changeSkin(s.id)} className="flex flex-col items-center gap-1">
+                  <div className="w-full aspect-[3/4] rounded-xl overflow-hidden relative"
+                    style={{
+                      backgroundImage: `url(${s.src})`, backgroundSize: 'cover', backgroundPosition: 'center',
+                      border: skin === s.id ? `2px solid rgba(${s.accent},1)` : '2px solid rgba(255,255,255,0.1)',
+                      boxShadow: skin === s.id ? `0 0 12px rgba(${s.accent},0.5)` : 'none',
+                    }}>
+                    {skin === s.id && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <span className="text-white text-sm font-bold">✓</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[9px] text-white/35 text-center">{s.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {showSkins && (
-        <div className="mb-3 p-3 rounded-2xl animate-fade-in"
-          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="grid grid-cols-4 gap-2">
-            {SKINS.map(s => (
-              <button key={s.id} onClick={() => changeSkin(s.id)} className="flex flex-col items-center gap-1.5 group">
-                <div className="w-full aspect-[3/4] rounded-xl overflow-hidden relative transition-all duration-200 group-active:scale-95"
-                  style={{
-                    backgroundImage: `url(${s.src})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    border: skin === s.id
-                      ? `2px solid rgba(${s.accent},0.9)`
-                      : '2px solid rgba(255,255,255,0.1)',
-                    boxShadow: skin === s.id ? `0 0 14px rgba(${s.accent},0.45)` : 'none',
-                  }}>
-                  {skin === s.id && (
-                    <div className="absolute inset-0 flex items-center justify-center"
-                      style={{ background: `rgba(${s.accent},0.18)` }}>
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                        style={{ background: `rgba(${s.accent},0.8)` }}>✓</div>
-                    </div>
-                  )}
-                </div>
-                <span className="text-[9px] text-white/35 text-center leading-tight line-clamp-2 px-0.5">
-                  {s.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Week navigation ── */}
-      <div className="flex items-center justify-between mb-3 px-0.5">
-        <button onClick={() => navigate('prev')}
-          className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
-          style={{ background: `rgba(${A},0.15)`, border: `1px solid rgba(${A},0.3)` }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="text-white/60">
+      {/* Week nav */}
+      <div className="flex items-center gap-3 mb-4">
+        <button onClick={() => go('prev')}
+          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90"
+          style={{ background: `rgba(${S.accent},0.18)`, border: `1px solid rgba(${S.accent},0.35)` }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.7">
             <path d="M15 18l-6-6 6-6"/>
           </svg>
         </button>
-
-        <div className="text-center flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-0.5"
-            style={{ color: `rgba(${A},0.9)` }}>
-            {isCurrentWeek ? 'Esta semana' : weekOffset === -1 ? 'Semana pasada' : `Hace ${Math.abs(weekOffset)} semanas`}
+        <div className="flex-1 text-center">
+          <p className="text-xs font-bold" style={{ color: `rgba(${S.accent},1)` }}>
+            {weekOffset === 0 ? 'Esta semana' : weekOffset === -1 ? 'Semana pasada' : `Hace ${Math.abs(weekOffset)} semanas`}
           </p>
-          <p className="text-[11px] text-white/35">{weekLabel(start, end)}</p>
+          <p className="text-[11px] text-white/35">{weekLabel(start)}</p>
         </div>
-
-        <button onClick={() => navigate('next')} disabled={weekOffset >= 0}
-          className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-20"
-          style={{ background: `rgba(${A},0.15)`, border: `1px solid rgba(${A},0.3)` }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="text-white/60">
+        <button onClick={() => go('next')} disabled={weekOffset >= 0}
+          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 disabled:opacity-20"
+          style={{ background: `rgba(${S.accent},0.18)`, border: `1px solid rgba(${S.accent},0.35)` }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity="0.7">
             <path d="M9 18l6-6-6-6"/>
           </svg>
         </button>
       </div>
 
-      {/* ── Notebook page ── */}
-      <div
-        className={`rounded-2xl overflow-hidden relative ${pageClass}`}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        style={{
-          backgroundImage: `url(${currentSkin.src})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center top',
-          boxShadow: `0 8px 48px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.07)`,
-        }}
-      >
-        {/* Readability overlay */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(0,0,0,0.40)' }} />
-
-        <div className="relative z-10">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b"
-            style={{ borderColor: `rgba(${A},0.2)`, background: 'rgba(0,0,0,0.28)' }}>
-            <div>
-              <p className="text-xs font-bold tracking-widest text-white/80">📖 BITÁCORA DE SUEÑOS</p>
-              <p className="text-[10px] mt-0.5" style={{ color: `rgba(${A},0.85)` }}>
-                {totalDreams === 0
-                  ? 'Sin registros esta semana'
-                  : `${totalDreams} sueño${totalDreams !== 1 ? 's' : ''}${lucidDreams > 0 ? ` · ${lucidDreams} lúcido${lucidDreams !== 1 ? 's' : ''}` : ''}`}
-              </p>
+      {/* Dream cards */}
+      <div className={`flex flex-col gap-3 ${anim}`}
+        onTouchStart={e => { touchX.current = e.touches[0].clientX }}
+        onTouchEnd={e => {
+          const dx = e.changedTouches[0].clientX - touchX.current
+          if (Math.abs(dx) > 50) go(dx < 0 ? 'prev' : 'next')
+        }}>
+        {weekDreams.length === 0 ? (
+          <div className="rounded-2xl overflow-hidden"
+            style={{ backgroundImage: `url(${S.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <div className="flex flex-col items-center justify-center py-14"
+              style={{ background: 'rgba(0,0,0,0.55)' }}>
+              <span className="text-4xl mb-3">🌙</span>
+              <p className="text-sm text-white/60">Sin sueños esta semana</p>
+              <p className="text-xs text-white/30 mt-1">← desliza para ver otras semanas</p>
             </div>
-            {lucidDreams > 0 && (
-              <span className="text-[10px] font-bold px-2 py-1 rounded-full"
-                style={{ background: `rgba(${A},0.2)`, border: `1px solid rgba(${A},0.35)`, color: `rgba(${A},1)` }}>
-                ✦ {lucidDreams} lúcido{lucidDreams !== 1 ? 's' : ''}
-              </span>
-            )}
           </div>
+        ) : weekDreams.map(dream => {
+          const isExpanded = expandedId === dream.id
+          const vis = VIS_META[dream.visibility]
+          const isToday = dream.dream_date === today
 
-          {/* Days */}
-          {weekDays.length === 0 ? (
-            <div className="py-14 text-center">
-              <p className="text-4xl mb-3">🌙</p>
-              <p className="text-sm text-white/35">Sin registros esta semana</p>
-            </div>
-          ) : weekDays.map(({ date, key, dreams: dayDreams }, idx) => {
-            const isToday = key === toISO(new Date())
-            return (
-              <div key={key}
-                className={idx < weekDays.length - 1 ? 'border-b' : ''}
-                style={{ borderColor: `rgba(${A},0.1)` }}>
-                <div className="flex">
-                  {/* Day margin */}
-                  <div className="w-12 shrink-0 flex flex-col items-center justify-start pt-3 pb-2 border-r"
-                    style={{ borderColor: `rgba(${A},0.2)`, background: 'rgba(0,0,0,0.22)' }}>
-                    <span className="text-[9px] font-bold uppercase leading-none"
-                      style={{ color: isToday ? `rgba(${A},1)` : 'rgba(255,255,255,0.3)' }}>
-                      {DAYS_ES[date.getDay()]}
-                    </span>
-                    <span className={`text-base font-bold leading-tight mt-0.5 ${isToday ? 'text-white' : 'text-white/35'}`}>
-                      {date.getDate()}
-                    </span>
-                    {dayDreams.some(d => d.is_lucid) && (
-                      <span className="text-[9px] mt-1" style={{ color: `rgba(${A},0.9)` }}>✦</span>
-                    )}
+          return (
+            <div key={dream.id} className="rounded-2xl overflow-hidden"
+              style={{
+                backgroundImage: `url(${S.src})`,
+                backgroundSize: 'cover',
+                backgroundPosition: `center ${dream.is_lucid ? '30%' : '60%'}`,
+                boxShadow: `0 4px 24px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.08)`,
+              }}>
+              {/* Dark overlay */}
+              <div style={{ background: 'rgba(0,0,0,0.52)' }}>
+
+                {/* Card content */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      {dream.title && (
+                        <h3 className="font-semibold text-white text-sm leading-snug">{dream.title}</h3>
+                      )}
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-[11px]" style={{ color: `rgba(${S.accent},0.9)` }}>
+                          {isToday ? 'Hoy' : new Date(dream.dream_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                        </span>
+                        {dream.is_lucid && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: `rgba(${S.accent},0.25)`, border: `1px solid rgba(${S.accent},0.5)`, color: `rgba(${S.accent},1)` }}>
+                            ✦ Lúcido
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => onCycleVis(dream)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all active:scale-95 text-white/60"
+                        style={{ background: 'rgba(255,255,255,0.1)' }}>
+                        {vis.icon} {vis.label}
+                      </button>
+                      <button onClick={() => onAnalyze(dream)} disabled={analyzing === dream.id}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] text-white/60 transition-all active:scale-95 disabled:opacity-40"
+                        style={{ background: 'rgba(255,255,255,0.1)' }}>
+                        {analyzing === dream.id
+                          ? <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin"/>
+                          : '✦'}
+                      </button>
+                      <button onClick={() => onShare(dream)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-95"
+                        style={{ background: 'rgba(255,255,255,0.1)' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6">
+                          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                      </button>
+                      <button onClick={() => onEdit(dream)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] text-white/60 transition-all active:scale-95"
+                        style={{ background: 'rgba(255,255,255,0.1)' }}>✎</button>
+                      <button onClick={() => { if (confirm('¿Borrar este sueño?')) onDelete(dream.id) }}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] text-red-400/50 hover:text-red-400 transition-all active:scale-95"
+                        style={{ background: 'rgba(255,255,255,0.07)' }}>✕</button>
+                    </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 py-2.5 pr-3 pl-2.5">
-                    {dayDreams.length === 0 ? (
-                      <div className="flex items-center h-8">
-                        <div className="flex-1 h-px" style={{ background: `rgba(${A},0.07)` }} />
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {dayDreams.map(dream => {
-                          const isExpanded = expandedId === dream.id
-                          const vis = VIS_META[dream.visibility]
-                          return (
-                            <div key={dream.id}
-                              className="rounded-xl overflow-hidden transition-all duration-200"
-                              style={{
-                                background: isExpanded ? 'rgba(0,0,0,0.52)' : 'rgba(0,0,0,0.32)',
-                                border: `1px solid ${isExpanded ? `rgba(${A},0.32)` : 'rgba(255,255,255,0.08)'}`,
-                                backdropFilter: 'blur(6px)',
-                              }}>
+                  <p className={`text-white/70 text-sm leading-relaxed ${isExpanded ? '' : 'line-clamp-3'}`}>
+                    {dream.body}
+                  </p>
 
-                              <button className="w-full text-left px-3 pt-2.5 pb-2"
-                                onClick={() => setExpandedId(isExpanded ? null : dream.id)}>
-                                <div className="flex items-start gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      {dream.title && (
-                                        <span className="text-xs font-semibold text-white/90 leading-snug">{dream.title}</span>
-                                      )}
-                                      {dream.is_lucid && (
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                                          style={{ background: `rgba(${A},0.25)`, color: `rgba(${A},1)`, border: `1px solid rgba(${A},0.4)` }}>
-                                          ✦ lúcido
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className={`text-[11px] text-white/50 leading-relaxed mt-0.5 ${isExpanded ? '' : 'line-clamp-2'}`}>
-                                      {dream.body}
-                                    </p>
-                                  </div>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                                    className={`shrink-0 mt-1 text-white/22 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                                    <path d="M6 9l6 6 6-6"/>
-                                  </svg>
-                                </div>
-                              </button>
-
-                              {isExpanded && (
-                                <div className="px-3 pb-3 flex flex-col gap-2.5 animate-fade-in">
-                                  {(dream.tags.length > 0 || dream.emotions.length > 0) && (
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {dream.emotions.slice(0, 3).map(e => (
-                                        <span key={e} className="text-[10px] px-2 py-0.5 rounded-full text-white/45 bg-white/8">{e}</span>
-                                      ))}
-                                      {dream.tags.slice(0, 4).map(t => (
-                                        <span key={t} className="text-[10px] px-2 py-0.5 rounded-full"
-                                          style={{ background: `rgba(${A},0.15)`, border: `1px solid rgba(${A},0.25)`, color: `rgba(${A},1)` }}>
-                                          #{t}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  {dream.summary && (
-                                    <div className="px-3 py-2 rounded-lg"
-                                      style={{ background: `rgba(${A},0.08)`, border: `1px solid rgba(${A},0.15)` }}>
-                                      <p className="text-[10px] font-bold mb-1" style={{ color: `rgba(${A},0.7)` }}>✦ ANÁLISIS IA</p>
-                                      <p className="text-[11px] text-white/55 italic leading-relaxed">{dream.summary}</p>
-                                    </div>
-                                  )}
-
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <button onClick={() => onCycleVis(dream)}
-                                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all active:scale-95"
-                                      style={{ background: 'rgba(255,255,255,0.07)', color: vis.color }}>
-                                      <span>{vis.icon}</span><span>{vis.label}</span>
-                                    </button>
-                                    <button onClick={() => onAnalyze(dream)} disabled={analyzing === dream.id}
-                                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-white/50 transition-all active:scale-95 disabled:opacity-40"
-                                      style={{ background: 'rgba(255,255,255,0.07)' }}>
-                                      {analyzing === dream.id
-                                        ? <div className="w-2.5 h-2.5 border border-white/40 border-t-white rounded-full animate-spin" />
-                                        : <span>✦</span>}
-                                      <span>IA</span>
-                                    </button>
-                                    <button onClick={() => onShare(dream)}
-                                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-white/50 transition-all active:scale-95"
-                                      style={{ background: 'rgba(255,255,255,0.07)' }}>
-                                      <span>⬆</span><span>Compartir</span>
-                                    </button>
-                                    <button onClick={() => onEdit(dream)}
-                                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-white/50 transition-all active:scale-95"
-                                      style={{ background: 'rgba(255,255,255,0.07)' }}>
-                                      <span>✎</span><span>Editar</span>
-                                    </button>
-                                    <button onClick={() => { if (confirm('¿Borrar este sueño?')) onDelete(dream.id) }}
-                                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-red-400/50 hover:text-red-400 transition-all active:scale-95"
-                                      style={{ background: 'rgba(255,255,255,0.05)' }}>
-                                      <span>✕</span><span>Borrar</span>
-                                    </button>
-                                  </div>
-
-                                  <CommentSection dreamId={dream.id} allowComments={dream.allow_comments} forceOpen />
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                  {/* Footer */}
+                  <div className="flex items-center gap-3 mt-3 pt-2.5"
+                    style={{ borderTop: `1px solid rgba(${S.accent},0.15)` }}>
+                    <span className="flex items-center gap-1.5 text-xs text-white/40">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                      {dream.like_count ?? 0}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-white/40">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      {dream.comment_count ?? 0}
+                    </span>
+                    <button onClick={() => setExpandedId(isExpanded ? null : dream.id)}
+                      className="ml-auto flex items-center gap-1 text-xs font-medium transition-all px-2.5 py-1 rounded-lg"
+                      style={{ color: `rgba(${S.accent},0.8)`, background: `rgba(${S.accent},0.1)` }}>
+                      {isExpanded ? 'Esconder' : 'Ver más'}
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                        className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </button>
                   </div>
+
+                  {isExpanded && (
+                    <div className="mt-3 flex flex-col gap-2.5 animate-fade-in">
+                      {(dream.emotions.length > 0 || dream.tags.length > 0) && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {dream.emotions.slice(0,3).map(e => (
+                            <span key={e} className="text-[10px] px-2 py-0.5 rounded-full text-white/50 bg-white/10">{e}</span>
+                          ))}
+                          {dream.tags.slice(0,4).map(t => (
+                            <span key={t} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                              style={{ background: `rgba(${S.accent},0.18)`, border: `1px solid rgba(${S.accent},0.3)`, color: `rgba(${S.accent},1)` }}>
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {dream.summary && (
+                        <div className="px-3 py-2.5 rounded-xl"
+                          style={{ background: `rgba(${S.accent},0.08)`, border: `1px solid rgba(${S.accent},0.18)` }}>
+                          <p className="text-[10px] font-bold mb-1" style={{ color: `rgba(${S.accent},0.7)` }}>✦ ANÁLISIS IA</p>
+                          <p className="text-xs text-white/55 italic leading-relaxed">{dream.summary}</p>
+                        </div>
+                      )}
+                      <CommentSection dreamId={dream.id} allowComments={dream.allow_comments} forceOpen />
+                    </div>
+                  )}
                 </div>
               </div>
-            )
-          })}
-
-          {/* Footer */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-t"
-            style={{ borderColor: `rgba(${A},0.15)`, background: 'rgba(0,0,0,0.28)' }}>
-            <span className="text-[10px] text-white/25 italic">Bitácora del Sueño</span>
-            <span className="text-[10px] text-white/25">
-              {weekOffset === 0 ? 'Semana actual' : `${Math.abs(weekOffset)} sem. atrás`}
-            </span>
-          </div>
-        </div>
+            </div>
+          )
+        })}
       </div>
 
-      <p className="text-center text-[10px] text-white/15 mt-2">← desliza para cambiar de semana →</p>
+      <p className="text-center text-[10px] text-white/15 mt-3">← desliza para cambiar de semana →</p>
 
       <style>{`
-        .nb-out-left {
-          animation: nbOutLeft 0.28s cubic-bezier(0.4,0,1,1) forwards;
-          transform-origin: left center;
-        }
-        .nb-out-right {
-          animation: nbOutRight 0.28s cubic-bezier(0.4,0,1,1) forwards;
-          transform-origin: right center;
-        }
-        .nb-in-left {
-          animation: nbInLeft 0.32s cubic-bezier(0,0,0.2,1) forwards;
-          transform-origin: right center;
-        }
-        .nb-in-right {
-          animation: nbInRight 0.32s cubic-bezier(0,0,0.2,1) forwards;
-          transform-origin: left center;
-        }
-        @keyframes nbOutLeft {
-          0%   { transform: perspective(900px) rotateY(0deg) scaleX(1);    opacity: 1; }
-          100% { transform: perspective(900px) rotateY(-30deg) scaleX(0.86); opacity: 0; }
-        }
-        @keyframes nbOutRight {
-          0%   { transform: perspective(900px) rotateY(0deg) scaleX(1);   opacity: 1; }
-          100% { transform: perspective(900px) rotateY(30deg) scaleX(0.86); opacity: 0; }
-        }
-        @keyframes nbInLeft {
-          0%   { transform: perspective(900px) rotateY(24deg) scaleX(0.88); opacity: 0; }
-          100% { transform: perspective(900px) rotateY(0deg) scaleX(1);    opacity: 1; }
-        }
-        @keyframes nbInRight {
-          0%   { transform: perspective(900px) rotateY(-24deg) scaleX(0.88); opacity: 0; }
-          100% { transform: perspective(900px) rotateY(0deg) scaleX(1);     opacity: 1; }
-        }
+        .slide-out-left  { animation: soL .22s ease-in  forwards }
+        .slide-out-right { animation: soR .22s ease-in  forwards }
+        .slide-in-left   { animation: siL .26s ease-out forwards }
+        .slide-in-right  { animation: siR .26s ease-out forwards }
+        @keyframes soL { to { transform: translateX(-40px) scale(.96); opacity:0 } }
+        @keyframes soR { to { transform: translateX( 40px) scale(.96); opacity:0 } }
+        @keyframes siL { from { transform: translateX( 40px) scale(.96); opacity:0 } to { transform:none; opacity:1 } }
+        @keyframes siR { from { transform: translateX(-40px) scale(.96); opacity:0 } to { transform:none; opacity:1 } }
       `}</style>
     </div>
   )
 }
+
