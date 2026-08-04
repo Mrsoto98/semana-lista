@@ -25,7 +25,10 @@ async function downloadFile(url, destPath) {
     const writer = fs.createWriteStream(destPath);
     response.data.pipe(writer);
     writer.on('finish', resolve);
-    writer.on('error', reject);
+    writer.on('error', (err) => {
+      fs.unlink(destPath, () => {});
+      reject(err);
+    });
   });
 
   return 'downloaded';

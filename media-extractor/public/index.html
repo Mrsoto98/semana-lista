@@ -356,40 +356,48 @@
     progressWrap.style.display = 'block';
     progressBar.style.width = '0%';
 
-    const res = await fetch('/download', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ files: extractedFiles, folder: selectedFolder }),
-    });
+    try {
+      const res = await fetch('/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: extractedFiles, folder: selectedFolder }),
+      });
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
 
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const evt = JSON.parse(line.slice(6));
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const evt = JSON.parse(line.slice(6));
 
-        if (evt.finished) {
-          progressBar.style.width = '100%';
-          progressLbl.textContent = `${evt.downloaded} archivos descargados${evt.errors ? ` (${evt.errors} errores)` : ''}`;
-          setStatus('success', `✅ Listo — guardados en: ${selectedFolder}`);
-          btnDownload.disabled = false;
-          btnFolder.disabled = false;
-          btnExtract.disabled = false;
-        } else {
-          const pct = Math.round((evt.done / evt.total) * 100);
-          progressBar.style.width = pct + '%';
-          progressLbl.textContent = `${evt.done} / ${evt.total} — ${evt.filename}`;
+          if (evt.error) {
+            setStatus('error', 'Error: ' + evt.error);
+            break outer;
+          } else if (evt.finished) {
+            progressBar.style.width = '100%';
+            progressLbl.textContent = `${evt.downloaded} archivos descargados${evt.errors ? ` (${evt.errors} errores)` : ''}`;
+            setStatus('success', `✅ Listo — guardados en: ${selectedFolder}`);
+          } else {
+            const pct = Math.round((evt.done / evt.total) * 100);
+            progressBar.style.width = pct + '%';
+            progressLbl.textContent = `${evt.done} / ${evt.total} — ${evt.filename}`;
+          }
         }
       }
+    } catch (err) {
+      setStatus('error', 'Error en la descarga: ' + err.message);
+    } finally {
+      btnDownload.disabled = false;
+      btnFolder.disabled = false;
+      btnExtract.disabled = false;
     }
   });
 
