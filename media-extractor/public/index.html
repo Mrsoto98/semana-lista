@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media Extractor — Google Maps</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #23263a;
+      --accent: #4f8ef7;
+      --accent-hover: #3a7ae0;
+      --text: #e8eaf0;
+      --text-muted: #7b8097;
+      --success: #34c97a;
+      --error: #f55;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 32px; }
+
+    /* URL input section */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: var(--surface);
+      border: 1.5px solid var(--surface2);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 1rem;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--text-muted); }
+
+    button {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 12px 22px;
+      transition: background 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+    button:hover:not(:disabled) { background: var(--accent-hover); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    button.secondary {
+      background: var(--surface2);
+    }
+    button.secondary:hover:not(:disabled) { background: #2d3152; }
+
+    /* Status message */
+    #status {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      min-height: 22px;
+      margin-bottom: 16px;
+    }
+    #status.error { color: var(--error); }
+    #status.success { color: var(--success); }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--text-muted);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results header */
+    #results-header {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    #results-header .count {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    /* Thumbnail grid */
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .thumb {
+      aspect-ratio: 4/3;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface);
+      position: relative;
+    }
+    .thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.2s;
+    }
+    .thumb:hover img { transform: scale(1.05); }
+    .thumb.video::after {
+      content: '▶';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      background: rgba(0,0,0,0.45);
+    }
+
+    /* Folder + download row */
+    #download-section {
+      display: none;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .folder-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    #folder-path {
+      flex: 1;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-family: monospace;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      word-break: break-all;
+      min-width: 160px;
+    }
+
+    /* Progress bar */
+    #progress-wrap { display: none; margin-top: 12px; }
+    #progress-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    #progress-bar-bg {
+      background: var(--surface2);
+      border-radius: 100px;
+      height: 8px;
+      overflow: hidden;
+    }
+    #progress-bar {
+      background: var(--accent);
+      height: 100%;
+      border-radius: 100px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Media Extractor</h1>
+  <p class="subtitle">Pegá el link de Google Maps y descargá todas las fotos y videos del lugar.</p>
+
+  <div class="input-row">
+    <input type="text" id="url-input"
+      placeholder="https://www.google.com/maps/place/..." />
+    <button id="btn-extract">Extraer fotos</button>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="results-header">
+    <span class="count" id="count-label"></span>
+  </div>
+
+  <div id="grid"></div>
+
+  <div id="download-section">
+    <div class="folder-row">
+      <button class="secondary" id="btn-folder">Seleccionar carpeta</button>
+      <div id="folder-path">No se seleccionó ninguna carpeta</div>
+    </div>
+    <button id="btn-download" disabled>Descargar todo</button>
+
+    <div id="progress-wrap">
+      <div id="progress-label">0 / 0</div>
+      <div id="progress-bar-bg">
+        <div id="progress-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const urlInput    = document.getElementById('url-input');
+  const btnExtract  = document.getElementById('btn-extract');
+  const status      = document.getElementById('status');
+  const resultsHdr  = document.getElementById('results-header');
+  const countLabel  = document.getElementById('count-label');
+  const grid        = document.getElementById('grid');
+  const dlSection   = document.getElementById('download-section');
+  const btnFolder   = document.getElementById('btn-folder');
+  const folderPath  = document.getElementById('folder-path');
+  const btnDownload = document.getElementById('btn-download');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressLbl  = document.getElementById('progress-label');
+  const progressBar  = document.getElementById('progress-bar');
+
+  let extractedFiles = [];   // { url, type }
+  let selectedFolder = null;
+
+  // ── Extract ──────────────────────────────────────────────────────────
+  btnExtract.addEventListener('click', async () => {
+    const url = urlInput.value.trim();
+    if (!url) return;
+
+    setStatus('loading', 'Abriendo galería de fotos...');
+    btnExtract.disabled = true;
+    grid.innerHTML = '';
+    resultsHdr.style.display = 'none';
+    dlSection.style.display = 'none';
+    extractedFiles = [];
+
+    try {
+      const res = await fetch('/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        setStatus('error', data.error);
+        return;
+      }
+
+      // Build file list
+      extractedFiles = [
+        ...data.images.map(u => ({ url: u, type: 'image' })),
+        ...data.videos.map(u => ({ url: u, type: 'video' })),
+      ];
+
+      const total = extractedFiles.length;
+      const imgCount = data.images.length;
+      const vidCount = data.videos.length;
+
+      countLabel.textContent =
+        `${total} archivos encontrados — ${imgCount} fotos` +
+        (vidCount ? `, ${vidCount} videos` : '');
+
+      resultsHdr.style.display = 'flex';
+      dlSection.style.display = 'block';
+      setStatus('', '');
+
+      // Render thumbnails (show low-res preview, download will use high-res)
+      data.images.slice(0, 60).forEach(imgUrl => {
+        const div = document.createElement('div');
+        div.className = 'thumb';
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        // Use a smaller preview size to load fast in the UI
+        img.src = imgUrl.split('=')[0] + '=w320-h240-k-no';
+        img.onerror = () => { div.style.background = '#23263a'; };
+        div.appendChild(img);
+        grid.appendChild(div);
+      });
+
+      data.videos.slice(0, 20).forEach(() => {
+        const div = document.createElement('div');
+        div.className = 'thumb video';
+        grid.appendChild(div);
+      });
+
+      if (total > 80) {
+        const note = document.createElement('div');
+        note.style.cssText = 'grid-column:1/-1;color:var(--text-muted);font-size:.85rem;padding:8px 0';
+        note.textContent = `(Mostrando preview de los primeros 80 de ${total} archivos)`;
+        grid.appendChild(note);
+      }
+
+    } catch (err) {
+      setStatus('error', 'Error conectando con el servidor: ' + err.message);
+    } finally {
+      btnExtract.disabled = false;
+    }
+  });
+
+  // ── Folder picker ────────────────────────────────────────────────────
+  btnFolder.addEventListener('click', async () => {
+    btnFolder.disabled = true;
+    btnFolder.textContent = 'Abriendo...';
+    try {
+      const res = await fetch('/browse-folder', { method: 'POST' });
+      const data = await res.json();
+      if (data.path) {
+        selectedFolder = data.path;
+        folderPath.textContent = data.path;
+        folderPath.style.color = 'var(--text)';
+        btnDownload.disabled = false;
+      }
+    } finally {
+      btnFolder.disabled = false;
+      btnFolder.textContent = 'Seleccionar carpeta';
+    }
+  });
+
+  // ── Download ─────────────────────────────────────────────────────────
+  btnDownload.addEventListener('click', async () => {
+    if (!selectedFolder || extractedFiles.length === 0) return;
+
+    btnDownload.disabled = true;
+    btnFolder.disabled = true;
+    btnExtract.disabled = true;
+    progressWrap.style.display = 'block';
+    progressBar.style.width = '0%';
+
+    const res = await fetch('/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: extractedFiles, folder: selectedFolder }),
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const evt = JSON.parse(line.slice(6));
+
+        if (evt.finished) {
+          progressBar.style.width = '100%';
+          progressLbl.textContent = `${evt.downloaded} archivos descargados${evt.errors ? ` (${evt.errors} errores)` : ''}`;
+          setStatus('success', `✅ Listo — guardados en: ${selectedFolder}`);
+          btnDownload.disabled = false;
+          btnFolder.disabled = false;
+          btnExtract.disabled = false;
+        } else {
+          const pct = Math.round((evt.done / evt.total) * 100);
+          progressBar.style.width = pct + '%';
+          progressLbl.textContent = `${evt.done} / ${evt.total} — ${evt.filename}`;
+        }
+      }
+    }
+  });
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+  function setStatus(type, msg) {
+    status.className = type;
+    status.innerHTML = msg
+      ? (type === 'loading' ? `<span class="spinner"></span>${msg}` : msg)
+      : '';
+  }
+
+  // Allow pressing Enter in URL field
+  urlInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') btnExtract.click();
+  });
+</script>
+</body>
+</html>
