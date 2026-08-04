@@ -61,8 +61,8 @@ async function downloadAll(files, folder, onProgress) {
     const destPath = path.join(folder, filename);
 
     try {
-      await downloadFile(url, destPath);
-      downloaded++;
+      const status = await downloadFile(url, destPath);
+      if (status === 'downloaded') downloaded++;
     } catch (err) {
       errors++;
       console.error(`Error descargando ${url}: ${err.message}`);
