@@ -4,6 +4,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { extractPhotos } = require('./scraper');
+const { downloadAll } = require('./downloader');
 
 const app = express();
 app.use(express.json());
@@ -52,6 +53,32 @@ app.post('/extract', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// POST /download
+// Body: { files: Array<{ url, type }>, folder: string }
+// Response: SSE stream of progress events
+app.post('/download', async (req, res) => {
+  const { files, folder } = req.body;
+
+  if (!folder) {
+    return res.status(400).json({ error: 'Seleccioná una carpeta primero.' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    await downloadAll(files, folder, send);
+  } catch (err) {
+    send({ error: err.message });
+  }
+
+  res.end();
 });
 
 app.listen(3333, () => {
