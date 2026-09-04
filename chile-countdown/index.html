@@ -151,7 +151,7 @@
     .chile-flag:hover { transform:scale(1.06); box-shadow:0 0 0 1px var(--gold-dim), 0 4px 20px rgba(0,0,0,.5); }
 
     /* ── PROGRESO (bottom-left) ── */
-    .progress-card { grid-area:prog; display:flex; flex-direction:column; justify-content:space-between; }
+    .progress-card { grid-area:prog; display:flex; flex-direction:column; justify-content:flex-start; gap:1.2vh; align-self:start; }
     .prog-numbers  { display:flex; align-items:flex-end; gap:.6vw; margin-bottom:1.4vh; }
     .prog-elapsed  { font-family:'Bebas Neue',sans-serif; font-size:clamp(36px,5.8vh,68px); line-height:.88; color:var(--gold); font-variant-numeric:tabular-nums; text-shadow:0 0 24px var(--gold-glow); }
     .prog-sep      { font-size:clamp(13px,1.8vh,20px); color:var(--muted); font-weight:300; padding-bottom:.4vh; }
@@ -188,14 +188,14 @@
     body.day-mode .dc.target-day { color:#060810; }
 
     /* ── AHORRO (bottom-right) ── */
-    .money-card   { grid-area:money; display:flex; flex-direction:column; }
+    .money-card   { grid-area:money; display:flex; flex-direction:column; align-self:start; }
     .money-big    { font-family:'Bebas Neue',sans-serif; font-size:clamp(38px,6.2vh,74px); line-height:.88; color:var(--gold); font-variant-numeric:tabular-nums; text-shadow:0 0 30px var(--gold-glow); margin-bottom:3px; }
     .money-of     { font-size:clamp(9px,1vh,12px); font-weight:300; color:var(--muted); font-style:italic; margin-bottom:1.8vh; }
     .money-pct-row{ display:flex; align-items:baseline; gap:.5vw; margin-bottom:.4vh; }
     .money-pct    { font-family:'Bebas Neue',sans-serif; font-size:clamp(26px,4.2vh,50px); color:var(--muted); line-height:1; font-variant-numeric:tabular-nums; }
     .money-pct-lbl{ font-size:clamp(9px,.95vh,11px); color:var(--muted); font-weight:300; }
     .money-rest   { font-size:clamp(9px,1vh,12px); color:var(--muted); font-weight:300; margin-bottom:1.2vh; }
-    .money-track  { height:clamp(4px,.55vh,7px); background:var(--surface2); border-radius:3px; overflow:hidden; margin-top:auto; }
+    .money-track  { height:clamp(4px,.55vh,7px); background:var(--surface2); border-radius:3px; overflow:hidden; margin-top:1.2vh; }
     .money-fill   { height:100%; width:0%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); border-radius:3px; transition:width 2s cubic-bezier(.16,1,.3,1); }
     body.day-mode .money-big { color:#fff; text-shadow:0 2px 16px rgba(0,0,0,.5); }
 
