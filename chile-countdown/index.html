@@ -550,10 +550,12 @@
   // ╔══════════════════════════════════════════════╗
   // ║  CONFIGURACIÓN                               ║
   // ╠══════════════════════════════════════════════╣
-  const TARGET   = new Date(2027, 7, 1, 0, 0, 0);
-  const START    = new Date(2026, 8, 4, 0, 0, 0);
-  const AHORRADO = 251;    // ← fallback si no hay JSONbin
-  const META     = 15000;  // ← meta euros
+  const TARGET      = new Date(2027, 7, 1, 0, 0, 0);
+  const START       = new Date(2026, 8, 4, 0, 0, 0);
+  const AHORRADO    = 251;    // ← fallback si JSONbin no responde
+  const META        = 15000;  // ← meta euros
+  const JSONBIN_ID  = '6a9a07bfda38895dfe36077e';
+  const JSONBIN_KEY = '$2a$10$l83YPaLS6ZjrL.DEmWmzrOQPssXrkyNO51.AtxvrG534AlT8n536i';
   // ╚══════════════════════════════════════════════╝
 
   // ── Ajustes día/noche ────────────────────────
@@ -641,7 +643,8 @@
     document.getElementById('sett-overlay').classList.remove('open');
     // Sync modo al JSONbin para que otros dispositivos se actualicen
     const mc = loadMoneyCfg();
-    if (mc.binId && mc.apiKey) syncToJsonbin(mc.amount ?? AHORRADO, mc.binId, mc.apiKey).catch(() => {});
+    const { binId, apiKey } = getCreds();
+    syncToJsonbin(mc.amount ?? AHORRADO, binId, apiKey).catch(() => {});
   });
 
   // ── Pantalla completa (bandera ×4) ───────────
@@ -738,7 +741,14 @@
     catch { return {}; }
   }
   function saveMoneyCfg(c) {
-    try { localStorage.setItem('chile-money', JSON.stringify(c)); } catch {} }
+    try { localStorage.setItem('chile-money', JSON.stringify(c)); } catch {}
+  }
+
+  // Devuelve las credenciales activas: las del usuario si las configuró, si no las hardcodeadas
+  function getCreds() {
+    const mc = loadMoneyCfg();
+    return { binId: mc.binId || JSONBIN_ID, apiKey: mc.apiKey || JSONBIN_KEY };
+  }
 
   async function syncToJsonbin(amount, binId, apiKey) {
     const themeCfg = loadCfg();
@@ -754,15 +764,15 @@
   }
 
   async function fetchFromJsonbin() {
-    const mc = loadMoneyCfg();
-    if (!mc.binId || !mc.apiKey) return;
+    const { binId, apiKey } = getCreds(); // siempre tiene credenciales (hardcodeadas o del usuario)
     try {
-      const resp = await fetch(`https://api.jsonbin.io/v3/b/${mc.binId}/latest`, {
-        headers: { 'X-Master-Key': mc.apiKey }
+      const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+        headers: { 'X-Master-Key': apiKey }
       });
       const rec = (await resp.json())?.record;
       if (!rec) return;
       // Sync savings
+      const mc = loadMoneyCfg();
       if (typeof rec.ahorrado === 'number' && rec.ahorrado !== mc.amount) {
         renderMoney(rec.ahorrado);
         mc.amount = rec.ahorrado;
@@ -824,17 +834,14 @@
     saveMoneyCfg({ amount, binId, apiKey });
     renderMoney(amount);
     const status = document.getElementById('money-status');
-    if (binId && apiKey) {
-      status.textContent = 'Sincronizando...';
-      try {
-        await syncToJsonbin(amount, binId, apiKey);
-        status.textContent = '✓ Sincronizado con el widget de Júlia';
-      } catch(e) {
-        status.textContent = '✗ Error al sincronizar. Revisa el Bin ID y el Master Key.';
-      }
-    } else {
-      status.textContent = 'Guardado localmente (sin JSONbin configurado)';
-      setTimeout(() => document.getElementById('money-overlay').classList.remove('open'), 1200);
+    const { binId: activeBinId, apiKey: activeApiKey } = getCreds();
+    status.textContent = 'Sincronizando...';
+    try {
+      await syncToJsonbin(amount, activeBinId, activeApiKey);
+      status.textContent = '✓ Sincronizado';
+      setTimeout(() => document.getElementById('money-overlay').classList.remove('open'), 1000);
+    } catch(e) {
+      status.textContent = '✗ Error al sincronizar. Revisa el Bin ID y el Master Key.';
     }
   });
 
