@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chile 2027</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;600;700;800&family=Figtree:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ══════════════════════════════════
+       TOKENS — noche (defecto)
+    ══════════════════════════════════ */
+    :root {
+      --bg:        #060810;
+      --surface:   #0d1226;
+      --surface2:  #121a34;
+      --border:    #1c2644;
+      --gold:      #f0c060;
+      --gold-dim:  #8a6018;
+      --gold-glow: rgba(240,192,96,0.22);
+      --red:       #d42b1e;
+      --red-glow:  rgba(212,43,30,0.3);
+      --text:      #dce4f5;
+      --muted:     #3d5070;
+      --dim:       #1a2238;
+    }
+
+    /* ══════════════════════════════════
+       TOKENS — día (overrides)
+    ══════════════════════════════════ */
+    body.day-mode {
+      --surface:   rgba(4, 12, 30, 0.52);
+      --surface2:  rgba(0, 8, 22, 0.45);
+      --border:    rgba(255,255,255,0.14);
+      --text:      #ffffff;
+      --muted:     rgba(210,225,255,0.62);
+      --dim:       rgba(200,215,255,0.22);
+    }
+
+    html, body { height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Figtree', sans-serif; }
+
+    /* ── Fondos ── */
+    .day-bg {
+      display: none;
+      position: fixed; inset: 0; z-index: 0;
+      background: url('bg-day.jpg') center top / cover no-repeat;
+    }
+    .day-bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(160deg, rgba(0,8,24,0.42) 0%, rgba(0,12,30,0.2) 45%, rgba(0,6,20,0.46) 100%);
+    }
+    body.day-mode .day-bg   { display: block; }
+    body.day-mode #starfield { display: none; }
+    body.day-mode .mountains { display: none; }
+
+    #starfield { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .mountains { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1; pointer-events: none; width: 100%; }
+
+    /* Frosted glass en modo día */
+    body.day-mode .card {
+      background: var(--surface);
+      border-color: var(--border);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    body.day-mode .month-card {
+      background: rgba(3, 10, 28, 0.5);
+      border-color: rgba(255,255,255,0.1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    /* ══════════════════════════════════
+       LAYOUT: 2 filas × 3 columnas
+    ══════════════════════════════════ */
+    .page {
+      position: relative; z-index: 2;
+      height: 100vh;
+      display: grid;
+      grid-template-areas: "dest  countdown  flag" "prog  calendar   money";
+      grid-template-rows: auto 1fr;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 1.2vh 2vw;
+      padding: 1.8vh 2vw;
+    }
+
+    /* ── TARJETA BASE ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: clamp(12px,1.5vh,20px) clamp(14px,1.4vw,22px);
+      transition: background 0.5s, border-color 0.5s, backdrop-filter 0.5s;
+    }
+    .card-label {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(8px,.8vh,10px);
+      font-weight: 700; letter-spacing: .26em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: .7vh;
+    }
+
+    /* ── DESTINO (top-left) ── */
+    .dest-card { grid-area: dest; }
+    .dest-eyebrow { font-family:'Syne',sans-serif; font-size:clamp(7px,.72vh,9px); font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+    .dest-title   { font-family:'Syne',sans-serif; font-size:clamp(15px,2.5vh,28px); font-weight:800; color:var(--text); letter-spacing:-.02em; line-height:1.05; margin-bottom:3px; }
+    .dest-sub     { font-size:clamp(9px,1vh,12px); font-weight:300; color:var(--muted); font-style:italic; }
+
+    /* ── CUENTA ATRÁS (top-center) ── */
+    .countdown-section {
+      grid-area: countdown;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; user-select: none;
+    }
+    .cd-eyebrow { font-family:'Syne',sans-serif; font-size:clamp(7px,.72vh,9px); font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:var(--muted); margin-bottom:.5vh; }
+    .cd-row     { display:flex; align-items:flex-start; justify-content:center; }
+    .cd-unit    { display:flex; flex-direction:column; align-items:center; padding:0 .9vw; position:relative; }
+    .cd-unit + .cd-unit::before {
+      content:':'; position:absolute; left:-.35vw; top:.4vh;
+      font-family:'Bebas Neue',sans-serif; font-size:clamp(56px,9.5vh,110px); line-height:1;
+      color:var(--gold-dim); opacity:.65;
+    }
+    .cd-num {
+      font-family:'Bebas Neue',sans-serif; font-size:clamp(80px,13vh,155px);
+      line-height:.88; color:var(--gold);
+      text-shadow:0 0 40px var(--gold-glow), 0 0 80px rgba(240,192,96,.08);
+      font-variant-numeric:tabular-nums; min-width:2ch; text-align:center;
+      transition: color .5s, text-shadow .5s;
+    }
+    #cd-days { font-size:clamp(76px,12.5vh,148px); min-width:3ch; }
+    .cd-lbl  { font-family:'Syne',sans-serif; font-size:clamp(9px,1vh,12px); font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:var(--muted); margin-top:.6vh; }
+
+    .cd-hint { font-size:clamp(7px,.68vh,9px); color:var(--muted); opacity:.45; margin-top:.6vh; font-style:italic; letter-spacing:.06em; }
+
+    body.day-mode .cd-num { color:#fff; text-shadow:0 2px 20px rgba(0,0,0,0.5), 0 0 60px rgba(255,255,255,0.15); }
+
+    /* ── BANDERA (top-right) ── */
+    .flag-card  { grid-area:flag; display:flex; align-items:center; justify-content:flex-end; gap:1.2vw; }
+    .flag-info  { text-align:right; }
+    .flag-country { font-family:'Syne',sans-serif; font-size:clamp(13px,2vh,22px); font-weight:800; color:var(--text); letter-spacing:-.01em; }
+    .flag-date    { font-family:'Bebas Neue',sans-serif; font-size:clamp(12px,1.7vh,19px); letter-spacing:.1em; color:var(--gold); opacity:.7; margin-top:2px; }
+    .chile-flag {
+      width:clamp(44px,4vw,66px); height:clamp(29px,2.65vw,44px);
+      border-radius:5px; overflow:hidden; flex-shrink:0;
+      box-shadow:0 0 0 1px rgba(255,255,255,.1), 0 4px 14px rgba(0,0,0,.4);
+      cursor:pointer; transition:transform .15s, box-shadow .15s;
+    }
+    .chile-flag:hover { transform:scale(1.06); box-shadow:0 0 0 1px var(--gold-dim), 0 4px 20px rgba(0,0,0,.5); }
+
+    /* ── PROGRESO (bottom-left) ── */
+    .progress-card { grid-area:prog; display:flex; flex-direction:column; justify-content:space-between; }
+    .prog-numbers  { display:flex; align-items:flex-end; gap:.6vw; margin-bottom:1.4vh; }
+    .prog-elapsed  { font-family:'Bebas Neue',sans-serif; font-size:clamp(36px,5.8vh,68px); line-height:.88; color:var(--gold); font-variant-numeric:tabular-nums; text-shadow:0 0 24px var(--gold-glow); }
+    .prog-sep      { font-size:clamp(13px,1.8vh,20px); color:var(--muted); font-weight:300; padding-bottom:.4vh; }
+    .prog-total    { font-family:'Bebas Neue',sans-serif; font-size:clamp(22px,3.6vh,42px); line-height:.88; color:var(--muted); font-variant-numeric:tabular-nums; padding-bottom:.1vh; }
+    .prog-unit-lbl { font-family:'Syne',sans-serif; font-size:clamp(8px,.85vh,11px); font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); padding-bottom:.5vh; }
+    .prog-bar-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.7vh; }
+    .prog-bar-lbl  { font-family:'Syne',sans-serif; font-size:clamp(7px,.72vh,9px); font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+    .prog-pct      { font-family:'Bebas Neue',sans-serif; font-size:clamp(14px,2vh,22px); color:var(--muted); font-variant-numeric:tabular-nums; }
+    .prog-track    { height:clamp(4px,.6vh,8px); background:var(--surface2); border-radius:4px; overflow:hidden; }
+    .prog-fill     { height:100%; width:0%; background:linear-gradient(90deg,var(--red),var(--gold)); border-radius:4px; transition:width 2s cubic-bezier(.16,1,.3,1); }
+    body.day-mode .prog-elapsed { color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.4); }
+
+    /* ── CALENDARIO (bottom-center) ── */
+    .calendar-section { grid-area:calendar; display:flex; flex-direction:column; min-height:0; }
+    .sec-title { font-family:'Syne',sans-serif; font-size:clamp(7px,.72vh,9px); font-weight:700; letter-spacing:.26em; text-transform:uppercase; color:var(--muted); margin-bottom:.6vh; padding-bottom:.5vh; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .sec-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+    .months-grid { flex:1; display:grid; grid-template-columns:repeat(4,minmax(130px,195px)); grid-template-rows:repeat(3,1fr); gap:clamp(4px,.7vh,10px); min-height:0; justify-content:center; }
+    .month-card  { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:clamp(6px,.9vh,13px) clamp(7px,.7vw,13px); display:flex; flex-direction:column; min-height:0; transition:background .5s, border-color .5s; }
+    .month-card.is-current { border-color:var(--gold-dim); box-shadow:0 0 0 1px var(--gold-dim), inset 0 0 24px rgba(240,192,96,.03); }
+    .month-card.is-target  { border-color:var(--red); box-shadow:0 0 18px rgba(212,43,30,.14); }
+    .month-name { font-family:'Syne',sans-serif; font-size:clamp(9px,1vh,12px); font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-bottom:.5vh; color:var(--muted); flex-shrink:0; }
+    .month-name.past   { color:var(--dim); }
+    .month-name.now    { color:var(--gold); }
+    .month-name.target { color:var(--red); }
+    body.day-mode .month-name.now { color:#fff; }
+    .dow-row { display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:2px; flex-shrink:0; }
+    .dow     { font-size:clamp(7px,.72vh,9px); text-align:center; color:var(--muted); text-transform:uppercase; font-weight:600; }
+    .days-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; flex:1; align-content:start; }
+    .dc        { font-size:clamp(9px,1vh,12px); text-align:center; border-radius:50%; line-height:1.7; font-variant-numeric:tabular-nums; color:var(--text); position:relative; }
+    .dc.past   { color:var(--dim); }
+    .dc.past::after { content:''; position:absolute; left:14%; right:14%; top:50%; transform:translateY(-50%); height:.5px; background:var(--dim); }
+    .dc.today      { background:var(--red); color:#fff; font-weight:500; box-shadow:0 0 6px var(--red-glow); }
+    .dc.target-day { background:var(--gold); color:var(--bg); font-weight:700; box-shadow:0 0 8px var(--gold-glow); }
+    body.day-mode .dc.target-day { color:#060810; }
+
+    /* ── AHORRO (bottom-right) ── */
+    .money-card   { grid-area:money; display:flex; flex-direction:column; }
+    .money-big    { font-family:'Bebas Neue',sans-serif; font-size:clamp(38px,6.2vh,74px); line-height:.88; color:var(--gold); font-variant-numeric:tabular-nums; text-shadow:0 0 30px var(--gold-glow); margin-bottom:3px; }
+    .money-of     { font-size:clamp(9px,1vh,12px); font-weight:300; color:var(--muted); font-style:italic; margin-bottom:1.8vh; }
+    .money-pct-row{ display:flex; align-items:baseline; gap:.5vw; margin-bottom:.4vh; }
+    .money-pct    { font-family:'Bebas Neue',sans-serif; font-size:clamp(26px,4.2vh,50px); color:var(--muted); line-height:1; font-variant-numeric:tabular-nums; }
+    .money-pct-lbl{ font-size:clamp(9px,.95vh,11px); color:var(--muted); font-weight:300; }
+    .money-rest   { font-size:clamp(9px,1vh,12px); color:var(--muted); font-weight:300; margin-bottom:1.2vh; }
+    .money-track  { height:clamp(4px,.55vh,7px); background:var(--surface2); border-radius:3px; overflow:hidden; margin-top:auto; }
+    .money-fill   { height:100%; width:0%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); border-radius:3px; transition:width 2s cubic-bezier(.16,1,.3,1); }
+    body.day-mode .money-big { color:#fff; text-shadow:0 2px 16px rgba(0,0,0,.5); }
+
+    /* ══════════════════════════════════
+       PANEL DE AJUSTES
+    ══════════════════════════════════ */
+    .sett-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(3, 6, 16, 0.88);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    .sett-overlay.open { opacity: 1; pointer-events: all; }
+
+    .sett-panel {
+      background: #080e20;
+      border: 1px solid #1c2644;
+      border-radius: 16px;
+      padding: 28px 32px;
+      width: min(480px, 90vw);
+      box-shadow: 0 24px 80px rgba(0,0,0,.7);
+    }
+
+    .sett-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #1c2644;
+    }
+    .sett-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; color:var(--text); letter-spacing:-.01em; }
+    .sett-close { background:none; border:1px solid #1c2644; border-radius:6px; color:var(--muted); font-size:13px; padding:6px 14px; cursor:pointer; font-family:'Syne',sans-serif; font-weight:600; transition:border-color .2s, color .2s; }
+    .sett-close:hover { border-color:var(--gold-dim); color:var(--gold); }
+
+    .sett-section { margin-bottom:22px; }
+    .sett-lbl { font-family:'Syne',sans-serif; font-size:9px; font-weight:700; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+
+    .mode-btns { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .mode-btn {
+      padding: 16px 8px; border-radius:8px; border:1px solid #1c2644;
+      background:#0d1430; color:var(--muted);
+      font-family:'Syne',sans-serif; font-weight:700; font-size:12px; letter-spacing:.08em;
+      cursor:pointer; transition:all .2s;
+      display:flex; flex-direction:column; align-items:center; gap:7px;
+    }
+    .mode-icon { font-size:22px; line-height:1; }
+    .mode-btn:hover { border-color:#2a3a60; color:var(--text); }
+    .mode-btn.active { border-color:var(--gold-dim); color:var(--gold); background:rgba(240,192,96,.08); box-shadow:0 0 0 1px var(--gold-dim); }
+
+    .schedule-ui { }
+    .time-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .time-lbl { font-size:13px; color:var(--muted); font-weight:300; white-space:nowrap; }
+    input[type="time"] {
+      background:#0d1430; border:1px solid #1c2644; border-radius:6px;
+      color:var(--text); font-family:'Figtree',sans-serif; font-size:16px; font-weight:500;
+      padding:8px 12px; outline:none; transition:border-color .2s;
+      color-scheme: dark;
+    }
+    input[type="time"]:focus { border-color:var(--gold-dim); }
+    .sett-hint { font-size:11px; color:var(--muted); font-weight:300; margin-top:8px; font-style:italic; opacity:.7; }
+
+    .sett-save {
+      width:100%; padding:14px; border-radius:8px;
+      border:1px solid var(--gold-dim); background:rgba(240,192,96,.08);
+      color:var(--gold); font-family:'Syne',sans-serif; font-weight:700;
+      font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+      cursor:pointer; transition:all .2s; margin-top:4px;
+    }
+    .sett-save:hover { background:rgba(240,192,96,.16); box-shadow:0 0 20px rgba(240,192,96,.12); }
+
+    /* ── Modal de ahorro ── */
+    .money-overlay {
+      position:fixed; inset:0; z-index:200;
+      background:rgba(3,6,16,.88);
+      backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .25s;
+    }
+    .money-overlay.open { opacity:1; pointer-events:all; }
+    .money-panel {
+      background:#080e20; border:1px solid #1c2644; border-radius:16px;
+      padding:28px 32px; width:min(440px,90vw);
+      box-shadow:0 24px 80px rgba(0,0,0,.7);
+    }
+    .money-input-row { display:flex; align-items:center; gap:6px; }
+    .money-prefix { font-family:'Bebas Neue',sans-serif; font-size:30px; color:var(--gold); line-height:1; }
+    input[type="number"], .sett-full-input {
+      background:#0d1430; border:1px solid #1c2644; border-radius:6px;
+      color:var(--text); font-family:'Figtree',sans-serif; font-size:18px; font-weight:500;
+      padding:10px 14px; outline:none; transition:border-color .2s; width:100%;
+    }
+    input[type="number"]:focus, .sett-full-input:focus { border-color:var(--gold-dim); }
+    .sett-full-input { font-size:14px; margin-top:8px; }
+    .money-status { font-size:11px; color:var(--muted); margin-top:10px; min-height:16px; font-style:italic; }
+
+    /* ── Animaciones ── */
+    @keyframes fade-up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .dest-card        { animation:fade-up .5s .05s ease-out both; }
+    .countdown-section{ animation:fade-up .5s .1s  ease-out both; }
+    .flag-card        { animation:fade-up .5s .05s ease-out both; }
+    .progress-card    { animation:fade-up .5s .2s  ease-out both; }
+    .calendar-section { animation:fade-up .5s .15s ease-out both; }
+    .money-card       { animation:fade-up .5s .2s  ease-out both; }
+
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after{animation:none!important;transition:none!important} }
+
+    /* ══════════════════════════════════
+       MÓVIL (≤ 768px)
+    ══════════════════════════════════ */
+    @media (max-width: 768px) {
+      html, body {
+        height: auto;
+        min-height: 100svh;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      /* Layout vertical de una columna */
+      .page {
+        grid-template-areas:
+          "dest flag"
+          "countdown countdown"
+          "prog prog"
+          "money money"
+          "calendar calendar";
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto auto auto auto;
+        height: auto;
+        padding: 10px;
+        gap: 8px;
+      }
+
+      /* Fondos fijos */
+      #starfield, .mountains, .day-bg { position: fixed; }
+
+      /* ── Destino ── */
+      .dest-card { padding: 10px 14px; }
+      .dest-eyebrow { font-size: 7px; }
+      .dest-title { font-size: clamp(14px, 4.5vw, 20px); }
+      .dest-sub { display: none; }
+
+      /* ── Bandera (solo icono, sin texto) ── */
+      .flag-card { padding: 10px 12px; justify-content: center; align-items: center; gap: 0; }
+      .flag-info { display: none; }
+      .chile-flag { width: 38px; height: 25px; }
+
+      /* ── Cuenta atrás ── */
+      .countdown-section { padding: 10px 4px; }
+      .cd-unit { padding: 0 1.8vw; }
+      .cd-num { font-size: clamp(38px, 9.5vw, 68px) !important; }
+      #cd-days { font-size: clamp(36px, 9vw, 64px) !important; min-width: 3ch; }
+      .cd-unit + .cd-unit::before {
+        font-size: clamp(24px, 6vw, 44px) !important;
+        left: -0.8vw; top: 0.2vh;
+      }
+      .cd-lbl { font-size: 8px; margin-top: 4px; }
+      .cd-hint { display: none; }
+
+      /* ── Progreso ── */
+      .progress-card { padding: 12px 14px; }
+      .prog-numbers { margin-bottom: 10px; gap: 4px; flex-wrap: wrap; }
+      .prog-elapsed { font-size: clamp(28px, 7vw, 44px); }
+      .prog-sep { font-size: 13px; }
+      .prog-total { font-size: clamp(18px, 4.5vw, 28px); }
+      .prog-unit-lbl { font-size: 9px; }
+
+      /* ── Ahorro ── */
+      .money-card { padding: 12px 14px; }
+      .money-big { font-size: clamp(30px, 8vw, 50px); }
+      .money-of { font-size: 10px; margin-bottom: 10px; }
+      .money-pct { font-size: clamp(20px, 5.5vw, 32px); }
+      .money-pct-lbl { font-size: 10px; }
+      .money-rest { font-size: 10px; }
+
+      /* ── Calendario: 2 columnas en móvil ── */
+      .calendar-section { padding: 0; background: none; border: none; }
+      .sec-title { font-size: 8px; padding: 0 0 6px 0; }
+      .months-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        grid-template-rows: auto !important;
+        gap: 6px !important;
+      }
+      .month-card { padding: 6px 8px; border-radius: 5px; }
+      .month-name { font-size: clamp(7px, 2.4vw, 9px); margin-bottom: 2px; }
+      .dow { font-size: clamp(6px, 1.9vw, 8px); }
+      .dc { font-size: clamp(7px, 2.4vw, 10px); line-height: 1.55; }
+
+      /* ── Paneles (bottom sheet en móvil) ── */
+      .sett-overlay, .money-overlay { align-items: flex-end; }
+      .sett-panel, .money-panel {
+        width: 100%;
+        max-height: 88vh;
+        overflow-y: auto;
+        border-radius: 16px 16px 0 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Fondo día (foto) -->
+<div class="day-bg" id="day-bg"></div>
+
+<!-- Fondo noche -->
+<canvas id="starfield"></canvas>
+<svg class="mountains" viewBox="0 0 1440 300" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  <path d="M0,300 L0,200 L55,158 L110,178 L185,108 L255,148 L320,88 L390,130 L460,72 L530,112 L600,52 L660,90 L720,28 L780,68 L840,18 L905,62 L965,32 L1025,76 L1090,44 L1155,88 L1220,56 L1285,96 L1360,74 L1440,102 L1440,300 Z" fill="#0a0d1f" opacity="0.65"/>
+  <path d="M0,300 L0,240 L70,210 L150,228 L230,172 L305,200 L385,158 L460,188 L535,142 L610,170 L690,122 L760,158 L840,128 L910,160 L985,138 L1060,165 L1135,144 L1210,170 L1285,150 L1360,174 L1440,158 L1440,300 Z" fill="#080b18" opacity="0.8"/>
+  <path d="M0,300 L0,268 L90,250 L190,262 L290,240 L390,256 L490,232 L590,252 L690,228 L790,248 L890,230 L990,252 L1090,236 L1190,255 L1290,242 L1390,258 L1440,248 L1440,300 Z" fill="#060810"/>
+</svg>
+
+<!-- Contenido principal -->
+<div class="page">
+
+  <div class="card dest-card">
+    <p class="dest-eyebrow">Nuestro destino</p>
+    <h1 class="dest-title">Corral, Valdivia. Chile</h1>
+    <p class="dest-sub">El gran viaje · Agosto 2027</p>
+  </div>
+
+  <div class="countdown-section" id="countdown-section" title="Clic ×3 para ajustes">
+    <p class="cd-eyebrow">Tiempo restante</p>
+    <div class="cd-row">
+      <div class="cd-unit"><div class="cd-num" id="cd-days">331</div><div class="cd-lbl">Días</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-hours">00</div><div class="cd-lbl">Horas</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-mins">00</div><div class="cd-lbl">Min</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-secs">00</div><div class="cd-lbl">Seg</div></div>
+    </div>
+    <p class="cd-hint">clic ×3 → ajustes</p>
+  </div>
+
+  <div class="card flag-card">
+    <div class="flag-info">
+      <div class="flag-country">Chile</div>
+      <div class="flag-date">01 AGO 2027</div>
+    </div>
+    <svg id="flag-btn" class="chile-flag" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg" title="Clic ×4 pantalla completa">
+      <rect width="3" height="2" fill="#fff"/>
+      <rect width="3" height="1" y="1" fill="#D52B1E"/>
+      <rect width="1" height="1" fill="#0039A6"/>
+      <polygon points="0.5,0.14 0.605,0.44 0.88,0.44 0.655,0.6 0.74,0.9 0.5,0.73 0.26,0.9 0.345,0.6 0.12,0.44 0.395,0.44" fill="#fff"/>
+    </svg>
+  </div>
+
+  <div class="card progress-card">
+    <div class="card-label">Camino recorrido</div>
+    <div class="prog-numbers">
+      <div class="prog-elapsed" id="prog-elapsed">0</div>
+      <div class="prog-unit-lbl" style="margin-bottom:.5vh">días</div>
+      <div class="prog-sep">/</div>
+      <div class="prog-total" id="prog-total">331</div>
+      <div class="prog-unit-lbl" style="margin-bottom:.5vh">días totales</div>
+    </div>
+    <div>
+      <div class="prog-bar-header">
+        <span class="prog-bar-lbl">Completado</span>
+        <span class="prog-pct"><span id="prog-pct">0</span>%</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+    </div>
+  </div>
+
+  <section class="calendar-section">
+    <div class="sec-title">Calendario</div>
+    <div class="months-grid" id="months-grid"></div>
+  </section>
+
+  <div class="card money-card">
+    <div class="card-label">Fondo Chile · Ahorro</div>
+    <div class="money-big">€<span id="money-saved">0</span></div>
+    <div class="money-of">de €<span id="money-goal">15.000</span> de meta</div>
+    <div class="money-pct-row">
+      <div class="money-pct"><span id="money-pct">0</span>%</div>
+      <div class="money-pct-lbl">completado</div>
+    </div>
+    <div class="money-rest">€<span id="money-left">0</span> restantes</div>
+    <div class="money-track"><div class="money-fill" id="money-fill"></div></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════
+     PANEL DE AJUSTES
+═══════════════════════════════════ -->
+<div class="sett-overlay" id="sett-overlay">
+  <div class="sett-panel">
+
+    <div class="sett-header">
+      <span class="sett-title">Ajustes de pantalla</span>
+      <button class="sett-close" id="sett-close">Cerrar</button>
+    </div>
+
+    <div class="sett-section">
+      <div class="sett-lbl">Modo de pantalla</div>
+      <div class="mode-btns">
+        <button class="mode-btn" data-mode="night">
+          <span class="mode-icon">🌙</span>Noche
+        </button>
+        <button class="mode-btn" data-mode="auto">
+          <span class="mode-icon">⏱</span>Automático
+        </button>
+        <button class="mode-btn" data-mode="day">
+          <span class="mode-icon">☀️</span>Día
+        </button>
+      </div>
+    </div>
+
+    <div class="sett-section schedule-ui" id="schedule-ui">
+      <div class="sett-lbl">Horario — modo día activo</div>
+      <div class="time-row">
+        <span class="time-lbl">De</span>
+        <input type="time" id="day-start" value="12:00">
+        <span class="time-lbl">a</span>
+        <input type="time" id="day-end" value="00:00">
+      </div>
+      <p class="sett-hint">Fuera de ese rango se activa el modo noche automáticamente.</p>
+    </div>
+
+    <button class="sett-save" id="sett-save">Guardar ajustes</button>
+
+  </div>
+</div>
+
+<!-- Modal actualizar ahorro -->
+<div class="money-overlay" id="money-overlay">
+  <div class="money-panel">
+    <div class="sett-header">
+      <span class="sett-title">Actualizar ahorro</span>
+      <button class="sett-close" id="money-close">Cerrar</button>
+    </div>
+    <div class="sett-section">
+      <div class="sett-lbl">Importe ahorrado</div>
+      <div class="money-input-row">
+        <span class="money-prefix">€</span>
+        <input type="number" id="new-amount" min="0" max="99999" step="1" placeholder="251">
+      </div>
+    </div>
+    <div class="sett-section">
+      <div class="sett-lbl">Sincronización widget iPhone · JSONbin.io</div>
+      <input type="text" id="jb-bin" placeholder="Bin ID  (66f3a2...)" class="sett-full-input">
+      <input type="password" id="jb-key" placeholder="Master Key  ($2a$10$...)" class="sett-full-input">
+      <p class="sett-hint" style="margin-top:10px">
+        Solo hace falta configurarlo una vez. Crea cuenta gratis en <strong style="color:var(--text)">jsonbin.io</strong>,
+        crea un bin con <code style="color:var(--gold)">{"ahorrado":251}</code> y pega el Bin ID y el Master Key aquí.
+      </p>
+    </div>
+    <button class="sett-save" id="money-save">Guardar y sincronizar</button>
+    <p class="money-status" id="money-status"></p>
+  </div>
+</div>
+
+<script>
+  // ╔══════════════════════════════════════════════╗
+  // ║  CONFIGURACIÓN                               ║
+  // ╠══════════════════════════════════════════════╣
+  const TARGET   = new Date(2027, 7, 1, 0, 0, 0);
+  const START    = new Date(2026, 8, 4, 0, 0, 0);
+  const AHORRADO = 251;    // ← fallback si no hay JSONbin
+  const META     = 15000;  // ← meta euros
+  // ╚══════════════════════════════════════════════╝
+
+  // ── Ajustes día/noche ────────────────────────
+  const DEF = { mode: 'auto', dayStart: '12:00', dayEnd: '00:00' };
+
+  function loadCfg() {
+    try { return { ...DEF, ...JSON.parse(localStorage.getItem('chile-cfg') || '{}') }; }
+    catch { return DEF; }
+  }
+
+  function saveCfg(c) {
+    try { localStorage.setItem('chile-cfg', JSON.stringify(c)); } catch {}
+  }
+
+  function parseMins(t) {
+    const [h, m] = (t || '00:00').split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function isDay(cfg) {
+    const now = new Date();
+    const cur = now.getHours() * 60 + now.getMinutes();
+    const s = parseMins(cfg.dayStart);
+    const e = parseMins(cfg.dayEnd);
+    if (e === 0 || e === 1440) return cur >= s;   // hasta medianoche
+    if (s < e) return cur >= s && cur < e;
+    return cur >= s || cur < e;                   // cruza medianoche
+  }
+
+  function applyTheme(modeOverride) {
+    const cfg = loadCfg();
+    const mode = modeOverride ?? cfg.mode;
+    let day;
+    if (mode === 'day')   day = true;
+    else if (mode === 'night') day = false;
+    else day = isDay(cfg);
+    document.body.classList.toggle('day-mode', day);
+  }
+
+  applyTheme();
+  setInterval(() => { if (loadCfg().mode === 'auto') applyTheme(); }, 60000);
+
+  // ── Panel de ajustes (clic ×3 en countdown) ──
+  let cdClicks = 0, cdTimer = null;
+  document.getElementById('countdown-section').addEventListener('click', () => {
+    cdClicks++;
+    clearTimeout(cdTimer);
+    cdTimer = setTimeout(() => { cdClicks = 0; }, 1400);
+    if (cdClicks >= 3) { cdClicks = 0; openSettings(); }
+  });
+
+  async function openSettings() {
+    // Fetch latest from JSONbin before showing the panel so both devices see the same values
+    await fetchFromJsonbin();
+    const cfg = loadCfg();
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === cfg.mode));
+    document.getElementById('day-start').value = cfg.dayStart;
+    document.getElementById('day-end').value   = cfg.dayEnd;
+    document.getElementById('schedule-ui').style.display = cfg.mode === 'auto' ? '' : 'none';
+    document.getElementById('sett-overlay').classList.add('open');
+  }
+
+  document.getElementById('sett-close').addEventListener('click', closeSettings);
+  document.getElementById('sett-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeSettings(); });
+
+  function closeSettings() {
+    document.getElementById('sett-overlay').classList.remove('open');
+    applyTheme(); // restaura si hubo preview
+  }
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('schedule-ui').style.display = btn.dataset.mode === 'auto' ? '' : 'none';
+      applyTheme(btn.dataset.mode); // preview en tiempo real
+    });
+  });
+
+  document.getElementById('sett-save').addEventListener('click', () => {
+    const mode = document.querySelector('.mode-btn.active')?.dataset.mode || 'auto';
+    const cfg  = { mode, dayStart: document.getElementById('day-start').value, dayEnd: document.getElementById('day-end').value };
+    saveCfg(cfg);
+    applyTheme(mode);
+    document.getElementById('sett-overlay').classList.remove('open');
+    // Sync modo al JSONbin para que otros dispositivos se actualicen
+    const mc = loadMoneyCfg();
+    if (mc.binId && mc.apiKey) syncToJsonbin(mc.amount ?? AHORRADO, mc.binId, mc.apiKey).catch(() => {});
+  });
+
+  // ── Pantalla completa (bandera ×4) ───────────
+  let flagClicks = 0, flagTimer = null;
+  document.getElementById('flag-btn').addEventListener('click', () => {
+    flagClicks++;
+    clearTimeout(flagTimer);
+    flagTimer = setTimeout(() => { flagClicks = 0; }, 1500);
+    if (flagClicks >= 4) {
+      flagClicks = 0;
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+      else document.exitFullscreen();
+    }
+  });
+
+  // ── Starfield ─────────────────────────────────
+  const canvas = document.getElementById('starfield');
+  const ctx    = canvas.getContext('2d');
+  let W, H, stars = [], shooters = [];
+
+  function initCanvas() {
+    W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight;
+    stars = Array.from({ length: 200 }, () => ({
+      x: Math.random()*W, y: Math.random()*H*.82, r: Math.random()*1.2+.15,
+      alpha: Math.random()*.6+.1, phase: Math.random()*Math.PI*2, freq: Math.random()*.0005+.0002
+    }));
+  }
+
+  function spawnShooter() {
+    const ang = (28+Math.random()*24)*Math.PI/180;
+    shooters.push({ x:W*(.05+Math.random()*.5), y:H*(.04+Math.random()*.25), vx:Math.cos(ang)*14, vy:Math.sin(ang)*14, len:100+Math.random()*100, life:0 });
+    setTimeout(spawnShooter, 12000+Math.random()*18000);
+  }
+  setTimeout(spawnShooter, 5000+Math.random()*4000);
+
+  function drawScene(t) {
+    ctx.clearRect(0,0,W,H);
+    stars.forEach(s => {
+      const a = s.alpha*(0.55+0.45*Math.sin(t*s.freq*1000+s.phase));
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(210,225,255,${a})`; ctx.fill();
+    });
+    for (let i=shooters.length-1; i>=0; i--) {
+      const s=shooters[i]; s.life=Math.min(s.life+.022,1);
+      const alpha=s.life<.45?s.life/.45:1-(s.life-.45)/.55;
+      const tLen=s.len*Math.sin(s.life*Math.PI);
+      const cx=s.x+s.vx*s.life*18, cy=s.y+s.vy*s.life*18;
+      const mag=Math.hypot(s.vx,s.vy), nx=s.vx/mag, ny=s.vy/mag;
+      const g=ctx.createLinearGradient(cx,cy,cx-nx*tLen,cy-ny*tLen);
+      g.addColorStop(0,`rgba(255,255,220,${alpha*.9})`); g.addColorStop(.4,`rgba(255,255,200,${alpha*.35})`); g.addColorStop(1,'rgba(255,255,200,0)');
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx-nx*tLen,cy-ny*tLen);
+      ctx.strokeStyle=g; ctx.lineWidth=1.6; ctx.shadowColor='rgba(255,255,200,0.5)'; ctx.shadowBlur=5; ctx.stroke(); ctx.shadowBlur=0;
+      if (s.life>=1) shooters.splice(i,1);
+    }
+  }
+  function loop(t){drawScene(t);requestAnimationFrame(loop);}
+  initCanvas(); requestAnimationFrame(loop); window.addEventListener('resize', initCanvas);
+
+  // ── Cuenta atrás ──────────────────────────────
+  function pad(n,w=2){return String(Math.max(0,n)).padStart(w,'0');}
+
+  function tick() {
+    const now=new Date(), diff=TARGET-now; if(diff<=0)return;
+    document.getElementById('cd-days').textContent  = pad(Math.floor(diff/86400000),3);
+    document.getElementById('cd-hours').textContent = pad(Math.floor(diff%86400000/3600000));
+    document.getElementById('cd-mins').textContent  = pad(Math.floor(diff%3600000/60000));
+    document.getElementById('cd-secs').textContent  = pad(Math.floor(diff%60000/1000));
+    const total=TARGET-START, elapsed=now-START;
+    const pct=Math.max(0,Math.min(100,elapsed/total*100));
+    const daysGone=Math.max(0,Math.floor(elapsed/86400000)), totalDays=Math.ceil(total/86400000);
+    document.getElementById('prog-elapsed').textContent = daysGone;
+    document.getElementById('prog-total').textContent   = totalDays;
+    document.getElementById('prog-pct').textContent     = pct.toFixed(1);
+    document.getElementById('prog-fill').style.width    = pct+'%';
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ── Ahorro ────────────────────────────────────
+  function fmt(n){return n.toLocaleString('es-ES');}
+
+  function renderMoney(amount) {
+    const mp = META > 0 ? Math.min(100, Math.round(amount / META * 100)) : 0;
+    document.getElementById('money-saved').textContent = fmt(amount);
+    document.getElementById('money-pct').textContent   = mp;
+    document.getElementById('money-left').textContent  = fmt(Math.max(0, META - amount));
+    document.getElementById('money-fill').style.width  = mp + '%';
+  }
+
+  // Inicializar meta (fija)
+  document.getElementById('money-goal').textContent = fmt(META);
+
+  // ── JSONbin sync ──────────────────────────────
+  function loadMoneyCfg() {
+    try { return JSON.parse(localStorage.getItem('chile-money') || '{}'); }
+    catch { return {}; }
+  }
+  function saveMoneyCfg(c) {
+    try { localStorage.setItem('chile-money', JSON.stringify(c)); } catch {} }
+
+  async function syncToJsonbin(amount, binId, apiKey) {
+    const themeCfg = loadCfg();
+    const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
+      body: JSON.stringify({
+        ahorrado: amount, meta: META,
+        mode: themeCfg.mode, dayStart: themeCfg.dayStart, dayEnd: themeCfg.dayEnd
+      })
+    });
+    if (!resp.ok) throw new Error(resp.status);
+  }
+
+  async function fetchFromJsonbin() {
+    const mc = loadMoneyCfg();
+    if (!mc.binId || !mc.apiKey) return;
+    try {
+      const resp = await fetch(`https://api.jsonbin.io/v3/b/${mc.binId}/latest`, {
+        headers: { 'X-Master-Key': mc.apiKey }
+      });
+      const rec = (await resp.json())?.record;
+      if (!rec) return;
+      // Sync savings
+      if (typeof rec.ahorrado === 'number' && rec.ahorrado !== mc.amount) {
+        renderMoney(rec.ahorrado);
+        mc.amount = rec.ahorrado;
+        saveMoneyCfg(mc);
+      }
+      // Sync mode
+      if (rec.mode) {
+        const cur = loadCfg();
+        const next = { mode: rec.mode, dayStart: rec.dayStart || cur.dayStart, dayEnd: rec.dayEnd || cur.dayEnd };
+        if (JSON.stringify(next) !== JSON.stringify(cur)) { saveCfg(next); applyTheme(next.mode); }
+      }
+    } catch(e) {}
+  }
+
+  // Polling cada 30 s → sincroniza automáticamente entre dispositivos
+  setInterval(fetchFromJsonbin, 30000);
+
+  // Arranque: usa valor cacheado → luego intenta JSONbin
+  (async () => {
+    const cfg = loadMoneyCfg();
+    renderMoney(cfg.amount ?? AHORRADO);
+    setTimeout(() => document.getElementById('money-fill').style.width = (META > 0 ? Math.min(100, Math.round((cfg.amount ?? AHORRADO) / META * 100)) : 0) + '%', 600);
+    await fetchFromJsonbin();
+  })();
+
+  // ── Modal ahorro (clic ×3 en money-card) ──────
+  let moneyClicks = 0, moneyTimer = null;
+  document.querySelector('.money-card').addEventListener('click', () => {
+    moneyClicks++;
+    clearTimeout(moneyTimer);
+    moneyTimer = setTimeout(() => { moneyClicks = 0; }, 1400);
+    if (moneyClicks >= 3) { moneyClicks = 0; openMoneyPanel(); }
+  });
+
+  async function openMoneyPanel() {
+    // Sync from JSONbin first so we show the latest amount
+    await fetchFromJsonbin();
+    const cfg = loadMoneyCfg();
+    document.getElementById('new-amount').value = cfg.amount ?? AHORRADO;
+    document.getElementById('jb-bin').value = cfg.binId ?? '';
+    document.getElementById('jb-key').value = cfg.apiKey ?? '';
+    document.getElementById('money-status').textContent = '';
+    document.getElementById('money-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('new-amount').focus(), 100);
+  }
+
+  document.getElementById('money-close').addEventListener('click', () => {
+    document.getElementById('money-overlay').classList.remove('open');
+  });
+  document.getElementById('money-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) document.getElementById('money-overlay').classList.remove('open');
+  });
+
+  document.getElementById('money-save').addEventListener('click', async () => {
+    const amount = parseInt(document.getElementById('new-amount').value, 10);
+    if (isNaN(amount) || amount < 0) return;
+    const binId  = document.getElementById('jb-bin').value.trim();
+    const apiKey = document.getElementById('jb-key').value.trim();
+    saveMoneyCfg({ amount, binId, apiKey });
+    renderMoney(amount);
+    const status = document.getElementById('money-status');
+    if (binId && apiKey) {
+      status.textContent = 'Sincronizando...';
+      try {
+        await syncToJsonbin(amount, binId, apiKey);
+        status.textContent = '✓ Sincronizado con el widget de Júlia';
+      } catch(e) {
+        status.textContent = '✗ Error al sincronizar. Revisa el Bin ID y el Master Key.';
+      }
+    } else {
+      status.textContent = 'Guardado localmente (sin JSONbin configurado)';
+      setTimeout(() => document.getElementById('money-overlay').classList.remove('open'), 1200);
+    }
+  });
+
+  // ── Calendario ────────────────────────────────
+  const MN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const DOW=['L','M','X','J','V','S','D'];
+
+  (function buildCalendar(){
+    const grid=document.getElementById('months-grid');
+    const today=new Date(); today.setHours(0,0,0,0);
+    const months=[{y:2026,m:8},{y:2026,m:9},{y:2026,m:10},{y:2026,m:11},{y:2027,m:0},{y:2027,m:1},{y:2027,m:2},{y:2027,m:3},{y:2027,m:4},{y:2027,m:5},{y:2027,m:6},{y:2027,m:7}];
+    months.forEach(({y,m})=>{
+      const card=document.createElement('div');
+      const firstD=new Date(y,m,1), lastDay=new Date(y,m+1,0).getDate(), startDow=(firstD.getDay()+6)%7;
+      const isNow=today.getFullYear()===y&&today.getMonth()===m, isTarget=y===2027&&m===7, isPast=new Date(y,m+1,0)<today;
+      card.className='month-card'+(isNow?' is-current':'')+(isTarget?' is-target':'');
+      const nm=document.createElement('div'); nm.className='month-name '+(isPast?'past':isNow?'now':isTarget?'target':''); nm.textContent=MN[m].slice(0,3).toUpperCase()+' '+y; card.appendChild(nm);
+      const dr=document.createElement('div'); dr.className='dow-row'; DOW.forEach(d=>{const e=document.createElement('div');e.className='dow';e.textContent=d;dr.appendChild(e);}); card.appendChild(dr);
+      const dg=document.createElement('div'); dg.className='days-grid';
+      for(let i=0;i<startDow;i++) dg.appendChild(document.createElement('div'));
+      for(let d=1;d<=lastDay;d++){
+        const date=new Date(y,m,d,0,0,0); const cell=document.createElement('div');
+        let cls='dc';
+        if(date<today) cls+=' past'; else if(date.getTime()===today.getTime()) cls+=' today'; else if(y===2027&&m===7&&d===1) cls+=' target-day';
+        cell.className=cls; cell.textContent=d; dg.appendChild(cell);
+      }
+      card.appendChild(dg); grid.appendChild(card);
+    });
+  })();
+</script>
+</body>
+</html>
