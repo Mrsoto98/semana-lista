@@ -764,25 +764,35 @@
   }
 
   async function fetchFromJsonbin() {
-    const { binId, apiKey } = getCreds(); // siempre tiene credenciales (hardcodeadas o del usuario)
+    const { binId, apiKey } = getCreds();
     try {
       const resp = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
         headers: { 'X-Master-Key': apiKey }
       });
+      if (!resp.ok) return;
       const rec = (await resp.json())?.record;
       if (!rec) return;
-      // Sync savings
+
+      // Sync savings (siempre aplica lo que viene del JSONbin)
       const mc = loadMoneyCfg();
-      if (typeof rec.ahorrado === 'number' && rec.ahorrado !== mc.amount) {
-        renderMoney(rec.ahorrado);
-        mc.amount = rec.ahorrado;
-        saveMoneyCfg(mc);
+      if (typeof rec.ahorrado === 'number') {
+        if (rec.ahorrado !== mc.amount) {
+          renderMoney(rec.ahorrado);
+          mc.amount = rec.ahorrado;
+          saveMoneyCfg(mc);
+        }
       }
+
       // Sync mode
       if (rec.mode) {
+        // JSONbin tiene modo → aplicarlo siempre (fuente de verdad)
         const cur = loadCfg();
         const next = { mode: rec.mode, dayStart: rec.dayStart || cur.dayStart, dayEnd: rec.dayEnd || cur.dayEnd };
-        if (JSON.stringify(next) !== JSON.stringify(cur)) { saveCfg(next); applyTheme(next.mode); }
+        saveCfg(next);
+        applyTheme(next.mode);
+      } else {
+        // JSONbin no tiene campo mode todavía → subir los ajustes locales para inicializarlo
+        syncToJsonbin(mc.amount ?? AHORRADO, binId, apiKey).catch(() => {});
       }
     } catch(e) {}
   }
