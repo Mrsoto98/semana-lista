@@ -531,7 +531,14 @@
       <div class="sett-lbl">Importe ahorrado</div>
       <div class="money-input-row">
         <span class="money-prefix">€</span>
-        <input type="number" id="new-amount" min="0" max="99999" step="1" placeholder="251">
+        <input type="number" id="new-amount" min="0" max="999999" step="1" placeholder="251">
+      </div>
+    </div>
+    <div class="sett-section">
+      <div class="sett-lbl">Meta de ahorro</div>
+      <div class="money-input-row">
+        <span class="money-prefix">€</span>
+        <input type="number" id="new-meta" min="1" max="9999999" step="100" placeholder="15000">
       </div>
     </div>
     <div class="sett-section">
@@ -726,16 +733,23 @@
   // ── Ahorro ────────────────────────────────────
   function fmt(n){return n.toLocaleString('es-ES');}
 
+  function getMeta() {
+    const mc = loadMoneyCfg();
+    return mc.meta ?? META;
+  }
+
   function renderMoney(amount) {
-    const mp = META > 0 ? Math.min(100, Math.round(amount / META * 100)) : 0;
+    const meta = getMeta();
+    const mp = meta > 0 ? Math.min(100, Math.round(amount / meta * 100)) : 0;
     document.getElementById('money-saved').textContent = fmt(amount);
+    document.getElementById('money-goal').textContent  = fmt(meta);
     document.getElementById('money-pct').textContent   = mp;
-    document.getElementById('money-left').textContent  = fmt(Math.max(0, META - amount));
+    document.getElementById('money-left').textContent  = fmt(Math.max(0, meta - amount));
     document.getElementById('money-fill').style.width  = mp + '%';
   }
 
-  // Inicializar meta (fija)
-  document.getElementById('money-goal').textContent = fmt(META);
+  // Inicializar meta
+  document.getElementById('money-goal').textContent = fmt(getMeta());
 
   // ── JSONbin sync ──────────────────────────────
   function loadMoneyCfg() {
@@ -758,7 +772,7 @@
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
       body: JSON.stringify({
-        ahorrado: amount, meta: META,
+        ahorrado: amount, meta: getMeta(),
         mode: themeCfg.mode, dayStart: themeCfg.dayStart, dayEnd: themeCfg.dayEnd
       })
     });
@@ -775,15 +789,16 @@
       const rec = (await resp.json())?.record;
       if (!rec) return;
 
-      // Sync savings (siempre aplica lo que viene del JSONbin)
+      // Sync savings y meta (siempre aplica lo que viene del JSONbin)
       const mc = loadMoneyCfg();
-      if (typeof rec.ahorrado === 'number') {
-        if (rec.ahorrado !== mc.amount) {
-          renderMoney(rec.ahorrado);
-          mc.amount = rec.ahorrado;
-          saveMoneyCfg(mc);
-        }
+      let changed = false;
+      if (typeof rec.ahorrado === 'number' && rec.ahorrado !== mc.amount) {
+        mc.amount = rec.ahorrado; changed = true;
       }
+      if (typeof rec.meta === 'number' && rec.meta !== mc.meta) {
+        mc.meta = rec.meta; changed = true;
+      }
+      if (changed) { saveMoneyCfg(mc); renderMoney(mc.amount ?? AHORRADO); }
 
       // Sync mode
       if (rec.mode) {
@@ -806,7 +821,7 @@
   (async () => {
     const cfg = loadMoneyCfg();
     renderMoney(cfg.amount ?? AHORRADO);
-    setTimeout(() => document.getElementById('money-fill').style.width = (META > 0 ? Math.min(100, Math.round((cfg.amount ?? AHORRADO) / META * 100)) : 0) + '%', 600);
+    setTimeout(() => renderMoney(cfg.amount ?? AHORRADO), 600);
     await fetchFromJsonbin();
   })();
 
@@ -820,11 +835,11 @@
   });
 
   async function openMoneyPanel() {
-    // Sync from JSONbin first so we show the latest amount
     await fetchFromJsonbin();
     const cfg = loadMoneyCfg();
     document.getElementById('new-amount').value = cfg.amount ?? AHORRADO;
-    document.getElementById('jb-bin').value = cfg.binId ?? '';
+    document.getElementById('new-meta').value   = cfg.meta   ?? META;
+    document.getElementById('jb-bin').value = cfg.binId  ?? '';
     document.getElementById('jb-key').value = cfg.apiKey ?? '';
     document.getElementById('money-status').textContent = '';
     document.getElementById('money-overlay').classList.add('open');
@@ -840,10 +855,12 @@
 
   document.getElementById('money-save').addEventListener('click', async () => {
     const amount = parseInt(document.getElementById('new-amount').value, 10);
+    const meta   = parseInt(document.getElementById('new-meta').value, 10);
     if (isNaN(amount) || amount < 0) return;
+    if (isNaN(meta)   || meta   < 1) return;
     const binId  = document.getElementById('jb-bin').value.trim();
     const apiKey = document.getElementById('jb-key').value.trim();
-    saveMoneyCfg({ amount, binId, apiKey });
+    saveMoneyCfg({ amount, meta, binId, apiKey });
     renderMoney(amount);
     const status = document.getElementById('money-status');
     const { binId: activeBinId, apiKey: activeApiKey } = getCreds();
