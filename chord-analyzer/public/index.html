@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Chord Analyzer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── SEARCH SECTION ───────────────────────────────────────────────── -->
+<div id="search-section">
+  <div class="app-logo">
+    <h1>🎸 Chord Analyzer</h1>
+    <p>Detecta acordes de cualquier canción de YouTube</p>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Buscar canción en YouTube..." autocomplete="off">
+    <button id="search-btn">Buscar</button>
+  </div>
+  <div id="search-results" class="hidden"></div>
+</div>
+
+<!-- ── PLAYER SECTION ───────────────────────────────────────────────── -->
+<div id="player-section" class="hidden">
+
+  <!-- Song info -->
+  <div id="song-info">
+    <img id="song-thumbnail" src="" alt="">
+    <div id="song-meta">
+      <div id="song-title">—</div>
+      <div id="song-artist">—</div>
+    </div>
+    <button id="back-btn">← Volver</button>
+  </div>
+
+  <!-- Loading / Analysis -->
+  <div id="loading-state" class="hidden">
+    <div class="spinner"></div>
+    <p id="loading-text">Descargando audio...</p>
+    <div class="analysis-bar"><div id="analysis-fill"></div></div>
+  </div>
+
+  <!-- Player view (shown after analysis) -->
+  <div id="player-view" class="hidden">
+
+    <!-- Waveform + Chord Timeline -->
+    <div id="timeline-section">
+      <canvas id="timeline-canvas"></canvas>
+    </div>
+
+    <!-- Current Chord + Stats -->
+    <div id="chord-stats-row">
+      <div id="current-chord-card">
+        <div id="current-chord-name">—</div>
+        <div id="current-chord-type"></div>
+      </div>
+      <div id="song-stats">
+        <div class="stat-item">
+          <span class="stat-label">BPM</span>
+          <span class="stat-value" id="bpm-display">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Tono</span>
+          <span class="stat-value" id="key-display">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chord Diagrams + Tabs -->
+    <div id="diagrams-section">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="acordes">Acordes</button>
+        <button class="tab-btn" data-tab="letra">Letra</button>
+      </div>
+
+      <!-- Acordes tab -->
+      <div id="tab-acordes" class="tab-panel active">
+        <div id="diagrams-scroll"></div>
+      </div>
+
+      <!-- Letra tab -->
+      <div id="tab-letra" class="tab-panel">
+        <div id="lyrics-container">
+          <p class="no-lyrics">Sin letra disponible</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls-section">
+      <div class="control-params">
+        <div class="param-group">
+          <span class="param-label">Semitono (Altura)</span>
+          <div class="stepper">
+            <button class="step-btn" id="semi-down">−</button>
+            <span class="step-value" id="semi-display">0</span>
+            <button class="step-btn" id="semi-up">+</button>
+          </div>
+        </div>
+        <div class="param-group">
+          <span class="param-label">Velocidad</span>
+          <div class="stepper">
+            <button class="step-btn" id="speed-down">−</button>
+            <span class="step-value" id="speed-display">×1.00</span>
+            <button class="step-btn" id="speed-up">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-row">
+        <span class="time-label" id="time-current">0:00</span>
+        <div class="progress-track" id="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+          <div class="progress-thumb" id="progress-thumb"></div>
+        </div>
+        <span class="time-label" id="time-total">0:00</span>
+      </div>
+
+      <div class="playback-row">
+        <button class="ctrl-btn" id="seek-back" title="−10s">⏮</button>
+        <button class="ctrl-btn main" id="play-pause">▶</button>
+        <button class="ctrl-btn" id="seek-fwd" title="+10s">⏭</button>
+      </div>
+    </div>
+
+  </div><!-- /player-view -->
+</div><!-- /player-section -->
+
+<script src="chord-data.js"></script>
+<script src="audio-analyzer.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

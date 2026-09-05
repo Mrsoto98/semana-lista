@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: chord-analyzer
+    env: node
+    plan: free
+    rootDir: chord-analyzer
+    buildCommand: npm install && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp && chmod +x yt-dlp
+    startCommand: node server.js
+    healthCheckPath: /api/search?q=test
