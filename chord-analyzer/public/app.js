@@ -64,9 +64,28 @@ function getTransposedChord(chord) {
 }
 
 // ── Search ─────────────────────────────────────────────────────────────────────
+function extractYouTubeId(text) {
+  const m = text.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
 async function doSearch() {
   const q = searchInput.value.trim();
   if (!q) return;
+
+  // Direct YouTube URL → load without searching
+  const directId = extractYouTubeId(q);
+  if (directId) {
+    searchResults.classList.add('hidden');
+    try {
+      const oembed = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${directId}&format=json`).then(r => r.json());
+      loadVideo(directId, oembed.title || 'YouTube Video', oembed.author_name || '', oembed.thumbnail_url || '');
+    } catch {
+      loadVideo(directId, 'YouTube Video', '', '');
+    }
+    return;
+  }
+
   searchBtn.textContent = '...';
   searchBtn.disabled = true;
   searchResults.classList.remove('hidden');
