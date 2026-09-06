@@ -68,16 +68,17 @@ app.get('/api/audio/:videoId', async (req, res) => {
   console.log('Streaming:', url);
 
   const args = [
-    '--format', 'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio',
+    '--format', 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio',
     '--output', '-',
     '--quiet',
     '--no-warnings',
     '--no-playlist',
+    '--no-part',
     url,
   ];
 
   const proc = spawn(YTDLP, args);
-  res.setHeader('Content-Type', 'audio/webm');
+  res.setHeader('Content-Type', 'application/octet-stream');
   res.setHeader('Cache-Control', 'no-store');
 
   proc.stdout.pipe(res);
