@@ -69,23 +69,39 @@ app.get('/api/audio/:videoId', async (req, res) => {
 
   const args = [
     '--format', 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio',
+    '--extractor-args', 'youtube:player_client=ios,web',
     '--output', '-',
     '--quiet',
     '--no-warnings',
     '--no-playlist',
-    '--no-part',
     url,
   ];
 
   const proc = spawn(YTDLP, args);
-  res.setHeader('Content-Type', 'application/octet-stream');
-  res.setHeader('Cache-Control', 'no-store');
-
-  proc.stdout.pipe(res);
+  let stderrData = '';
+  let streaming = false;
 
   proc.stderr.on('data', d => {
-    const msg = d.toString().trim();
-    if (msg) console.warn('yt-dlp:', msg);
+    stderrData += d.toString();
+  });
+
+  proc.stdout.on('data', chunk => {
+    if (!streaming) {
+      streaming = true;
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Cache-Control', 'no-store');
+    }
+    res.write(chunk);
+  });
+
+  proc.on('close', code => {
+    if (!streaming) {
+      const errMsg = stderrData.trim() || `yt-dlp exited with code ${code}`;
+      console.error('yt-dlp produced no audio:', errMsg);
+      if (!res.headersSent) res.status(500).json({ error: errMsg });
+    } else {
+      res.end();
+    }
   });
 
   proc.on('error', err => {

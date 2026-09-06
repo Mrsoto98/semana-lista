@@ -159,7 +159,10 @@ async function loadVideo(videoId, title, author, thumbUrl) {
     analysisFill.style.width = '0%';
 
     const response = await fetch(`/api/audio/${videoId}`);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${response.status}`);
+    }
 
     const reader = response.body.getReader();
     const contentLength = +response.headers.get('Content-Length') || 0;
