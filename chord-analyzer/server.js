@@ -61,6 +61,28 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
+// ── Cookies support (Render Secret File or env var) ───────────────────────────
+const COOKIES_FILE = '/etc/secrets/yt-cookies.txt';  // Render Secret Files path
+
+function getCookiesArgs() {
+  if (fs.existsSync(COOKIES_FILE)) {
+    console.log('✓ Using YouTube cookies from Secret File');
+    return ['--cookies', COOKIES_FILE];
+  }
+  // Also support base64-encoded env var as fallback
+  const b64 = process.env.YOUTUBE_COOKIES_B64;
+  if (b64) {
+    const tmpCookies = path.join(__dirname, '.yt-cookies.txt');
+    try {
+      fs.writeFileSync(tmpCookies, Buffer.from(b64, 'base64').toString('utf8'));
+      console.log('✓ Using YouTube cookies from env var');
+      return ['--cookies', tmpCookies];
+    } catch (_) {}
+  }
+  console.warn('⚠ No YouTube cookies found — extraction may fail on cloud IPs');
+  return [];
+}
+
 // ── Audio stream via yt-dlp ────────────────────────────────────────────────────
 app.get('/api/audio/:videoId', async (req, res) => {
   const { videoId } = req.params;
@@ -69,7 +91,7 @@ app.get('/api/audio/:videoId', async (req, res) => {
 
   const args = [
     '--format', 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio',
-    '--extractor-args', 'youtube:player_client=ios,web',
+    ...getCookiesArgs(),
     '--output', '-',
     '--quiet',
     '--no-warnings',
