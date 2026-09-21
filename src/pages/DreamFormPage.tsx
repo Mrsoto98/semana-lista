@@ -186,7 +186,7 @@ export default function DreamFormPage() {
         </motion.button>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8 relative z-10" style={{ maxWidth: 600, margin: '0 auto', width: '100%' }}>
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-8 relative z-10" style={{ maxWidth: 600, margin: '0 auto', width: '100%' }}>
 
         {/* Body — main field */}
         <div className="mb-4 relative">
