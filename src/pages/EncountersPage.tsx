@@ -129,7 +129,7 @@ export default function EncountersPage() {
         </div>
       </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-24">
         {isLoading ? (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => <div key={i} className="glass-card h-36 shimmer" />)}

@@ -14,7 +14,7 @@ export function AppShell() {
       <CosmicBackground />
 
       {/* Page content */}
-      <main className="relative pb-24" style={{ zIndex: 1 }}>
+      <main className="relative" style={{ zIndex: 1 }}>
         <Outlet />
       </main>
 
