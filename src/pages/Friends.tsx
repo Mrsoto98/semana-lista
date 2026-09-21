@@ -140,7 +140,7 @@ export default function Friends() {
   }
 
   return (
-    <div className="animate-fade-in flex flex-col gap-5">
+    <div className="animate-fade-in flex flex-col gap-5 pb-36">
 
       {/* ── Mi número de soñador ── */}
       <div className="glass-card rounded-2xl p-4 flex items-center gap-4">

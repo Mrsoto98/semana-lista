@@ -189,7 +189,7 @@ export default function Settings() {
   const initials = name?.[0]?.toUpperCase() ?? '?'
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in pb-36">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">

@@ -548,7 +548,7 @@ function WBTBTimer() {
 
 export default function LucidTechniques() {
   return (
-    <div className="animate-fade-in flex flex-col gap-6 pb-6">
+    <div className="animate-fade-in flex flex-col gap-6 pb-36">
       {/* Header */}
       <div className="glass rounded-3xl p-6">
         <div className="flex items-start gap-4">
