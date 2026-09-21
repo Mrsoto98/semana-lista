@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { friendsApi } from '../lib/queries'
 import { formatUserNumber } from '../lib/formatUserNumber'
 import { useAuthStore } from '../lib/store'
@@ -276,7 +276,7 @@ export default function Friends() {
         </h3>
         {accepted.length === 0 ? (
           <div className="text-center py-10 glass-card rounded-2xl">
-            <div className="text-4xl mb-3 animate-float inline-block">🌙</div>
+            <div className="text-4xl mb-3 animate-float inline-block">�™</div>
             <p className="text-white/40 text-sm font-medium">Aún no tienes soñadores conectados</p>
             <p className="text-white/20 text-xs mt-1">Busca por número de soñador o email</p>
           </div>
@@ -305,3 +305,4 @@ export default function Friends() {
     </div>
   )
 }
+

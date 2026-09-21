@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { authApi } from '../lib/queries'
 import { signInWithGoogle } from '../lib/supabase'
 import { applyTheme, DEFAULT_THEME } from '../lib/themes'
@@ -44,7 +44,7 @@ export default function Register() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="glass rounded-2xl p-10 text-center max-w-sm w-full">
-          <div className="text-5xl mb-4">📬</div>
+          <div className="text-5xl mb-4">�¬</div>
           <h2 className="text-xl font-bold text-white mb-2">Revisa tu correo</h2>
           <p className="text-white/40 text-sm mb-6">
             Te hemos enviado un enlace de verificación. Confírmalo para empezar.
@@ -66,7 +66,7 @@ export default function Register() {
 
       <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4 animate-float inline-block">🌙</div>
+          <div className="text-6xl mb-4 animate-float inline-block">�™</div>
           <h1 className="text-2xl font-bold text-white accent-glow">Bitácora del Sueño</h1>
           <p className="text-white/30 mt-1 text-sm">Empieza tu diario de sueños</p>
         </div>
@@ -123,3 +123,4 @@ export default function Register() {
     </div>
   )
 }
+

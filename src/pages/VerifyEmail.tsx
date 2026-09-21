@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router'
 import { api } from '../lib/api'
 
 export default function VerifyEmail() {
@@ -43,3 +43,4 @@ export default function VerifyEmail() {
     </div>
   )
 }
+

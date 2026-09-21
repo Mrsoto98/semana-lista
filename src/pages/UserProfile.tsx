@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+﻿import { useState } from 'react'
+import { useParams, useNavigate } from 'react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { formatUserNumber } from '../lib/formatUserNumber'
@@ -206,3 +206,4 @@ export default function UserProfile() {
     </div>
   )
 }
+

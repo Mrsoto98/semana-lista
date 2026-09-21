@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { feedApi, likesApi } from '../lib/queries'
 import { CommentSection } from '../components/dreams/CommentSection'
 import { useAuthStore } from '../lib/store'
@@ -10,9 +10,9 @@ type Tab  = 'friends' | 'public'
 type Sort = 'recent' | 'popular'
 
 const VIS_BADGE: Record<Visibility, { icon: string; color: string }> = {
-  private: { icon: '🔒', color: 'text-white/30' },
-  friends: { icon: '👥', color: 'text-blue-400/60' },
-  public:  { icon: '🌐', color: 'text-emerald-400/60' },
+  private: { icon: '�’', color: 'text-white/30' },
+  friends: { icon: '�¥', color: 'text-blue-400/60' },
+  public:  { icon: '�', color: 'text-emerald-400/60' },
 }
 
 // ── Like button ───────────────────────────────────────────────
@@ -109,7 +109,7 @@ export default function Feed() {
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               tab === t ? 'glass-nav-active text-white' : 'text-white/40 hover:text-white/60'
             }`}>
-            {t === 'friends' ? '👥 Amigos' : '🌐 Social'}
+            {t === 'friends' ? '�¥ Amigos' : '� Social'}
           </button>
         ))}
       </div>
@@ -138,7 +138,7 @@ export default function Feed() {
       ) : dreams.length === 0 ? (
         <div className="text-center py-16 animate-scale-in">
           <div className="text-6xl mb-4 animate-float inline-block">
-            {tab === 'friends' ? '👥' : '🌐'}
+            {tab === 'friends' ? '�¥' : '�'}
           </div>
           <p className="text-white/50 font-medium">
             {tab === 'friends' ? 'Aún no hay sueños de tus amigos' : 'No hay sueños públicos todavía'}
@@ -254,3 +254,4 @@ export default function Feed() {
     </div>
   )
 }
+

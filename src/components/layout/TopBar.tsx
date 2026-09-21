@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router'
 import { useAuthStore } from '../../lib/store'
 
 const PAGE_TITLES: Record<string, string> = {
@@ -26,7 +26,7 @@ export function TopBar({ onOpenTutorial }: Props) {
     <header className="glass-header sticky top-0 z-40 flex items-center justify-between px-4 h-14">
       {/* Logo + title */}
       <div className="flex items-center gap-2.5">
-        <span className="text-xl leading-none select-none">🌙</span>
+        <span className="text-xl leading-none select-none">�™</span>
         <span className="text-sm font-semibold text-white/90">{title}</span>
       </div>
 
@@ -59,3 +59,4 @@ export function TopBar({ onOpenTutorial }: Props) {
     </header>
   )
 }
+

@@ -1,7 +1,7 @@
 import { useState, lazy, Suspense, useMemo } from 'react'
 const StatsContent = lazy(() => import('./Stats'))
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { dreamsApi, friendsApi } from '../lib/queries'
 import { useAuthStore } from '../lib/store'
 import { DreamForm } from '../components/dreams/DreamForm'
@@ -25,7 +25,7 @@ function StreakBadge({ streak }: { streak: number }) {
         boxShadow: '0 0 16px rgba(251,146,60,0.2)',
       }}
     >
-      <span className="text-base leading-none" style={{ filter: 'drop-shadow(0 0 6px rgba(251,146,60,0.7))' }}>🔥</span>
+      <span className="text-base leading-none" style={{ filter: 'drop-shadow(0 0 6px rgba(251,146,60,0.7))' }}>�¥</span>
       <div>
         <p className="text-sm font-bold text-orange-300 leading-none">{streak}</p>
         <p className="text-[9px] text-orange-300/50 leading-none">día{streak !== 1 ? 's' : ''}</p>
@@ -132,7 +132,7 @@ export default function Diary() {
             )}
             {user?.birth_date && user?.birth_visibility !== 'none' && (
               <p className="text-xs text-white/35 mt-1">
-                {'🎂 '}{user.birth_visibility === 'age'
+                {'�‚ '}{user.birth_visibility === 'age'
                   ? `${Math.floor((Date.now() - new Date(user.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años`
                   : new Date(user.birth_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
                 }
@@ -175,7 +175,7 @@ export default function Diary() {
         className="w-full flex items-center justify-between px-4 py-3 glass-card rounded-2xl mb-3 transition-all active:scale-[0.99]"
       >
         <div className="flex items-center gap-2">
-          <span className="text-base">📊</span>
+          <span className="text-base">�Š</span>
           <span className="text-sm font-medium text-white/70">Mis estadísticas</span>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
@@ -209,7 +209,7 @@ export default function Diary() {
         </div>
       ) : dreams.length === 0 ? (
         <div className="text-center py-14 animate-scale-in">
-          <div className="text-6xl mb-4 animate-float inline-block">🌙</div>
+          <div className="text-6xl mb-4 animate-float inline-block">�™</div>
           <p className="text-white/50 font-medium">Sin sueños registrados aún</p>
           <p className="text-white/25 text-sm mt-1">Los sueños se olvidan en minutos — anótalos ahora.</p>
         </div>
@@ -263,3 +263,4 @@ export default function Diary() {
     </div>
   )
 }
+

@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useAuthStore } from '../lib/store'
-import { userApi, authApi } from '../lib/queries'
-import { formatUserNumber } from '../lib/formatUserNumber'
 import { supabase } from '../lib/supabase'
+import { formatUserNumber } from '../lib/formatUserNumber'
 import { ThemePicker } from '../components/ui/ThemePicker'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import type { Visibility } from '../types'
@@ -62,41 +61,50 @@ function NotebookSkinPicker() {
 const VIS_OPTIONS: { value: Visibility; icon: string; label: string; desc: string }[] = [
   { value: 'private', icon: '🔒', label: 'Privado',  desc: 'Solo tú puedes verlos' },
   { value: 'friends', icon: '👥', label: 'Amigos',   desc: 'Solo tus amigos' },
-  { value: 'public',  icon: '🌐', label: 'Público',  desc: 'Todo el mundo' },
+  { value: 'public',  icon: '🌍', label: 'Público',  desc: 'Todo el mundo' },
 ]
+
+const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
 
 export default function Settings() {
   const navigate = useNavigate()
   const { user, setAuth, logout, accessToken, refreshToken } = useAuthStore()
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Fetch fresh profile (gets user_number)
-  const { data: profile } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => authApi.me().then(r => r.data),
+  const { data: freshProfile } = useQuery({
+    queryKey: ['my-profile-settings', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user!.id)
+        .single()
+      return data
+    },
+    enabled: !!user,
   })
-  const currentUser = profile ?? user
+  const currentUser = freshProfile ?? user
 
-  const [name, setName]         = useState(user?.name ?? '')
-  const [bio, setBio]           = useState(user?.bio ?? '')
-  const [instagram, setInstagram] = useState(user?.instagram_username ?? '')
-  const [vis, setVis]           = useState<Visibility>(user?.default_visibility ?? 'private')
-  const [saved, setSaved]       = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url ?? null)
-  const [lightbox, setLightbox]   = useState(false)
+  const [name,       setName]       = useState(user?.name ?? '')
+  const [bio,        setBio]        = useState(user?.bio ?? '')
+  const [instagram,  setInstagram]  = useState(user?.instagram_username ?? '')
+  const [vis,        setVis]        = useState<Visibility>(user?.default_visibility ?? 'private')
+  const [saved,      setSaved]      = useState(false)
+  const [uploading,  setUploading]  = useState(false)
+  const [avatarUrl,  setAvatarUrl]  = useState<string | null>(user?.avatar_url ?? null)
+  const [lightbox,   setLightbox]   = useState(false)
   const [avatarMode, setAvatarMode] = useState<'photo' | 'emoji'>(user?.avatar_emoji ? 'emoji' : 'photo')
   const [selectedEmoji, setSelectedEmoji] = useState(user?.avatar_emoji ?? '🌙')
-  const [birthDate, setBirthDate] = useState(user?.birth_date ?? '')
-  const [birthText, setBirthText] = useState(() => {
+  const [birthDate,  setBirthDate]  = useState(user?.birth_date ?? '')
+  const [birthText,  setBirthText]  = useState(() => {
     if (!user?.birth_date) return ''
     const [y, m, d] = user.birth_date.split('-')
     return `${d}/${m}/${y}`
   })
   const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'none'>(user?.birth_visibility ?? 'age')
   const [deleteModal, setDeleteModal] = useState(false)
-  const [deleteText, setDeleteText]   = useState('')
-  const [deleting, setDeleting]       = useState(false)
+  const [deleteText,  setDeleteText]  = useState('')
+  const [deleting,    setDeleting]    = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -106,13 +114,17 @@ export default function Settings() {
     try {
       const ext  = file.name.split('.').pop()
       const path = `${user.id}/avatar.${ext}`
-      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-      if (error) throw error
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
       const url = data.publicUrl + `?t=${Date.now()}`
-      await userApi.updateProfile({ avatar_url: url })
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: url })
+        .eq('id', user.id)
+      if (updateError) throw updateError
       setAvatarUrl(url)
-      if (user) setAuth({ ...user, avatar_url: url }, accessToken!, refreshToken!)
+      setAuth({ ...user, avatar_url: url }, accessToken!, refreshToken!)
     } catch (err) {
       console.error('Error subiendo foto:', err)
     } finally {
@@ -120,10 +132,8 @@ export default function Settings() {
     }
   }
 
-  const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
-
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const updates: Record<string, unknown> = {
         name, bio, default_visibility: vis,
         instagram_username: instagram.replace('@', '').trim() || null,
@@ -132,9 +142,16 @@ export default function Settings() {
       }
       if (avatarMode === 'emoji') {
         updates.avatar_emoji = selectedEmoji
-        updates.avatar_url = null
+        updates.avatar_url   = null
       }
-      return userApi.updateProfile(updates).then(r => r.data)
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user!.id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
     },
     onSuccess: (updated) => {
       if (user) setAuth({ ...user, ...updated }, accessToken!, refreshToken!)
@@ -144,9 +161,9 @@ export default function Settings() {
   })
 
   async function handleLogout() {
-    await authApi.logout().catch(() => {})
+    await supabase.auth.signOut().catch(() => {})
     logout()
-    navigate('/login')
+    navigate('/entrada')
   }
 
   async function handleDeleteAccount() {
@@ -154,11 +171,10 @@ export default function Settings() {
     setDeleting(true)
     setDeleteError('')
     try {
-      // Call a SECURITY DEFINER Postgres function that deletes auth.users by auth.uid()
       const { error } = await supabase.rpc('delete_own_account')
       if (error) throw error
       logout()
-      navigate('/login')
+      navigate('/entrada')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error desconocido'
       setDeleteError(`Error al eliminar la cuenta: ${msg}`)
@@ -183,7 +199,7 @@ export default function Settings() {
         <h1 className="text-lg font-bold text-white">Editar perfil</h1>
       </div>
 
-      {/* Avatar */}
+      {/* Avatar preview */}
       <div className="flex flex-col items-center mb-6">
         <div className="relative">
           <button onClick={() => avatarUrl && setLightbox(true)} className="block">
@@ -196,7 +212,6 @@ export default function Settings() {
               </div>
             )}
           </button>
-          {/* Upload button */}
           <button onClick={() => fileRef.current?.click()}
             disabled={uploading}
             className="absolute -bottom-1 -right-1 w-8 h-8 glass-btn-primary rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-50">
@@ -213,7 +228,7 @@ export default function Settings() {
         <p className="text-[11px] text-white/30 mt-2">Foto de perfil</p>
       </div>
 
-      {/* Avatar mode tabs */}
+      {/* Avatar mode */}
       <div className="glass rounded-3xl p-5 mb-4">
         <label className="text-[11px] text-white/40 uppercase tracking-wider mb-3 block">Avatar</label>
         <div className="flex rounded-xl bg-white/5 p-1 gap-1 mb-4">
@@ -474,7 +489,6 @@ export default function Settings() {
           onClick={e => { if (e.target === e.currentTarget && !deleting) setDeleteModal(false) }}>
           <div className="glass-card rounded-2xl p-6 w-full max-w-sm animate-scale-in">
 
-            {/* Warning icon */}
             <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">

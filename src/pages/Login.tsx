@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 import { authApi } from '../lib/queries'
 import { signInWithGoogle } from '../lib/supabase'
 import { useAuthStore } from '../lib/store'
@@ -90,7 +90,7 @@ export default function Login() {
       <div className="w-full max-w-sm relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4 animate-float inline-block">🌙</div>
+          <div className="text-6xl mb-4 animate-float inline-block">�™</div>
           <h1 className="text-2xl font-bold text-white accent-glow">Bitácora del Sueño</h1>
           <p className="text-white/30 mt-1 text-sm">Tu diario de sueños compartido</p>
         </div>
@@ -203,3 +203,4 @@ export default function Login() {
     </div>
   )
 }
+

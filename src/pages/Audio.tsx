@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import {
   saveRecording, getAllRecordings, deleteRecording,
   formatDuration, formatSize,
@@ -452,7 +452,7 @@ export default function Audio() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0"
               style={{ background: 'rgba(var(--glow-color),0.12)', border: '1px solid rgba(var(--glow-color),0.2)' }}>
-              🔮
+              �®
             </div>
             <div>
               <p className="text-sm font-semibold text-white/90">Técnicas para soñar lúcido</p>
@@ -683,13 +683,13 @@ export default function Audio() {
                         {snoreS > 2 && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
                             style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24' }}>
-                            🟡 {snoreS < 60 ? `${Math.round(snoreS)}s` : `${Math.round(snoreS / 60)}min`} ronquido
+                            �¡ {snoreS < 60 ? `${Math.round(snoreS)}s` : `${Math.round(snoreS / 60)}min`} ronquido
                           </span>
                         )}
                         {talkS > 2 && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
                             style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
-                            🔴 {talkS < 60 ? `${Math.round(talkS)}s` : `${Math.round(talkS / 60)}min`} habla
+                            �´ {talkS < 60 ? `${Math.round(talkS)}s` : `${Math.round(talkS / 60)}min`} habla
                           </span>
                         )}
                         {snoreS <= 2 && talkS <= 2 && segs.length > 0 && (
@@ -777,12 +777,12 @@ export default function Audio() {
         <p className="text-xs text-white/40 uppercase tracking-wider mb-3">Cómo funciona</p>
         <div className="flex flex-col gap-2.5">
           {[
-            { icon: '👂', text: 'Escucha continuamente sin grabar nada' },
-            { icon: '🔊', text: 'Al detectar ruido sobre el umbral, graba y analiza el espectro de frecuencias' },
-            { icon: '🟡', text: 'Ronquidos: energía concentrada en frecuencias bajas (50–400 Hz)' },
-            { icon: '🔴', text: 'Habla: espectro más amplio, frecuencias medias-altas activas' },
-            { icon: '🤫', text: 'Para automáticamente tras 4 segundos de silencio' },
-            { icon: '💾', text: 'Todo se guarda solo en tu dispositivo, sin internet' },
+            { icon: '�‚', text: 'Escucha continuamente sin grabar nada' },
+            { icon: '�Š', text: 'Al detectar ruido sobre el umbral, graba y analiza el espectro de frecuencias' },
+            { icon: '�¡', text: 'Ronquidos: energía concentrada en frecuencias bajas (50–400 Hz)' },
+            { icon: '�´', text: 'Habla: espectro más amplio, frecuencias medias-altas activas' },
+            { icon: '�«', text: 'Para automáticamente tras 4 segundos de silencio' },
+            { icon: '�¾', text: 'Todo se guarda solo en tu dispositivo, sin internet' },
           ].map(({ icon, text }) => (
             <div key={text} className="flex items-start gap-2.5">
               <span className="text-base shrink-0">{icon}</span>
@@ -794,3 +794,4 @@ export default function Audio() {
     </div>
   )
 }
+
