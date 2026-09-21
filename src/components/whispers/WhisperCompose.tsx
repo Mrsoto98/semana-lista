@@ -19,6 +19,7 @@ interface Props {
 
 export function WhisperCompose({ dreamBody, dreamId, onClose, onCreated }: Props) {
   const user = useAuthStore(s => s.user)
+  const [title, setTitle] = useState('')
   const [body, setBody] = useState(dreamBody ?? '')
   const [emotions, setEmotions] = useState<string[]>([])
   const maxLen = 2000
@@ -28,6 +29,7 @@ export function WhisperCompose({ dreamBody, dreamId, onClose, onCreated }: Props
       if (!user) throw new Error('No autenticado')
       const { error } = await supabase.from('whispers').insert({
         user_id: user.id,
+        title: title.trim() || null,
         body: body.trim(),
         emotions: emotions.map((e) => e.toLowerCase()),
         dream_id: dreamId ?? null,
@@ -78,6 +80,17 @@ export function WhisperCompose({ dreamBody, dreamId, onClose, onCreated }: Props
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
+        </div>
+
+        {/* Title */}
+        <div className="mb-3">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value.slice(0, 80))}
+            placeholder="Título (opcional)"
+            className="glass-input px-4 py-3 text-[15px] font-medium"
+            style={{ fontFamily: 'var(--font-serif)' }}
+          />
         </div>
 
         {/* Textarea */}

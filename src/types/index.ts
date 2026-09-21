@@ -1,6 +1,8 @@
 export type Visibility = 'private' | 'friends' | 'public'
 export type FriendshipStatus = 'pending' | 'accepted' | 'blocked'
 export type CoincidenceStatus = 'suggested' | 'accepted' | 'dismissed'
+export type ThemeId = 'cosmos' | 'abismo' | 'selva' | 'petalo'
+export type DiarySkin = 'cosmico' | 'cuero' | 'manuscrito' | 'vidrio' | 'nebulosa' | 'rosa' | 'botanico' | 'terciopelo'
 
 export interface User {
   id: string
@@ -31,15 +33,14 @@ export interface Dream {
   tags: string[]
   emotions: string[]
   allow_comments: boolean
+  allow_whisper?: boolean
   created_at: string
   updated_at: string
-  // joined from dream_analyses
   summary?: string | null
   themes?: string[]
   symbols?: string[]
   emotional_tone?: string | null
   interpretations?: { text: string; confidence: number }[]
-  // engagement
   like_count?: number
   comment_count?: number
 }
@@ -69,6 +70,7 @@ export interface FeedDream extends Dream {
   author_id: string
   author_name: string
   author_avatar: string | null
+  author_avatar_emoji: string | null
   like_count: number
   user_liked: boolean
   comment_count: number
@@ -91,6 +93,7 @@ export interface Friend {
   id: string
   name: string
   avatar_url: string | null
+  avatar_emoji: string | null
   bio: string | null
   status: FriendshipStatus
   direction: 'sent' | 'received'
@@ -104,17 +107,14 @@ export interface Coincidence {
   accepted_a: boolean
   accepted_b: boolean
   created_at: string
-  // my dream
   my_dream_id: string
   my_dream_title: string | null
   my_dream_date: string
   my_dream_tags: string[]
-  // their dream
   their_dream_id: string
   their_dream_date: string
   their_dream_tags: string[]
   their_dream_title: string | null
-  // author (may be anonymized)
   their_user_id: string | null
   their_user_name: string
   their_avatar: string | null
@@ -132,3 +132,26 @@ export interface Stats {
   topTags: { tag: string; count: string }[]
   topSymbols: { symbol: string; count: string }[]
 }
+
+// ── Susurros (Whispers) ────────────────────────────────────────
+export interface Whisper {
+  id: string
+  dream_id: string | null
+  title?: string | null
+  body: string
+  emotions: string[]
+  resono_count: number
+  created_at: string
+  user_resonated?: boolean
+}
+
+export interface WhisperReflection {
+  id: string
+  whisper_id: string
+  body: string
+  created_at: string
+}
+
+export type WhisperFeed = 'recent' | 'popular'
+
+export type WhisperShareStyle = 'cosmico' | 'sereno' | 'neblina' | 'minimalista'
