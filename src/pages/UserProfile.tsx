@@ -1,14 +1,13 @@
 ﻿import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '../lib/api'
+import { supabase } from '../lib/supabase'
 import { formatUserNumber } from '../lib/formatUserNumber'
-import { friendsApi } from '../lib/queries'
 import { useAuthStore } from '../lib/store'
 import type { Dream, Visibility } from '../types'
 
 interface PublicProfile {
-  id: string; name: string; avatar_url: string | null; bio: string | null
+  id: string; name: string; avatar_url: string | null; avatar_emoji: string | null; bio: string | null
   user_number: number | null; friend_count: number; dream_count: number
   instagram_username: string | null
 }
@@ -33,12 +32,39 @@ export default function UserProfile() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['profile', id],
-    queryFn: () => api.get<ProfileResponse>(`/user/${id}/profile`).then(r => r.data),
+    queryFn: async (): Promise<ProfileResponse> => {
+      const [profileRes, dreamsRes, friendsRes, myFriendRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', id!).single(),
+        supabase.from('dreams').select('*').eq('user_id', id!).eq('visibility', 'public').order('dream_date', { ascending: false }).limit(20),
+        supabase.from('friendships').select('*', { count: 'exact', head: true })
+          .or(`requester_id.eq.${id},addressee_id.eq.${id}`).eq('status', 'accepted'),
+        user ? supabase.from('friendships').select('status')
+          .or(`and(requester_id.eq.${user.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${user.id})`)
+          .single() : Promise.resolve({ data: null }),
+      ])
+      const p = profileRes.data
+      const relationship: 'self' | 'friend' | 'stranger' = user?.id === id ? 'self'
+        : myFriendRes.data?.status === 'accepted' ? 'friend' : 'stranger'
+      return {
+        profile: {
+          id: p?.id ?? id!, name: p?.name ?? 'Usuario',
+          avatar_url: p?.avatar_url ?? null, avatar_emoji: p?.avatar_emoji ?? null,
+          bio: p?.bio ?? null, user_number: p?.user_number ?? null,
+          friend_count: friendsRes.count ?? 0,
+          dream_count: dreamsRes.data?.length ?? 0,
+          instagram_username: p?.instagram_username ?? null,
+        },
+        dreams: (dreamsRes.data ?? []) as Dream[],
+        relationship,
+      }
+    },
     enabled: !!id,
   })
 
   const requestMutation = useMutation({
-    mutationFn: () => friendsApi.request(id!),
+    mutationFn: async () => {
+      await supabase.from('friendships').insert({ requester_id: user!.id, addressee_id: id! })
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile', id] }),
   })
 
@@ -81,9 +107,9 @@ export default function UserProfile() {
                 className="w-20 h-20 rounded-full object-cover ring-2 ring-white/15 hover:ring-white/30 transition-all"
                 alt={profile.name} />
             ) : (
-              <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white ring-2 ring-white/15"
+              <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl ring-2 ring-white/15"
                 style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.8), rgba(var(--glass-tint),0.9))' }}>
-                {profile.name?.[0]?.toUpperCase()}
+                {profile.avatar_emoji ?? profile.name?.[0]?.toUpperCase()}
               </div>
             )}
           </button>

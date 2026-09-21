@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
-import { friendsApi } from '../lib/queries'
+import { supabase } from '../lib/supabase'
 import { formatUserNumber } from '../lib/formatUserNumber'
 import { useAuthStore } from '../lib/store'
 import type { Friend } from '../types'
@@ -38,26 +38,62 @@ export default function Friends() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { data: friends = [] } = useQuery({
-    queryKey: ['friends'],
-    queryFn: () => friendsApi.list().then(r => r.data),
-    refetchInterval: 30_000, // poll every 30s for new requests
+    queryKey: ['friends', user?.id],
+    queryFn: async (): Promise<Friend[]> => {
+      if (!user) return []
+      const { data: rows } = await supabase
+        .from('friendships')
+        .select(`
+          requester_id, addressee_id, status, created_at,
+          requester:profiles!friendships_requester_id_fkey(id, name, avatar_url, bio),
+          addressee:profiles!friendships_addressee_id_fkey(id, name, avatar_url, bio)
+        `)
+        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+        .in('status', ['pending', 'accepted'])
+      return (rows ?? []).map((r: any) => {
+        const isSender = r.requester_id === user.id
+        const other = isSender ? r.addressee : r.requester
+        return {
+          id: other?.id ?? '',
+          name: other?.name ?? 'Usuario',
+          avatar_url: other?.avatar_url ?? null,
+          avatar_emoji: null,
+          bio: other?.bio ?? null,
+          status: r.status as Friend['status'],
+          direction: isSender ? 'sent' : 'received',
+        }
+      })
+    },
+    refetchInterval: 30_000,
+    enabled: !!user,
   })
 
   const accepted  = friends.filter(f => f.status === 'accepted')
   const received  = friends.filter(f => f.status === 'pending' && f.direction === 'received')
   const sent      = friends.filter(f => f.status === 'pending' && f.direction === 'sent')
 
-  // ── Mutations ─────────────────────────────────────────────────
-  const acceptMutation  = useMutation({ mutationFn: friendsApi.accept,  onSuccess: () => qc.invalidateQueries({ queryKey: ['friends'] }) })
-  const declineMutation = useMutation({ mutationFn: friendsApi.decline, onSuccess: () => qc.invalidateQueries({ queryKey: ['friends'] }) })
-  const removeMutation  = useMutation({ mutationFn: friendsApi.remove,  onSuccess: () => qc.invalidateQueries({ queryKey: ['friends'] }) })
-  const requestMutation = useMutation({
-    mutationFn: friendsApi.request,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['friends'] })
-      setResults([])
-      setQuery('')
+  const inv = () => qc.invalidateQueries({ queryKey: ['friends', user?.id] })
+
+  const acceptMutation = useMutation({
+    mutationFn: async (otherId: string) => {
+      await supabase.from('friendships').update({ status: 'accepted' })
+        .eq('requester_id', otherId).eq('addressee_id', user!.id)
     },
+    onSuccess: inv,
+  })
+  const declineMutation = useMutation({
+    mutationFn: async (otherId: string) => {
+      await supabase.from('friendships').delete()
+        .or(`and(requester_id.eq.${otherId},addressee_id.eq.${user!.id}),and(requester_id.eq.${user!.id},addressee_id.eq.${otherId})`)
+    },
+    onSuccess: inv,
+  })
+  const removeMutation = declineMutation
+  const requestMutation = useMutation({
+    mutationFn: async (targetId: string) => {
+      await supabase.from('friendships').insert({ requester_id: user!.id, addressee_id: targetId })
+    },
+    onSuccess: () => { inv(); setResults([]); setQuery('') },
   })
 
   // ── Search ────────────────────────────────────────────────────
@@ -68,10 +104,20 @@ export default function Friends() {
     setSearchErr('')
     setSearching(true)
     try {
-      const { data } = await friendsApi.search(q)
-      const list = data as unknown as SearchUser[]
-      setResults(list)
-      if (!list.length) setSearchErr('No se encontró ningún usuario con esa búsqueda.')
+      const numMatch = q.match(/^#?(\d{1,4})$/)
+      let rows: SearchUser[] = []
+      if (numMatch) {
+        const num = parseInt(numMatch[1])
+        const { data } = await supabase.from('profiles').select('id,name,avatar_url,bio,user_number')
+          .eq('user_number', num).neq('id', user!.id).limit(10)
+        rows = (data ?? []) as SearchUser[]
+      } else {
+        const { data } = await supabase.from('profiles').select('id,name,avatar_url,bio,user_number')
+          .or(`name.ilike.%${q}%,email.ilike.%${q}%`).neq('id', user!.id).limit(10)
+        rows = (data ?? []) as SearchUser[]
+      }
+      setResults(rows)
+      if (!rows.length) setSearchErr('No se encontró ningún usuario con esa búsqueda.')
     } catch {
       setSearchErr('Error al buscar. Inténtalo de nuevo.')
     } finally {
@@ -142,7 +188,7 @@ export default function Friends() {
           </div>
           {received.map(f => (
             <div key={f.id} className="glass-card rounded-2xl p-4 flex items-center gap-3 animate-fade-in">
-              <button onClick={() => navigate(`/profile/${f.id}`)} className="shrink-0">
+              <button onClick={() => navigate(`/perfil/${f.id}`)} className="shrink-0">
                 <Avatar name={f.name} url={f.avatar_url} size={10} />
               </button>
               <div className="flex-1 min-w-0">
@@ -217,7 +263,7 @@ export default function Friends() {
               const justSent = requestMutation.variables === u.id && requestMutation.isPending
               return (
                 <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/4 border border-white/6">
-                  <button onClick={() => navigate(`/profile/${u.id}`)} className="shrink-0">
+                  <button onClick={() => navigate(`/perfil/${u.id}`)} className="shrink-0">
                     <Avatar name={u.name} url={u.avatar_url} size={9} />
                   </button>
                   <div className="flex-1 min-w-0">
@@ -283,7 +329,7 @@ export default function Friends() {
         ) : (
           accepted.map(f => (
             <div key={f.id} className="glass-card rounded-2xl p-3.5 flex items-center gap-3">
-              <button onClick={() => navigate(`/profile/${f.id}`)} className="shrink-0">
+              <button onClick={() => navigate(`/perfil/${f.id}`)} className="shrink-0">
                 <Avatar name={f.name} url={f.avatar_url} size={10} />
               </button>
               <div className="flex-1 min-w-0">

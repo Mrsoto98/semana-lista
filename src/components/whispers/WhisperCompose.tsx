@@ -62,8 +62,8 @@ export function WhisperCompose({ dreamBody, dreamId, onClose, onCreated }: Props
         initial="hidden"
         animate="visible"
         exit="exit"
-        className="fixed bottom-0 left-0 right-0 z-[71] glass rounded-t-[28px] p-6"
-        style={{ maxHeight: '90svh', overflowY: 'auto' }}
+        className="fixed bottom-0 left-0 right-0 z-[71] glass rounded-t-[28px] px-6 pt-6"
+        style={{ maxHeight: '90svh', overflowY: 'auto', paddingBottom: 'calc(24px + 72px + env(safe-area-inset-bottom, 0px))' }}
       >
         {/* Handle */}
         <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.15)' }} />

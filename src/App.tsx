@@ -1,20 +1,20 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AppLayout } from './components/layout/AppLayout'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import VerifyEmail from './pages/VerifyEmail'
+import { AppShell } from './components/layout/AppShell'
+import AuthPage from './pages/AuthPage'
 import AuthCallback from './pages/AuthCallback'
 import Onboarding from './pages/Onboarding'
-import Diary from './pages/Diary'
-import Feed from './pages/Feed'
-import Coincidences from './pages/Coincidences'
-import Stats from './pages/Stats'
+import DiaryPage from './pages/DiaryPage'
+import DreamFormPage from './pages/DreamFormPage'
+import WhispersPage from './pages/WhispersPage'
+import EncountersPage from './pages/EncountersPage'
+import ExplorePage from './pages/ExplorePage'
+import ProfilePage from './pages/ProfilePage'
+import Settings from './pages/Settings'
 import Audio from './pages/Audio'
 import Friends from './pages/Friends'
-import Settings from './pages/Settings'
-import UserProfile from './pages/UserProfile'
 import LucidTechniques from './pages/LucidTechniques'
+import UserProfile from './pages/UserProfile'
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -28,26 +28,34 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Public */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/entrada"       element={<AuthPage mode="login" />} />
+          <Route path="/registro"      element={<AuthPage mode="register" />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/onboarding" element={<Onboarding />} />
 
-          {/* Protected */}
-          <Route element={<AppLayout />}>
-            <Route path="/diary" element={<Diary />} />
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/coincidences" element={<Coincidences />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/audio" element={<Audio />} />
-            <Route path="/friends" element={<Friends />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile/:id" element={<UserProfile />} />
-            <Route path="/techniques" element={<LucidTechniques />} />
+          {/* Onboarding — auth required, no shell */}
+          <Route path="/bienvenida" element={<Onboarding />} />
+
+          {/* Protected — with bottom nav shell */}
+          <Route element={<AppShell />}>
+            <Route path="/diario"      element={<DiaryPage />} />
+            <Route path="/susurros"    element={<WhispersPage />} />
+            <Route path="/encuentros"  element={<EncountersPage />} />
+            <Route path="/explorar"    element={<ExplorePage />} />
+            <Route path="/perfil"      element={<ProfilePage />} />
+            <Route path="/perfil/:id"  element={<UserProfile />} />
+            <Route path="/amigos"      element={<Friends />} />
+            <Route path="/ajustes"     element={<Settings />} />
+            <Route path="/audio"       element={<Audio />} />
+            <Route path="/tecnicas"    element={<LucidTechniques />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/diary" replace />} />
+          {/* Dream form — fullscreen, no nav */}
+          <Route path="/diario/nuevo"  element={<DreamFormPage />} />
+          <Route path="/diario/:id"    element={<DreamFormPage />} />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/perfil" replace />} />
+          <Route path="/"  element={<Navigate to="/perfil" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
