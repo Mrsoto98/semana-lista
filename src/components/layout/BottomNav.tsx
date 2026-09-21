@@ -16,11 +16,11 @@ export function BottomNav() {
       {/* Floating add button */}
       <motion.button
         whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.93 }}
+        whileTap={{ scale: 0.88, rotate: -10 }}
         onClick={() => navigate('/diario/nuevo')}
         className="glass-btn-primary fixed z-[60] flex items-center justify-center"
         style={{
-          bottom: 'calc(max(72px, env(safe-area-inset-bottom) + 60px) + 20px)',
+          bottom: 'calc(max(88px, env(safe-area-inset-bottom) + 72px))',
           right: 20,
           width: 52,
           height: 52,
@@ -29,50 +29,66 @@ export function BottomNav() {
           lineHeight: 1,
         }}
         aria-label="Añadir sueño"
+        transition={{ type: 'spring', stiffness: 500, damping: 22 }}
       >
         +
       </motion.button>
 
-      {/* Nav bar */}
-      <nav
-        className="glass-nav fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-1"
-        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))', paddingTop: 10 }}
+      {/* Floating pill nav */}
+      <div
+        className="fixed bottom-0 left-0 right-0 flex justify-center z-50"
+        style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
       >
-        {NAV.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-[3px] px-3 py-1.5 rounded-2xl transition-all duration-200 min-w-[52px] relative ${
-                isActive ? 'glass-nav-active' : ''
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon active={isActive} />
-                <span
-                  className="text-[9px] font-medium leading-none transition-colors"
-                  style={{
-                    color: isActive
-                      ? `hsl(var(--accent-h), var(--accent-s), 76%)`
-                      : 'rgba(255,255,255,0.35)',
-                  }}
+        <nav className="glass-nav-pill flex items-center rounded-[28px] px-2 py-2">
+          {NAV.map(({ to, icon: Icon, label }) => (
+            <NavLink key={to} to={to}>
+              {({ isActive }) => (
+                <motion.div
+                  whileTap={{ scale: 0.82 }}
+                  transition={{ type: 'spring', stiffness: 520, damping: 26 }}
+                  className="relative flex flex-col items-center justify-center cursor-pointer select-none"
+                  style={{ width: 66, height: 52 }}
                 >
-                  {label}
-                </span>
-                {isActive && (
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-active-bg"
+                      className="absolute inset-0 rounded-[18px]"
+                      style={{
+                        background: `rgba(var(--glow), 0.20)`,
+                        border: `1px solid rgba(var(--glow), 0.28)`,
+                        boxShadow: `0 2px 16px rgba(var(--glow), 0.22), inset 0 1px 0 rgba(255,255,255,0.12)`,
+                      }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+                    />
+                  )}
                   <motion.div
-                    layoutId="nav-dot"
-                    className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                    style={{ background: `hsl(var(--accent-h), var(--accent-s), 70%)` }}
-                  />
-                )}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
+                    animate={{ scale: isActive ? 1.12 : 1, y: isActive ? -1 : 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+                    className="relative z-10"
+                    style={{
+                      color: isActive
+                        ? `hsl(var(--accent-h), var(--accent-s), 78%)`
+                        : 'rgba(255,255,255,0.40)',
+                    }}
+                  >
+                    <Icon active={isActive} />
+                  </motion.div>
+                  <span
+                    className="text-[9px] font-medium relative z-10 leading-none mt-0.5"
+                    style={{
+                      color: isActive
+                        ? `hsl(var(--accent-h), var(--accent-s), 76%)`
+                        : 'rgba(255,255,255,0.28)',
+                    }}
+                  >
+                    {label}
+                  </span>
+                </motion.div>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
     </>
   )
 }
@@ -83,24 +99,12 @@ function NavIcon({ active, children }: { active: boolean; children: React.ReactN
       className="transition-all duration-200"
       style={{
         color: active
-          ? `hsl(var(--accent-h), var(--accent-s), 76%)`
-          : 'rgba(255,255,255,0.38)',
-        transform: active ? 'scale(1.08)' : 'scale(1)',
+          ? `hsl(var(--accent-h), var(--accent-s), 78%)`
+          : 'rgba(255,255,255,0.40)',
       }}
     >
       {children}
     </div>
-  )
-}
-
-function BookIcon({ active }: { active: boolean }) {
-  return (
-    <NavIcon active={active}>
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-      </svg>
-    </NavIcon>
   )
 }
 

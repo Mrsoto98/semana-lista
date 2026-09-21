@@ -97,7 +97,7 @@ export default function DiaryPage() {
             >
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h1 className="text-2xl font-normal" style={{ fontFamily: 'var(--font-serif)' }}>
+                  <h1 className="display-title" style={{ fontSize: 32 }}>
                     Mi Diario
                   </h1>
                   <p className="text-[12px] text-white/40 mt-0.5">
