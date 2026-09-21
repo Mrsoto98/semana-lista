@@ -14,10 +14,10 @@ const PAGE_SIZE = 15
 
 const DREAM_SELECT = `
   id, title, body, dream_date, is_lucid, emotions, tags, visibility,
-  like_count, comment_count,
   created_at, updated_at,
   profiles!dreams_user_id_fkey(id, name, avatar_url, avatar_emoji),
-  dream_likes(user_id)
+  dream_likes(user_id),
+  dream_comments(id)
 `
 
 function mapDream(d: any, userId?: string): FeedDream {
@@ -27,9 +27,9 @@ function mapDream(d: any, userId?: string): FeedDream {
     author_name: d.profiles?.name ?? 'Anónimo',
     author_avatar: d.profiles?.avatar_url ?? null,
     author_avatar_emoji: d.profiles?.avatar_emoji ?? null,
-    like_count: d.like_count ?? 0,
+    like_count: d.dream_likes?.length ?? 0,
     user_liked: userId ? (d.dream_likes ?? []).some((l: any) => l.user_id === userId) : false,
-    comment_count: d.comment_count ?? 0,
+    comment_count: d.dream_comments?.length ?? 0,
     allow_comments: true,
   } as FeedDream
 }

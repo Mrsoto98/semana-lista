@@ -16,14 +16,13 @@ async function fetchWhispers(sort: WhisperFeed, offset: number, userId?: string)
   const orderCol = sort === 'popular' ? 'resono_count' : 'created_at'
   const { data, error } = await supabase
     .from('whispers')
-    .select('id, dream_id, title, body, emotions, resono_count, created_at, whisper_resonos(user_id)')
+    .select('id, dream_id, body, emotions, resono_count, created_at, whisper_resonos(user_id)')
     .order(orderCol, { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1)
   if (error) throw error
   return (data ?? []).map((w: any) => ({
     id: w.id,
     dream_id: w.dream_id,
-    title: w.title ?? null,
     body: w.body,
     emotions: w.emotions ?? [],
     resono_count: w.resono_count,
@@ -285,16 +284,6 @@ function WhisperCard({
       >
         "
       </div>
-
-      {/* Title */}
-      {whisper.title && (
-        <h3
-          className="text-[16px] font-medium leading-snug text-white/90 mb-2 relative z-10"
-          style={{ fontFamily: 'var(--font-serif)' }}
-        >
-          {whisper.title}
-        </h3>
-      )}
 
       {/* Body */}
       <p
