@@ -1,39 +1,27 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { formatDistanceToNow } from 'date-fns'
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatDistanceToNow, startOfMonth, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../lib/store'
 import { pageVariants, pageTransition, listContainerVariants, listItemVariants } from '../lib/motion'
 import type { FeedDream } from '../types'
 
-type Tab = 'amigos' | 'descubrir'
+type Tab = 'recientes' | 'populares' | 'amigos'
 const PAGE_SIZE = 15
 
-async function fetchPublicFeed(offset: number, search: string, userId: string | undefined): Promise<FeedDream[]> {
-  let q = supabase
-    .from('dreams')
-    .select(`
-      id, title, body, dream_date, is_lucid, emotions, tags, visibility,
-      created_at, updated_at,
-      profiles!dreams_user_id_fkey(id, name, avatar_url, avatar_emoji),
-      dream_likes(user_id),
-      dream_comments(id)
-    `)
-    .eq('visibility', 'public')
-    .order('created_at', { ascending: false })
-    .range(offset, offset + PAGE_SIZE - 1)
+const DREAM_SELECT = `
+  id, title, body, dream_date, is_lucid, emotions, tags, visibility,
+  created_at, updated_at,
+  profiles!dreams_user_id_fkey(id, name, avatar_url, avatar_emoji),
+  dream_likes(user_id),
+  dream_comments(id)
+`
 
-  if (search) {
-    q = q.or(`title.ilike.%${search}%,body.ilike.%${search}%`)
-  }
-
-  const { data, error } = await q
-  if (error) throw error
-
-  return (data ?? []).map((d: any) => ({
+function mapDream(d: any, userId?: string): FeedDream {
+  return {
     ...d,
     author_id: d.profiles?.id ?? '',
     author_name: d.profiles?.name ?? 'Anónimo',
@@ -43,7 +31,36 @@ async function fetchPublicFeed(offset: number, search: string, userId: string | 
     user_liked: userId ? (d.dream_likes ?? []).some((l: any) => l.user_id === userId) : false,
     comment_count: d.dream_comments?.length ?? 0,
     allow_comments: true,
-  })) as FeedDream[]
+  } as FeedDream
+}
+
+async function fetchRecentFeed(offset: number, search: string, userId?: string): Promise<FeedDream[]> {
+  let q = supabase
+    .from('dreams')
+    .select(DREAM_SELECT)
+    .eq('visibility', 'public')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1)
+  if (search) q = q.or(`title.ilike.%${search}%,body.ilike.%${search}%`)
+  const { data, error } = await q
+  if (error) throw error
+  return (data ?? []).map((d: any) => mapDream(d, userId))
+}
+
+async function fetchPopularFeed(userId?: string): Promise<FeedDream[]> {
+  const monthStart = startOfMonth(new Date()).toISOString()
+  const { data, error } = await supabase
+    .from('dreams')
+    .select(DREAM_SELECT)
+    .eq('visibility', 'public')
+    .gte('created_at', monthStart)
+    .limit(120)
+  if (error) throw error
+  return (data ?? [])
+    .map((d: any) => mapDream(d, userId))
+    .sort((a, b) => b.like_count - a.like_count)
+    .filter(d => d.like_count > 0)
+    .slice(0, 50)
 }
 
 async function fetchFriendsFeed(offset: number, userId: string): Promise<FeedDream[]> {
@@ -60,54 +77,59 @@ async function fetchFriendsFeed(offset: number, userId: string): Promise<FeedDre
 
   const { data, error } = await supabase
     .from('dreams')
-    .select(`
-      id, title, body, dream_date, is_lucid, emotions, tags, visibility,
-      created_at, updated_at,
-      profiles!dreams_user_id_fkey(id, name, avatar_url, avatar_emoji),
-      dream_likes(user_id),
-      dream_comments(id)
-    `)
+    .select(DREAM_SELECT)
     .in('user_id', friendIds)
     .in('visibility', ['public', 'friends'])
     .order('created_at', { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1)
-
   if (error) throw error
-
-  return (data ?? []).map((d: any) => ({
-    ...d,
-    author_id: d.profiles?.id ?? '',
-    author_name: d.profiles?.name ?? 'Anónimo',
-    author_avatar: d.profiles?.avatar_url ?? null,
-    author_avatar_emoji: d.profiles?.avatar_emoji ?? null,
-    like_count: d.dream_likes?.length ?? 0,
-    user_liked: (d.dream_likes ?? []).some((l: any) => l.user_id === userId),
-    comment_count: d.dream_comments?.length ?? 0,
-    allow_comments: true,
-  })) as FeedDream[]
+  return (data ?? []).map((d: any) => mapDream(d, userId))
 }
 
 export default function ExplorePage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
-  const [tab, setTab] = useState<Tab>('descubrir')
+  const [tab, setTab] = useState<Tab>('recientes')
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const queryKey = ['feed', tab, search, user?.id]
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteQuery({
-      queryKey,
-      queryFn: ({ pageParam = 0 }) => {
-        if (tab === 'amigos' && user) return fetchFriendsFeed(pageParam as number, user.id)
-        return fetchPublicFeed(pageParam as number, search, user?.id)
-      },
-      getNextPageParam: (last, all) =>
-        last.length === PAGE_SIZE ? all.flat().length : undefined,
-      initialPageParam: 0,
-    })
+  const recentKey  = ['feed', 'recientes', search, user?.id]
+  const popularKey = ['feed', 'populares', user?.id]
+  const amigosKey  = ['feed', 'amigos', user?.id]
+
+  const recentQ = useInfiniteQuery({
+    queryKey: recentKey,
+    queryFn: ({ pageParam = 0 }) => fetchRecentFeed(pageParam as number, search, user?.id),
+    getNextPageParam: (last, all) =>
+      last.length === PAGE_SIZE ? all.flat().length : undefined,
+    initialPageParam: 0,
+    enabled: tab === 'recientes',
+  })
+
+  const popularQ = useQuery({
+    queryKey: popularKey,
+    queryFn: () => fetchPopularFeed(user?.id),
+    enabled: tab === 'populares',
+    staleTime: 60_000,
+  })
+
+  const amigosQ = useInfiniteQuery({
+    queryKey: amigosKey,
+    queryFn: ({ pageParam = 0 }) =>
+      user ? fetchFriendsFeed(pageParam as number, user.id) : Promise.resolve([]),
+    getNextPageParam: (last, all) =>
+      last.length === PAGE_SIZE ? all.flat().length : undefined,
+    initialPageParam: 0,
+    enabled: tab === 'amigos' && !!user,
+  })
+
+  function mutateKey() {
+    if (tab === 'recientes') return recentKey
+    if (tab === 'populares') return popularKey
+    return amigosKey
+  }
 
   const likeMutation = useMutation({
     mutationFn: async ({ id, liked }: { id: string; liked: boolean }) => {
@@ -119,24 +141,41 @@ export default function ExplorePage() {
       }
     },
     onMutate: async ({ id, liked }) => {
-      await qc.cancelQueries({ queryKey })
-      const prev = qc.getQueryData(queryKey)
-      qc.setQueryData<typeof data>(queryKey, (old) => ({
-        ...old!,
-        pages: old!.pages.map((page) =>
-          page.map((d) =>
-            d.id === id
-              ? { ...d, like_count: d.like_count + (liked ? -1 : 1), user_liked: !liked }
-              : d
-          )
-        ),
-      }))
-      return { prev }
+      const key = mutateKey()
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueryData(key)
+
+      const patch = (d: FeedDream) =>
+        d.id === id ? { ...d, like_count: d.like_count + (liked ? -1 : 1), user_liked: !liked } : d
+
+      if (tab === 'populares') {
+        qc.setQueryData<FeedDream[]>(key, (old) => (old ?? []).map(patch))
+      } else {
+        qc.setQueryData<typeof recentQ.data>(key, (old) => old && ({
+          ...old, pages: old.pages.map(p => p.map(patch)),
+        }))
+      }
+      return { prev, key }
     },
-    onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(queryKey, ctx.prev),
+    onError: (_e, _v, ctx) => ctx && qc.setQueryData(ctx.key, ctx.prev),
   })
 
-  const dreams = data?.pages.flat() ?? []
+  const isLoading =
+    tab === 'recientes' ? recentQ.isLoading :
+    tab === 'populares' ? popularQ.isLoading :
+    amigosQ.isLoading
+
+  const dreams: FeedDream[] =
+    tab === 'recientes' ? (recentQ.data?.pages.flat() ?? []) :
+    tab === 'populares' ? (popularQ.data ?? []) :
+    (amigosQ.data?.pages.flat() ?? [])
+
+  const isFetchingNextPage =
+    tab === 'recientes' ? recentQ.isFetchingNextPage : amigosQ.isFetchingNextPage
+  const hasNextPage =
+    tab === 'recientes' ? recentQ.hasNextPage : amigosQ.hasNextPage
+  const fetchNextPage =
+    tab === 'recientes' ? recentQ.fetchNextPage : amigosQ.fetchNextPage
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -150,6 +189,8 @@ export default function ExplorePage() {
       fetchNextPage()
     }
   }
+
+  const monthLabel = format(new Date(), "MMMM yyyy", { locale: es })
 
   return (
     <motion.div
@@ -165,20 +206,19 @@ export default function ExplorePage() {
         className="glass-header sticky top-0 z-30 px-4"
         style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 12 }}
       >
-        <h1 className="text-2xl font-normal mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
-          Explorar
-        </h1>
+        <h1 className="display-title mb-3" style={{ fontSize: 32 }}>Explorar</h1>
 
         {/* Tabs */}
         <div className="flex gap-1.5 mb-3">
           {([
-            { value: 'descubrir', label: 'Descubrir' },
+            { value: 'recientes',  label: 'Recientes' },
+            { value: 'populares', label: '🔥 Populares' },
             { value: 'amigos',    label: 'Amigos' },
           ] as const).map(({ value, label }) => (
             <button
               key={value}
               onClick={() => setTab(value)}
-              className="px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-200"
+              className="px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-200 whitespace-nowrap"
               style={{
                 background: tab === value ? 'rgba(var(--glow), 0.22)' : 'rgba(255,255,255,0.05)',
                 color: tab === value ? `hsl(var(--accent-h), var(--accent-s), 80%)` : 'rgba(255,255,255,0.40)',
@@ -190,9 +230,9 @@ export default function ExplorePage() {
           ))}
         </div>
 
-        {/* Search (only on Descubrir) */}
+        {/* Search — solo en Recientes */}
         <AnimatePresence>
-          {tab === 'descubrir' && (
+          {tab === 'recientes' && (
             <motion.form
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -206,10 +246,7 @@ export default function ExplorePage() {
                 placeholder="Buscar sueños..."
                 className="glass-input px-4 py-2.5 text-sm pr-10"
               />
-              <button
-                type="submit"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/65"
-              >
+              <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/65">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
@@ -217,6 +254,15 @@ export default function ExplorePage() {
             </motion.form>
           )}
         </AnimatePresence>
+
+        {/* Populares header */}
+        {tab === 'populares' && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-white/35 capitalize">{monthLabel}</span>
+            <span className="text-white/15">·</span>
+            <span className="text-[11px] text-white/35">ordenados por likes</span>
+          </div>
+        )}
       </header>
 
       {/* Feed */}
@@ -236,10 +282,14 @@ export default function ExplorePage() {
             animate={{ opacity: 1 }}
             className="flex flex-col items-center py-24 text-center"
           >
-            <div className="text-5xl mb-4 opacity-25">🔭</div>
+            <div className="text-5xl mb-4 opacity-25">
+              {tab === 'populares' ? '🔥' : tab === 'amigos' ? '👥' : '🔭'}
+            </div>
             <p className="text-white/40 text-sm">
               {tab === 'amigos'
                 ? 'Tus amigos no han compartido sueños aún.'
+                : tab === 'populares'
+                ? 'Ningún sueño ha recibido likes este mes todavía.'
                 : search ? `Sin resultados para "${search}"` : 'El cielo onírico está tranquilo.'}
             </p>
           </motion.div>
@@ -250,10 +300,19 @@ export default function ExplorePage() {
             animate="visible"
             className="space-y-3"
           >
-            {dreams.map((dream) => (
+            {tab === 'populares' && (
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                <span className="text-[10px] text-white/25 uppercase tracking-widest">Top sueños del mes</span>
+                <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              </div>
+            )}
+
+            {dreams.map((dream, idx) => (
               <motion.div key={dream.id} variants={listItemVariants}>
                 <FeedCard
                   dream={dream}
+                  rank={tab === 'populares' ? idx + 1 : undefined}
                   onLike={() => likeMutation.mutate({ id: dream.id, liked: dream.user_liked })}
                   onOpen={() => navigate(`/perfil/${dream.author_id}`)}
                   onDetail={() => navigate(`/sueno/${dream.id}`)}
@@ -276,11 +335,13 @@ export default function ExplorePage() {
 
 function FeedCard({
   dream,
+  rank,
   onLike,
   onOpen,
   onDetail,
 }: {
   dream: FeedDream
+  rank?: number
   onLike: () => void
   onOpen: () => void
   onDetail: () => void
@@ -292,37 +353,42 @@ function FeedCard({
       whileTap={{ scale: 0.99 }}
       className={`glass-card p-4 ${dream.is_lucid ? 'lucid-border' : ''}`}
     >
-      {/* Author */}
+      {/* Author row */}
       <div className="flex items-center gap-2.5 mb-3">
-        <button
-          onClick={onOpen}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
-            style={{ background: 'rgba(var(--glow), 0.20)' }}
-          >
-            {dream.author_avatar ? (
-              <img src={dream.author_avatar} alt="" className="w-full h-full rounded-full object-cover" />
-            ) : (
-              dream.author_avatar_emoji ?? dream.author_name[0]?.toUpperCase()
-            )}
+        <button onClick={onOpen} className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
+               style={{ background: 'rgba(var(--glow), 0.20)' }}>
+            {dream.author_avatar
+              ? <img src={dream.author_avatar} alt="" className="w-full h-full rounded-full object-cover" />
+              : dream.author_avatar_emoji ?? dream.author_name[0]?.toUpperCase()}
           </div>
-          <div>
-            <p className="text-[12px] font-medium text-white/75">{dream.author_name}</p>
+          <div className="min-w-0">
+            <p className="text-[12px] font-medium text-white/75 truncate">{dream.author_name}</p>
             <p className="text-[10px] text-white/30">{timeAgo}</p>
           </div>
         </button>
 
-        {dream.is_lucid && (
-          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium"
-                style={{ background: 'rgba(100,212,184,0.12)', color: '#64D4B8' }}>
-            ✨ Lúcido
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {dream.is_lucid && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(100,212,184,0.12)', color: '#64D4B8' }}>
+              ✨ Lúcido
+            </span>
+          )}
+          {rank && rank <= 3 && (
+            <span className="text-base leading-none">
+              {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
+            </span>
+          )}
+          {rank && rank > 3 && (
+            <span className="text-[11px] font-bold text-white/30" style={{ fontFamily: 'var(--font-mono)' }}>
+              #{rank}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Content — tappable to open detail */}
+      {/* Content */}
       <div onClick={onDetail} className="cursor-pointer">
         {dream.title && (
           <h3 className="text-[14px] font-medium mb-1.5 line-clamp-1" style={{ fontFamily: 'var(--font-serif)' }}>
@@ -354,21 +420,29 @@ function FeedCard({
       {/* Actions */}
       <div className="flex items-center gap-4 border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
         <motion.button
-          whileTap={{ scale: 1.25 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+          whileTap={{ scale: 1.28 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 14 }}
           onClick={onLike}
           className="flex items-center gap-1.5 text-[12px] font-medium transition-colors"
           style={{ color: dream.user_liked ? '#e05252' : 'rgba(255,255,255,0.35)' }}
         >
           <HeartIcon filled={dream.user_liked} />
-          {dream.like_count > 0 && dream.like_count}
+          <motion.span
+            key={dream.like_count}
+            initial={{ y: -6, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            style={{ minWidth: '1ch', display: 'inline-block', textAlign: 'center' }}
+          >
+            {dream.like_count}
+          </motion.span>
         </motion.button>
 
         <button onClick={onDetail} className="flex items-center gap-1.5 text-[12px] text-white/30 hover:text-white/60 transition-colors">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          {dream.comment_count > 0 ? dream.comment_count : 'Comentar'}
+          <span>{dream.comment_count > 0 ? dream.comment_count : 'Comentar'}</span>
         </button>
       </div>
     </motion.div>
