@@ -47,10 +47,13 @@ function emotionBg(emotions: string[]) {
   return EMOTION_COLOR[first ?? ''] ?? 'rgba(184,164,232,0.06)'
 }
 
+const EMOTION_FILTERS = ['Miedo', 'Tristeza', 'Alegría', 'Asombro', 'Paz', 'Amor', 'Ansiedad', 'Confusión']
+
 export default function WhispersPage() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
   const [sort, setSort] = useState<WhisperFeed>('recent')
+  const [emotionFilter, setEmotionFilter] = useState<string | null>(null)
   const [shareWhisper, setShareWhisper] = useState<Whisper | null>(null)
   const [showCompose, setShowCompose] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -93,7 +96,10 @@ export default function WhispersPage() {
     },
   })
 
-  const whispers = data?.pages.flat() ?? []
+  const allWhispers = data?.pages.flat() ?? []
+  const whispers = emotionFilter
+    ? allWhispers.filter(w => w.emotions.map(e => e.toLowerCase()).includes(emotionFilter.toLowerCase()))
+    : allWhispers
 
   function handleScroll() {
     const el = scrollRef.current
@@ -137,7 +143,7 @@ export default function WhispersPage() {
           </div>
 
           {/* Sort tabs */}
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 mb-2.5">
             {([
               { value: 'recent',  label: 'Recientes' },
               { value: 'popular', label: 'Populares' },
@@ -153,6 +159,24 @@ export default function WhispersPage() {
                 }}
               >
                 {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Emotion filter */}
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
+            {[null, ...EMOTION_FILTERS].map((e) => (
+              <button
+                key={e ?? 'all'}
+                onClick={() => setEmotionFilter(e)}
+                className="shrink-0 text-[10px] px-2.5 py-1 rounded-full transition-all duration-150"
+                style={{
+                  background: emotionFilter === e ? 'rgba(var(--glow), 0.22)' : 'rgba(255,255,255,0.04)',
+                  color: emotionFilter === e ? `hsl(var(--accent-h), var(--accent-s), 80%)` : 'rgba(255,255,255,0.35)',
+                  border: `1px solid ${emotionFilter === e ? 'rgba(var(--glow), 0.28)' : 'rgba(255,255,255,0.06)'}`,
+                }}
+              >
+                {e ?? 'Todas'}
               </button>
             ))}
           </div>

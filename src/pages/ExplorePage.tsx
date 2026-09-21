@@ -256,6 +256,7 @@ export default function ExplorePage() {
                   dream={dream}
                   onLike={() => likeMutation.mutate({ id: dream.id, liked: dream.user_liked })}
                   onOpen={() => navigate(`/perfil/${dream.author_id}`)}
+                  onDetail={() => navigate(`/sueno/${dream.id}`)}
                 />
               </motion.div>
             ))}
@@ -277,10 +278,12 @@ function FeedCard({
   dream,
   onLike,
   onOpen,
+  onDetail,
 }: {
   dream: FeedDream
   onLike: () => void
   onOpen: () => void
+  onDetail: () => void
 }) {
   const timeAgo = formatDistanceToNow(new Date(dream.created_at), { addSuffix: true, locale: es })
 
@@ -319,15 +322,22 @@ function FeedCard({
         )}
       </div>
 
-      {/* Content */}
-      {dream.title && (
-        <h3 className="text-[14px] font-medium mb-1.5 line-clamp-1" style={{ fontFamily: 'var(--font-serif)' }}>
-          {dream.title}
-        </h3>
-      )}
-      <p className="text-[13px] text-white/55 leading-relaxed line-clamp-3 mb-3">
-        {dream.body}
-      </p>
+      {/* Content — tappable to open detail */}
+      <div onClick={onDetail} className="cursor-pointer">
+        {dream.title && (
+          <h3 className="text-[14px] font-medium mb-1.5 line-clamp-1" style={{ fontFamily: 'var(--font-serif)' }}>
+            {dream.title}
+          </h3>
+        )}
+        <p className="text-[13px] text-white/55 leading-relaxed line-clamp-3 mb-1">
+          {dream.body}
+        </p>
+        {dream.body.length > 180 && (
+          <span className="text-[11px] mb-2 block" style={{ color: `hsl(var(--accent-h), var(--accent-s), 70%)` }}>
+            Leer más…
+          </span>
+        )}
+      </div>
 
       {/* Emotion chips */}
       {dream.emotions.length > 0 && (
@@ -354,11 +364,11 @@ function FeedCard({
           {dream.like_count > 0 && dream.like_count}
         </motion.button>
 
-        <button className="flex items-center gap-1.5 text-[12px] text-white/30 hover:text-white/60 transition-colors">
+        <button onClick={onDetail} className="flex items-center gap-1.5 text-[12px] text-white/30 hover:text-white/60 transition-colors">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          {dream.comment_count > 0 && dream.comment_count}
+          {dream.comment_count > 0 ? dream.comment_count : 'Comentar'}
         </button>
       </div>
     </motion.div>

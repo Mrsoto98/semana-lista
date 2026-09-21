@@ -53,10 +53,82 @@ function groupDreamsByWeek(dreams: Dream[]): { label: string; items: Dream[] }[]
 
 type TabId = 'diario' | 'cuadrícula' | 'estadísticas'
 
+function calculateStreak(dreams: Dream[]): number {
+  if (!dreams.length) return 0
+  const dates = [...new Set(dreams.map(d => d.dream_date))].sort().reverse()
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  if (dates[0] !== todayStr && dates[0] !== yesterdayStr) return 0
+  let streak = 1
+  let current = new Date(dates[0] + 'T12:00:00')
+  for (let i = 1; i < dates.length; i++) {
+    const prev = new Date(current)
+    prev.setDate(prev.getDate() - 1)
+    if (dates[i] === prev.toISOString().slice(0, 10)) { streak++; current = prev } else break
+  }
+  return streak
+}
+
+function buildHeatmap(dreams: Dream[]): Record<string, number> {
+  const counts: Record<string, number> = {}
+  dreams.forEach(d => { counts[d.dream_date] = (counts[d.dream_date] ?? 0) + 1 })
+  return counts
+}
+
+function Heatmap({ counts }: { counts: Record<string, number> }) {
+  const weeks: { date: string; count: number }[][] = []
+  const today = new Date()
+  const start = new Date(today)
+  start.setDate(start.getDate() - 364)
+  start.setDate(start.getDate() - start.getDay())
+  let week: { date: string; count: number }[] = []
+  const cur = new Date(start)
+  while (cur <= today) {
+    const key = cur.toISOString().slice(0, 10)
+    week.push({ date: key, count: counts[key] ?? 0 })
+    if (week.length === 7) { weeks.push(week); week = [] }
+    cur.setDate(cur.getDate() + 1)
+  }
+  if (week.length) weeks.push(week)
+  const maxCount = Math.max(1, ...Object.values(counts))
+  return (
+    <div>
+      <p className="text-[10px] text-white/30 mb-2 uppercase tracking-widest" style={{ fontFamily: 'var(--font-mono)' }}>
+        Actividad — último año
+      </p>
+      <div className="flex gap-[3px] overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+        {weeks.map((w, wi) => (
+          <div key={wi} className="flex flex-col gap-[3px]">
+            {w.map(({ date, count }) => (
+              <div key={date} title={count > 0 ? `${date}: ${count} sueño${count > 1 ? 's' : ''}` : date}
+                className="w-[10px] h-[10px] rounded-[2px] transition-colors"
+                style={{
+                  background: count === 0
+                    ? 'rgba(255,255,255,0.05)'
+                    : `hsla(var(--accent-h), var(--accent-s), ${40 + Math.round((count / maxCount) * 45)}%, ${0.3 + (count / maxCount) * 0.7})`,
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-end gap-1.5 mt-1.5">
+        <span className="text-[9px] text-white/20">Menos</span>
+        {[0, 0.3, 0.6, 1].map(v => (
+          <div key={v} className="w-[10px] h-[10px] rounded-[2px]"
+               style={{ background: v === 0 ? 'rgba(255,255,255,0.05)' : `hsla(var(--accent-h), var(--accent-s), ${40 + v * 45}%, ${0.3 + v * 0.7})` }} />
+        ))}
+        <span className="text-[9px] text-white/20">Más</span>
+      </div>
+    </div>
+  )
+}
+
 export default function ProfilePage() {
   const navigate = useNavigate()
   const user = useAuthStore(s => s.user)
   const [tab, setTab] = useState<TabId>('diario')
+  const [search, setSearch] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const { data: dreams = [], isLoading } = useQuery({
@@ -113,9 +185,24 @@ export default function ProfilePage() {
   }, [dreams])
 
   const lucidRatio = dreams.length > 0 ? (lucidCount / dreams.length) * 100 : 0
+  const streak = useMemo(() => calculateStreak(dreams), [dreams])
+  const heatmapCounts = useMemo(() => buildHeatmap(dreams), [dreams])
   const today = new Date().toISOString().slice(0, 10)
   const hasTodayDream = dreams.some(d => d.dream_date === today)
-  const groups = useMemo(() => groupDreamsByWeek(dreams), [dreams])
+  const dreamOfDay = useMemo(() => {
+    const old = dreams.filter(d => d.dream_date < today)
+    return old.length ? old[Math.floor(Math.random() * Math.min(old.length, 20))] : null
+  }, [dreams, today])
+  const filteredDreams = useMemo(() => {
+    if (!search.trim()) return dreams
+    const q = search.toLowerCase()
+    return dreams.filter(d =>
+      d.title?.toLowerCase().includes(q) ||
+      d.body.toLowerCase().includes(q) ||
+      d.tags.some(t => t.toLowerCase().includes(q))
+    )
+  }, [dreams, search])
+  const groups = useMemo(() => groupDreamsByWeek(filteredDreams), [filteredDreams])
 
   if (!user) return null
 
@@ -183,6 +270,15 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+
+          {streak > 0 && (
+            <div className="flex items-center justify-center gap-1.5 mb-2 -mt-1">
+              <span className="text-sm">🔥</span>
+              <span className="text-xs font-semibold" style={{ color: `hsl(var(--accent-h), var(--accent-s), 75%)` }}>
+                {streak} {streak === 1 ? 'día' : 'días'} de racha
+              </span>
+            </div>
+          )}
 
           {/* Name + bio */}
           <div className="mb-3">
@@ -253,6 +349,45 @@ export default function ProfilePage() {
               </button>
             )}
 
+            {/* Search */}
+            {dreams.length > 3 && (
+              <div className="relative mb-4">
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar en tus sueños..."
+                  className="glass-input w-full px-4 py-2.5 text-sm pr-9"
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/60 text-xs">✕</button>
+                )}
+              </div>
+            )}
+
+            {/* Dream of the day — a random past dream shown when no entry today */}
+            {!hasTodayDream && dreamOfDay && !search && (
+              <div
+                className="glass-card p-4 mb-4 cursor-pointer active:opacity-80 transition-opacity"
+                onClick={() => navigate(`/diario/${dreamOfDay.id}`)}
+                style={{ borderLeft: `2px solid hsl(var(--accent-h), var(--accent-s), 50%)` }}
+              >
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5" style={{ fontFamily: 'var(--font-mono)' }}>
+                  ✦ De tu archivo
+                </p>
+                {dreamOfDay.title && (
+                  <p className="text-sm font-medium text-white/80 mb-1 line-clamp-1" style={{ fontFamily: 'var(--font-serif)' }}>
+                    {dreamOfDay.title}
+                  </p>
+                )}
+                <p className="text-xs text-white/45 line-clamp-2 leading-relaxed">
+                  {dreamOfDay.body.slice(0, 130)}{dreamOfDay.body.length > 130 ? '…' : ''}
+                </p>
+                <p className="text-[10px] text-white/25 mt-2">
+                  {new Date(dreamOfDay.dream_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            )}
+
             {isLoading ? (
               <div className="space-y-3">
                 {[...Array(4)].map((_, i) => (
@@ -311,6 +446,8 @@ export default function ProfilePage() {
             emotionData={emotionData}
             topTags={topTags}
             isLoading={isLoading}
+            streak={streak}
+            heatmapCounts={heatmapCounts}
           />
         )}
       </div>
@@ -388,12 +525,14 @@ function DreamsGrid({ dreams, isLoading }: { dreams: Dream[]; isLoading: boolean
   )
 }
 
-function StatsContent({ totalCount, lucidCount, lucidRatio, monthlyData, emotionData, topTags, isLoading }: {
+function StatsContent({ totalCount, lucidCount, lucidRatio, monthlyData, emotionData, topTags, isLoading, streak, heatmapCounts }: {
   totalCount: number; lucidCount: number; lucidRatio: number
   monthlyData: { month: string; total: number }[]
   emotionData: { name: string; value: number; color: string }[]
   topTags: [string, number][]
   isLoading: boolean
+  streak: number
+  heatmapCounts: Record<string, number>
 }) {
   if (isLoading) return (
     <div className="px-4 pt-4 space-y-4">
@@ -414,6 +553,18 @@ function StatsContent({ totalCount, lucidCount, lucidRatio, monthlyData, emotion
             <div className="text-[10px] text-white/35 mt-0.5">{label}</div>
           </div>
         ))}
+      </div>
+      {streak > 0 && (
+        <div className="glass-card p-4 flex items-center gap-3">
+          <span className="text-2xl">🔥</span>
+          <div>
+            <p className="text-2xl font-bold" style={{ fontFamily: 'var(--font-mono)', color: `hsl(var(--accent-h), var(--accent-s), 80%)` }}>{streak}</p>
+            <p className="text-[11px] text-white/35">días de racha consecutiva</p>
+          </div>
+        </div>
+      )}
+      <div className="glass-card p-4">
+        <Heatmap counts={heatmapCounts} />
       </div>
       {monthlyData.length > 0 && (
         <div className="glass-card p-4">

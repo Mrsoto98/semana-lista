@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { commentsApi, pollApi } from '../../lib/queries'
+import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../lib/store'
-import type { DreamComment, DreamPoll } from '../../types'
+import type { DreamComment } from '../../types'
 
 interface Props {
   dreamId: string
@@ -10,7 +10,6 @@ interface Props {
   forceOpen?: boolean
 }
 
-// ── Single comment bubble ─────────────────────────────────────
 function CommentBubble({
   comment, myId, onReply, onDelete, indent = 0,
 }: {
@@ -57,82 +56,51 @@ function CommentBubble({
   )
 }
 
-// ── Poll display ──────────────────────────────────────────────
-function PollCard({ dreamId, poll: initial }: { dreamId: string; poll: DreamPoll }) {
-  const qc = useQueryClient()
-  const { data: poll = initial } = useQuery({
-    queryKey: ['poll', dreamId],
-    queryFn: () => pollApi.get(dreamId).then(r => r.data as DreamPoll),
-    initialData: initial,
-  })
-
-  const voteMutation = useMutation({
-    mutationFn: (idx: number) =>
-      poll.user_vote === idx ? pollApi.unvote(dreamId) : pollApi.vote(dreamId, idx),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['poll', dreamId] }),
-  })
-
-  return (
-    <div className="bg-white/4 rounded-xl p-3 mb-3 border border-white/6">
-      <div className="flex items-center gap-1.5 mb-2.5">
-        <span className="text-sm">📊</span>
-        <p className="text-xs font-semibold text-white/75">{poll.question}</p>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        {poll.options.map((opt, i) => {
-          const votes  = poll.vote_counts?.[i] ?? 0
-          const total  = poll.total_votes ?? 0
-          const pct    = total > 0 ? Math.round((votes / total) * 100) : 0
-          const isMine = poll.user_vote === i
-          return (
-            <button key={i} onClick={() => voteMutation.mutate(i)}
-              className="relative w-full text-left rounded-lg overflow-hidden transition-all active:scale-[0.99]"
-              style={{ padding: '7px 10px', border: `1px solid ${isMine ? 'rgba(var(--glow-color),0.5)' : 'rgba(255,255,255,0.08)'}` }}>
-              <div className="absolute inset-0 transition-all duration-500"
-                style={{ width: `${pct}%`, background: isMine ? 'rgba(var(--glow-color),0.18)' : 'rgba(255,255,255,0.05)' }} />
-              <div className="relative flex items-center justify-between">
-                <span className={`text-xs ${isMine ? 'text-white font-medium' : 'text-white/60'}`}>{opt}</span>
-                <span className="text-[10px] text-white/35 ml-2 shrink-0">{pct}%</span>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-      <p className="text-[10px] text-white/20 mt-2">
-        {poll.total_votes} {poll.total_votes === 1 ? 'voto' : 'votos'}
-        {poll.user_vote !== null && <span className="ml-1">· Tu voto registrado</span>}
-      </p>
-    </div>
-  )
+async function fetchComments(dreamId: string): Promise<DreamComment[]> {
+  const { data, error } = await supabase
+    .from('dream_comments')
+    .select('id, body, created_at, user_id, parent_comment_id, profiles!dream_comments_user_id_fkey(name, avatar_url)')
+    .eq('dream_id', dreamId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []).map((c: any) => ({
+    id: c.id,
+    body: c.body,
+    created_at: c.created_at,
+    user_id: c.user_id,
+    parent_comment_id: c.parent_comment_id ?? null,
+    user_name: c.profiles?.name ?? 'Soñador',
+    user_avatar: c.profiles?.avatar_url ?? null,
+  }))
 }
 
-// ── Main component ────────────────────────────────────────────
 export function CommentSection({ dreamId, allowComments, forceOpen }: Props) {
   const qc = useQueryClient()
   const { user } = useAuthStore()
-  const [text, setText]             = useState('')
-  const [open, setOpen]             = useState(false)
-  // replyingTo: { parentId = top-level comment id, mention = '@name' }
+  const [text, setText] = useState('')
+  const [open, setOpen] = useState(false)
   const [replyingTo, setReplyingTo] = useState<{ parentId: string; mention: string } | null>(null)
-  const [replyText, setReplyText]   = useState('')
+  const [replyText, setReplyText] = useState('')
 
   const isOpen = forceOpen ?? open
 
   const { data: comments = [], isLoading } = useQuery({
     queryKey: ['comments', dreamId],
-    queryFn: () => commentsApi.list(dreamId).then(r => r.data),
-    enabled: isOpen,
-  })
-
-  const { data: poll } = useQuery({
-    queryKey: ['poll', dreamId],
-    queryFn: () => pollApi.get(dreamId).then(r => r.data),
+    queryFn: () => fetchComments(dreamId),
     enabled: isOpen,
   })
 
   const postMutation = useMutation({
-    mutationFn: (args: { body: string; parentId?: string }) =>
-      commentsApi.post(dreamId, args.body, args.parentId),
+    mutationFn: async ({ body, parentId }: { body: string; parentId?: string }) => {
+      if (!user) throw new Error('No autenticado')
+      const { error } = await supabase.from('dream_comments').insert({
+        dream_id: dreamId,
+        user_id: user.id,
+        body,
+        parent_comment_id: parentId ?? null,
+      })
+      if (error) throw error
+    },
     onSuccess: () => {
       setText(''); setReplyText(''); setReplyingTo(null)
       qc.invalidateQueries({ queryKey: ['comments', dreamId] })
@@ -140,16 +108,18 @@ export function CommentSection({ dreamId, allowComments, forceOpen }: Props) {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => commentsApi.remove(id),
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('dream_comments').delete().eq('id', id)
+      if (error) throw error
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', dreamId] }),
   })
 
   if (!allowComments) return null
 
-  // Build tree: top-level + replies grouped by parent
-  const topLevel = (comments as DreamComment[]).filter(c => !c.parent_comment_id)
+  const topLevel = comments.filter(c => !c.parent_comment_id)
   const repliesMap: Record<string, DreamComment[]> = {}
-  ;(comments as DreamComment[]).filter(c => c.parent_comment_id).forEach(c => {
+  comments.filter(c => c.parent_comment_id).forEach(c => {
     const pid = c.parent_comment_id!
     if (!repliesMap[pid]) repliesMap[pid] = []
     repliesMap[pid].push(c)
@@ -160,11 +130,6 @@ export function CommentSection({ dreamId, allowComments, forceOpen }: Props) {
     setReplyText(`@${mentionName} `)
   }
 
-  function submitReply() {
-    if (!replyText.trim() || !replyingTo) return
-    postMutation.mutate({ body: replyText.trim(), parentId: replyingTo.parentId })
-  }
-
   return (
     <div className={forceOpen ? '' : 'mt-3 border-t border-white/6 pt-3'}>
       {!forceOpen && (
@@ -173,32 +138,25 @@ export function CommentSection({ dreamId, allowComments, forceOpen }: Props) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          {open ? 'Cerrar comentarios' : 'Comentarios'}
+          {open ? 'Cerrar' : `Comentarios${comments.length > 0 ? ` (${comments.length})` : ''}`}
         </button>
       )}
 
       {isOpen && (
-        <div className="flex flex-col gap-2 animate-fade-in" style={{ marginTop: forceOpen ? 0 : 12 }}>
-
-          {/* Poll */}
-          {poll && <PollCard dreamId={dreamId} poll={poll} />}
-
+        <div className="flex flex-col gap-2" style={{ marginTop: forceOpen ? 0 : 12 }}>
           {isLoading ? (
             <div className="h-8 shimmer rounded-xl" />
-          ) : topLevel.length === 0 && !poll ? (
+          ) : topLevel.length === 0 ? (
             <p className="text-xs text-white/25 italic">Sin comentarios aún. ¡Sé el primero!</p>
           ) : (
-            topLevel.map((c: DreamComment) => (
+            topLevel.map((c) => (
               <div key={c.id} className="flex flex-col gap-1.5">
-                {/* Top-level comment */}
                 <CommentBubble
                   comment={c} myId={user?.id} indent={0}
                   onReply={handleReply}
                   onDelete={() => deleteMutation.mutate(c.id)}
                 />
-
-                {/* Replies */}
-                {repliesMap[c.id]?.map((reply: DreamComment) => (
+                {repliesMap[c.id]?.map((reply) => (
                   <CommentBubble
                     key={reply.id}
                     comment={reply} myId={user?.id} indent={1}
@@ -206,60 +164,66 @@ export function CommentSection({ dreamId, allowComments, forceOpen }: Props) {
                     onDelete={() => deleteMutation.mutate(reply.id)}
                   />
                 ))}
-
-                {/* Inline reply input for this thread */}
                 {replyingTo?.parentId === c.id && (
-                  <div className="ml-7 flex gap-2 animate-fade-in">
+                  <div className="ml-7 flex gap-2">
                     <input
                       autoFocus
                       value={replyText}
                       onChange={e => setReplyText(e.target.value)}
                       onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) { e.preventDefault(); submitReply() }
+                        if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) {
+                          e.preventDefault()
+                          postMutation.mutate({ body: replyText.trim(), parentId: replyingTo.parentId })
+                        }
                         if (e.key === 'Escape') setReplyingTo(null)
                       }}
-                      placeholder={`Respondiendo…`}
+                      placeholder="Respondiendo…"
                       maxLength={1000}
-                      className="glass-input flex-1 rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-white/20"
+                      className="glass-input flex-1 rounded-xl px-3 py-1.5 text-xs"
                     />
-                    <button onClick={submitReply}
+                    <button onClick={() => postMutation.mutate({ body: replyText.trim(), parentId: replyingTo.parentId })}
                       disabled={!replyText.trim() || postMutation.isPending}
-                      className="glass-btn-primary px-3 py-1.5 rounded-xl text-xs font-semibold text-white disabled:opacity-40 transition-all active:scale-95">
+                      className="glass-btn-primary px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                       </svg>
                     </button>
-                    <button onClick={() => setReplyingTo(null)}
-                      className="text-white/25 hover:text-white/50 text-xs px-1 transition-colors">✕</button>
+                    <button onClick={() => setReplyingTo(null)} className="text-white/25 hover:text-white/50 text-xs px-1">✕</button>
                   </div>
                 )}
               </div>
             ))
           )}
 
-          {/* Main comment input */}
-          <div className="flex gap-2 mt-1">
-            <input
-              value={text}
-              onChange={e => setText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && text.trim()) { e.preventDefault(); postMutation.mutate({ body: text.trim() }) } }}
-              placeholder="Escribe un comentario…"
-              maxLength={1000}
-              className="glass-input flex-1 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/20"
-            />
-            <button
-              onClick={() => postMutation.mutate({ body: text.trim() })}
-              disabled={!text.trim() || postMutation.isPending}
-              className="glass-btn-primary px-3 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-40 transition-all active:scale-95"
-            >
-              {postMutation.isPending
-                ? <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                  </svg>
-              }
-            </button>
-          </div>
+          {user && (
+            <div className="flex gap-2 mt-1">
+              <input
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey && text.trim()) {
+                    e.preventDefault()
+                    postMutation.mutate({ body: text.trim() })
+                  }
+                }}
+                placeholder="Escribe un comentario…"
+                maxLength={1000}
+                className="glass-input flex-1 rounded-xl px-3 py-2 text-xs"
+              />
+              <button
+                onClick={() => postMutation.mutate({ body: text.trim() })}
+                disabled={!text.trim() || postMutation.isPending}
+                className="glass-btn-primary px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-40"
+              >
+                {postMutation.isPending
+                  ? <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                }
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

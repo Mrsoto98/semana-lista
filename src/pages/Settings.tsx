@@ -106,6 +106,9 @@ export default function Settings() {
   const [deleteText,  setDeleteText]  = useState('')
   const [deleting,    setDeleting]    = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [reminderTime, setReminderTimeLocal] = useState(() => {
+    try { return localStorage.getItem('dream-reminder-time') ?? '08:00' } catch { return '08:00' }
+  })
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -407,37 +410,51 @@ export default function Settings() {
       {/* Push notifications */}
       {push.state !== 'unsupported' && (
         <div className="glass rounded-3xl p-5 mt-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Recordatorio matutino</p>
-              <p className="text-sm text-white/70 font-medium">Aviso a las 8:00 AM</p>
-              <p className="text-[11px] text-white/30 mt-0.5">
-                {push.state === 'denied'
-                  ? '⚠️ Permiso denegado. Actívalo en ajustes del navegador.'
-                  : push.state === 'subscribed'
-                    ? '✓ Recibirás un aviso cada mañana para anotar tus sueños.'
-                    : '¿Tuviste algún sueño? Regístralo antes de que lo olvides.'}
+          <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Recordatorio diario</p>
+          {push.state === 'denied' ? (
+            <p className="text-xs text-orange-400/70 mt-2">
+              ⚠️ Permiso denegado. Actívalo en los ajustes de tu navegador para recibir recordatorios.
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-white/35 mb-4">
+                Recibe un aviso a la hora elegida para anotar tus sueños antes de que se desvanezcan.
               </p>
-            </div>
-            {push.state !== 'denied' && (
-              <button
-                onClick={() => push.state === 'subscribed' ? push.unsubscribe() : push.subscribe()}
-                disabled={push.state === 'loading'}
-                className={`shrink-0 w-12 h-6 rounded-full transition-all relative disabled:opacity-50 ${
-                  push.state === 'subscribed' ? 'bg-[rgba(var(--glow-color),0.6)]' : 'bg-white/15'
-                }`}
-              >
-                {push.state === 'loading'
-                  ? <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    </div>
-                  : <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${
-                      push.state === 'subscribed' ? 'left-7' : 'left-1'
-                    }`} />
-                }
-              </button>
-            )}
-          </div>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="time"
+                  value={reminderTime}
+                  onChange={e => setReminderTimeLocal(e.target.value)}
+                  className="glass-input flex-1 rounded-xl px-4 py-2.5 text-sm text-white"
+                />
+                <button
+                  onClick={async () => {
+                    const ok = await push.setReminderTime(reminderTime)
+                    if (!ok) setReminderTimeLocal(push.getSavedTime() ?? '08:00')
+                  }}
+                  disabled={push.state === 'loading'}
+                  className="glass-btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 whitespace-nowrap"
+                >
+                  {push.state === 'loading'
+                    ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : push.getSavedTime() ? 'Actualizar' : 'Activar'}
+                </button>
+              </div>
+              {push.getSavedTime() && (
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[11px]" style={{ color: `hsl(var(--accent-h), var(--accent-s), 70%)` }}>
+                    ✓ Activo a las {push.getSavedTime()}
+                  </span>
+                  <button
+                    onClick={async () => { await push.setReminderTime(null); setReminderTimeLocal('08:00') }}
+                    className="text-[11px] text-red-400/50 hover:text-red-400 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -449,6 +466,9 @@ export default function Settings() {
 
       {/* Notebook skin */}
       <NotebookSkinPicker />
+
+      {/* Export dreams */}
+      <ExportSection userId={user!.id} />
 
       {/* Tutorial */}
       <button onClick={() => { localStorage.removeItem('tutorial-seen'); window.dispatchEvent(new CustomEvent('open-tutorial')) }}
@@ -551,6 +571,62 @@ export default function Settings() {
           <img src={avatarUrl} className="max-w-[90vw] max-h-[90vh] rounded-3xl shadow-2xl object-contain" alt="" />
         </div>
       )}
+    </div>
+  )
+}
+
+function ExportSection({ userId }: { userId: string }) {
+  const [exporting, setExporting] = useState(false)
+
+  async function handleExport(format: 'json' | 'txt') {
+    setExporting(true)
+    try {
+      const { data } = await supabase
+        .from('dreams')
+        .select('title, body, dream_date, is_lucid, emotions, tags, sleep_quality, visibility, created_at')
+        .eq('user_id', userId)
+        .order('dream_date', { ascending: false })
+      const dreams = data ?? []
+      let content: string
+      let filename: string
+      let mimeType: string
+      if (format === 'json') {
+        content = JSON.stringify(dreams, null, 2)
+        filename = `bitacora-suenos-${new Date().toISOString().slice(0, 10)}.json`
+        mimeType = 'application/json'
+      } else {
+        content = dreams.map(d =>
+          `${d.dream_date}${d.is_lucid ? ' [LÚCIDO]' : ''}\n${d.title ? d.title + '\n' : ''}${d.body}\n\nEmociones: ${d.emotions?.join(', ') || '—'}\nEtiquetas: ${d.tags?.join(', ') || '—'}\n${'─'.repeat(40)}`
+        ).join('\n\n')
+        filename = `bitacora-suenos-${new Date().toISOString().slice(0, 10)}.txt`
+        mimeType = 'text/plain;charset=utf-8'
+      }
+      const blob = new Blob([content], { type: mimeType })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = filename; a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <div className="glass rounded-3xl p-5 mt-4">
+      <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Exportar sueños</p>
+      <p className="text-xs text-white/30 mb-4">Descarga todos tus sueños como archivo</p>
+      <div className="flex gap-2">
+        <button onClick={() => handleExport('json')} disabled={exporting}
+          className="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all active:scale-[0.98] disabled:opacity-40"
+          style={{ color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)' }}>
+          {exporting ? '…' : '{ } JSON'}
+        </button>
+        <button onClick={() => handleExport('txt')} disabled={exporting}
+          className="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all active:scale-[0.98] disabled:opacity-40"
+          style={{ color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)' }}>
+          {exporting ? '…' : '≡ Texto'}
+        </button>
+      </div>
     </div>
   )
 }

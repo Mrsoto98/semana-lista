@@ -1,24 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
-import { api } from '../lib/api'
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
+export type PushState = 'unsupported' | 'denied' | 'granted' | 'ungranted' | 'loading'
 
-function urlBase64ToUint8Array(base64: string) {
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
-  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const raw = atob(b64)
-  const arr = new Uint8Array(raw.length)
-  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
-  return arr
-}
-
-export type PushState = 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed' | 'loading'
+const REMINDER_KEY = 'dream-reminder-time'
 
 export function usePushNotifications() {
   const [state, setState] = useState<PushState>('loading')
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (!('Notification' in window)) {
       setState('unsupported')
       return
     }
@@ -26,50 +16,84 @@ export function usePushNotifications() {
       setState('denied')
       return
     }
-    navigator.serviceWorker.ready.then(reg =>
-      reg.pushManager.getSubscription().then(sub => {
-        setState(sub ? 'subscribed' : 'unsubscribed')
-      })
-    ).catch(() => setState('unsubscribed'))
+    setState(Notification.permission === 'granted' ? 'granted' : 'ungranted')
   }, [])
 
-  const subscribe = useCallback(async (): Promise<boolean> => {
-    if (!VAPID_PUBLIC_KEY) {
-      console.warn('VITE_VAPID_PUBLIC_KEY not set')
-      return false
-    }
+  const requestPermission = useCallback(async (): Promise<boolean> => {
+    if (!('Notification' in window)) return false
     setState('loading')
     try {
       const permission = await Notification.requestPermission()
-      if (permission !== 'granted') { setState('denied'); return false }
-
-      const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      })
-      await api.post('/notifications/subscribe', sub.toJSON())
-      setState('subscribed')
-      return true
-    } catch (err) {
-      console.error('[push] subscribe error:', err)
-      setState('unsubscribed')
+      const granted = permission === 'granted'
+      setState(granted ? 'granted' : permission === 'denied' ? 'denied' : 'ungranted')
+      return granted
+    } catch {
+      setState('ungranted')
       return false
     }
   }, [])
 
-  const unsubscribe = useCallback(async () => {
-    setState('loading')
-    try {
-      const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.getSubscription()
-      if (sub) await sub.unsubscribe()
-      await api.delete('/notifications/subscribe').catch(() => {})
-      setState('unsubscribed')
-    } catch {
-      setState('subscribed')
-    }
+  const getSavedTime = useCallback((): string | null => {
+    try { return localStorage.getItem(REMINDER_KEY) } catch { return null }
   }, [])
 
-  return { state, subscribe, unsubscribe }
+  const setReminderTime = useCallback(async (time: string | null): Promise<boolean> => {
+    if (!('Notification' in window)) return false
+    if (Notification.permission !== 'granted') {
+      const ok = await requestPermission()
+      if (!ok) return false
+    }
+    try {
+      if (time) {
+        localStorage.setItem(REMINDER_KEY, time)
+        scheduleLocalReminder(time)
+      } else {
+        localStorage.removeItem(REMINDER_KEY)
+        clearScheduledReminder()
+      }
+      return true
+    } catch { return false }
+  }, [requestPermission])
+
+  return { state, requestPermission, getSavedTime, setReminderTime }
+}
+
+let reminderTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearScheduledReminder() {
+  if (reminderTimer) { clearTimeout(reminderTimer); reminderTimer = null }
+}
+
+function scheduleLocalReminder(time: string) {
+  clearScheduledReminder()
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+
+  function fireNext() {
+    const now = new Date()
+    const [h, m] = time.split(':').map(Number)
+    const next = new Date(now)
+    next.setHours(h, m, 0, 0)
+    if (next <= now) next.setDate(next.getDate() + 1)
+    const ms = next.getTime() - now.getTime()
+    reminderTimer = setTimeout(() => {
+      new Notification('Bitácora del Sueño ☽', {
+        body: '¿Qué soñaste anoche? Anota tu sueño antes de que se desvanezca.',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: 'dream-reminder',
+      })
+      fireNext()
+    }, ms)
+  }
+
+  fireNext()
+}
+
+export function initReminder() {
+  try {
+    const time = localStorage.getItem('dream-reminder-time')
+    if (time && 'Notification' in window && Notification.permission === 'granted') {
+      scheduleLocalReminder(time)
+    }
+  } catch {}
 }

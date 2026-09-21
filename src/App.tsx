@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from './components/layout/AppShell'
@@ -6,6 +7,7 @@ import AuthCallback from './pages/AuthCallback'
 import Onboarding from './pages/Onboarding'
 import DiaryPage from './pages/DiaryPage'
 import DreamFormPage from './pages/DreamFormPage'
+import DreamDetailPage from './pages/DreamDetailPage'
 import WhispersPage from './pages/WhispersPage'
 import EncountersPage from './pages/EncountersPage'
 import ExplorePage from './pages/ExplorePage'
@@ -15,6 +17,7 @@ import Audio from './pages/Audio'
 import Friends from './pages/Friends'
 import LucidTechniques from './pages/LucidTechniques'
 import UserProfile from './pages/UserProfile'
+import { initReminder } from './hooks/usePushNotifications'
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -22,9 +25,15 @@ const qc = new QueryClient({
   },
 })
 
+function AppInit() {
+  useEffect(() => { initReminder() }, [])
+  return null
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={qc}>
+      <AppInit />
       <BrowserRouter>
         <Routes>
           {/* Public */}
@@ -52,6 +61,7 @@ export default function App() {
           {/* Dream form — fullscreen, no nav */}
           <Route path="/diario/nuevo"  element={<DreamFormPage />} />
           <Route path="/diario/:id"    element={<DreamFormPage />} />
+          <Route path="/sueno/:id"     element={<DreamDetailPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/perfil" replace />} />
