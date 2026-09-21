@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router'
+import { NavLink, useNavigate, useLocation } from 'react-router'
 import { motion } from 'framer-motion'
 
 const NAV = [
@@ -9,7 +9,14 @@ const NAV = [
 ]
 
 export function BottomNav() {
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
+  const { pathname } = useLocation()
+
+  function handleNavTap(to: string) {
+    if (pathname === to) {
+      window.dispatchEvent(new CustomEvent('dreamlog:scroll-top'))
+    }
+  }
 
   return (
     <>
@@ -41,7 +48,7 @@ export function BottomNav() {
       >
         <nav className="glass-nav-pill flex items-center rounded-[28px] px-2 py-2">
           {NAV.map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to}>
+            <NavLink key={to} to={to} onClick={() => handleNavTap(to)}>
               {({ isActive }) => (
                 <motion.div
                   whileTap={{ scale: 0.82 }}

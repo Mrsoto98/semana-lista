@@ -1,12 +1,14 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, startOfWeek, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../lib/store'
 import { DreamCard } from '../components/dreams/DreamCard'
+import { DreamShareCard } from '../components/dreams/DreamShareCard'
+import { usePullToRefresh, PTR_THRESHOLD } from '../hooks/usePullToRefresh'
 import { listContainerVariants, listItemVariants, pageVariants, pageTransition } from '../lib/motion'
 import type { Dream } from '../types'
 
@@ -27,11 +29,13 @@ function groupByWeek(dreams: Dream[]): { label: string; items: Dream[] }[] {
 
 export default function DiaryPage() {
   const navigate = useNavigate()
-  const user = useAuthStore((s) => s.user)
+  const user     = useAuthStore((s) => s.user)
+  const qc       = useQueryClient()
   const [headerCollapsed, setHeaderCollapsed] = useState(false)
+  const [shareCardDream, setShareCardDream]   = useState<Dream | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+  const { data, refetch, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery({
       queryKey: ['dreams', user?.id],
       queryFn: async ({ pageParam = 0 }) => {
@@ -51,12 +55,39 @@ export default function DiaryPage() {
     })
 
   const allDreams = data?.pages.flat() ?? []
-  const groups = groupByWeek(allDreams)
+  const groups    = groupByWeek(allDreams)
   const stats = {
     total: allDreams.length,
     lucid: allDreams.filter((d) => d.is_lucid).length,
-    streak: 0, // computed server-side via stats endpoint
+    streak: 0,
   }
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('dreams').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['dreams'] }),
+  })
+
+  const toggleLucidMutation = useMutation({
+    mutationFn: async (dream: Dream) => {
+      const { error } = await supabase
+        .from('dreams').update({ is_lucid: !dream.is_lucid }).eq('id', dream.id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['dreams'] }),
+  })
+
+  useEffect(() => {
+    const handler = () => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    window.addEventListener('dreamlog:scroll-top', handler)
+    return () => window.removeEventListener('dreamlog:scroll-top', handler)
+  }, [])
+
+  const { pullY, refreshing, onTouchStart, onTouchMove, onTouchEnd } = usePullToRefresh(
+    useCallback(async () => { await refetch() }, [refetch])
+  )
 
   function handleScroll() {
     const el = scrollRef.current
@@ -170,9 +201,23 @@ export default function DiaryPage() {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-24"
-        style={{ overscrollBehavior: 'contain' }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className="flex-1 min-h-0 overflow-y-auto px-4 pb-24"
+        style={{ overscrollBehavior: 'contain', paddingTop: refreshing ? 0 : 16 }}
       >
+        {/* Pull-to-refresh indicator */}
+        {(pullY > 0 || refreshing) && (
+          <div style={{ height: refreshing ? 48 : pullY, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', transition: refreshing ? 'none' : 'height 0.2s ease' }}>
+            <motion.span
+              style={{ fontSize: 22, display: 'block', opacity: refreshing ? 1 : Math.min(1, pullY / 40) }}
+              animate={{ rotate: refreshing ? 360 : (pullY / PTR_THRESHOLD) * 180 }}
+              transition={refreshing ? { duration: 1.2, repeat: Infinity, ease: 'linear' } : { type: 'spring', stiffness: 200 }}
+            >☽</motion.span>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -215,6 +260,10 @@ export default function DiaryPage() {
                       <DreamCard
                         dream={dream}
                         onClick={() => navigate(`/diario/${dream.id}`)}
+                        onEdit={() => navigate(`/diario/${dream.id}/editar`)}
+                        onDelete={() => { if (confirm('¿Eliminar este sueño?')) deleteMutation.mutate(dream.id) }}
+                        onToggleLucid={() => toggleLucidMutation.mutate(dream)}
+                        onShare={() => setShareCardDream(dream)}
                       />
                     </motion.div>
                   ))}
@@ -233,6 +282,17 @@ export default function DiaryPage() {
           </motion.div>
         )}
       </div>
+
+      {/* Dream share card modal */}
+      <AnimatePresence>
+        {shareCardDream && (
+          <DreamShareCard
+            dream={shareCardDream}
+            authorName={user?.name}
+            onClose={() => setShareCardDream(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

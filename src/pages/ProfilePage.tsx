@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { format, startOfWeek, addDays } from 'date-fns'
@@ -187,6 +187,21 @@ export default function ProfilePage() {
   const lucidRatio = dreams.length > 0 ? (lucidCount / dreams.length) * 100 : 0
   const streak = useMemo(() => calculateStreak(dreams), [dreams])
   const heatmapCounts = useMemo(() => buildHeatmap(dreams), [dreams])
+
+  const recurringSymbols = useMemo(() => {
+    const STOP = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'en', 'a', 'y', 'que', 'me', 'mi', 'se', 'su', 'al', 'con', 'por', 'para', 'le', 'lo', 'no', 'si', 'fue', 'era', 'hay', 'muy', 'mas', 'cuando', 'donde', 'como', 'todo', 'ya', 'solo', 'he', 'yo', 'pero', 'sobre', 'sus', 'este', 'esta', 'ese', 'esa', 'tan', 'nos', 'les', 'mis', 'sus', 'que', 'sin', 'hasta', 'hacia', 'esta', 'este', 'sus', 'unos', 'unas', 'entre'])
+    const counts: Record<string, number> = {}
+    dreams.forEach(d => {
+      ;(d.body + ' ' + (d.title ?? '')).toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z\s]/g, ' ')
+        .split(/\s+/)
+        .forEach(w => {
+          if (w.length > 3 && !STOP.has(w)) counts[w] = (counts[w] ?? 0) + 1
+        })
+    })
+    return Object.entries(counts).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 10)
+  }, [dreams])
   const today = new Date().toISOString().slice(0, 10)
   const hasTodayDream = dreams.some(d => d.dream_date === today)
   const dreamOfDay = useMemo(() => {
@@ -203,6 +218,12 @@ export default function ProfilePage() {
     )
   }, [dreams, search])
   const groups = useMemo(() => groupDreamsByWeek(filteredDreams), [filteredDreams])
+
+  useEffect(() => {
+    const handler = () => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    window.addEventListener('dreamlog:scroll-top', handler)
+    return () => window.removeEventListener('dreamlog:scroll-top', handler)
+  }, [])
 
   if (!user) return null
 
@@ -448,6 +469,7 @@ export default function ProfilePage() {
             isLoading={isLoading}
             streak={streak}
             heatmapCounts={heatmapCounts}
+            recurringSymbols={recurringSymbols}
           />
         )}
       </div>
@@ -525,7 +547,7 @@ function DreamsGrid({ dreams, isLoading }: { dreams: Dream[]; isLoading: boolean
   )
 }
 
-function StatsContent({ totalCount, lucidCount, lucidRatio, monthlyData, emotionData, topTags, isLoading, streak, heatmapCounts }: {
+function StatsContent({ totalCount, lucidCount, lucidRatio, monthlyData, emotionData, topTags, isLoading, streak, heatmapCounts, recurringSymbols }: {
   totalCount: number; lucidCount: number; lucidRatio: number
   monthlyData: { month: string; total: number }[]
   emotionData: { name: string; value: number; color: string }[]
@@ -533,6 +555,7 @@ function StatsContent({ totalCount, lucidCount, lucidRatio, monthlyData, emotion
   isLoading: boolean
   streak: number
   heatmapCounts: Record<string, number>
+  recurringSymbols: [string, number][]
 }) {
   if (isLoading) return (
     <div className="px-4 pt-4 space-y-4">
@@ -614,6 +637,39 @@ function StatsContent({ totalCount, lucidCount, lucidRatio, monthlyData, emotion
                 #{tag} <span style={{ color: 'rgba(255,255,255,0.3)' }}>{count}</span>
               </span>
             ))}
+          </div>
+        </div>
+      )}
+
+      {recurringSymbols.length > 0 && (
+        <div className="glass-card p-4">
+          <p className="text-xs font-medium text-white/40 mb-1">Símbolos recurrentes</p>
+          <p className="text-[10px] text-white/20 mb-3">Palabras que aparecen más de una vez en tus sueños</p>
+          <div className="flex flex-col gap-2">
+            {recurringSymbols.map(([word, count], i) => {
+              const maxCount = recurringSymbols[0][1]
+              const pct = (count / maxCount) * 100
+              return (
+                <div key={word} className="flex items-center gap-3">
+                  <span
+                    className="text-[10px] min-w-[16px] text-center"
+                    style={{ color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-mono)' }}
+                  >{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[12px] text-white/70 capitalize">{word}</span>
+                      <span className="text-[10px]" style={{ color: `hsl(var(--accent-h), var(--accent-s), 65%)`, fontFamily: 'var(--font-mono)' }}>×{count}</span>
+                    </div>
+                    <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${pct}%`, background: `hsl(var(--accent-h), var(--accent-s), 55%)`, opacity: 0.6 + i * -0.04 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
