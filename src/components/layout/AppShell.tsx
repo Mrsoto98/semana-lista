@@ -18,7 +18,7 @@ export function AppShell() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         logout()
-      } else if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) {
+      } else if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
         const storedUser = useAuthStore.getState().user
         if (storedUser) {
           setAuth(storedUser, session.access_token, session.refresh_token ?? '')
