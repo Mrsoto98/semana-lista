@@ -68,6 +68,18 @@ export default function UserProfile() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['profile', id] }),
   })
 
+  const messageMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('get_or_create_conversation', {
+        user_a: user!.id,
+        user_b: id!,
+      })
+      if (error) throw error
+      return data as string
+    },
+    onSuccess: (convId) => navigate(`/mensajes/${convId}`),
+  })
+
   if (isLoading) return (
     <div className="animate-fade-in flex flex-col gap-4 pt-2">
       <div className="glass-card rounded-3xl h-48 shimmer" />
@@ -139,7 +151,7 @@ export default function UserProfile() {
             )}
 
             {!isSelf && (
-              <div className="mt-3">
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
                 {relationship === 'stranger' && (
                   <button onClick={() => requestMutation.mutate()}
                     disabled={requestMutation.isPending || requestMutation.isSuccess}
@@ -153,6 +165,17 @@ export default function UserProfile() {
                     Ya sois amigos
                   </span>
                 )}
+                <button
+                  onClick={() => messageMutation.mutate()}
+                  disabled={messageMutation.isPending}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white/70 transition-all active:scale-95 disabled:opacity-60"
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  {messageMutation.isPending ? 'Abriendo…' : 'Mensaje'}
+                </button>
               </div>
             )}
           </div>

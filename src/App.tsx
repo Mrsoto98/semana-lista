@@ -17,6 +17,9 @@ import Audio from './pages/Audio'
 import Friends from './pages/Friends'
 import LucidTechniques from './pages/LucidTechniques'
 import UserProfile from './pages/UserProfile'
+import NotificationsPage from './pages/NotificationsPage'
+import MessagesPage from './pages/MessagesPage'
+import ConversationPage from './pages/ConversationPage'
 import { initReminder } from './hooks/usePushNotifications'
 
 const qc = new QueryClient({
@@ -50,12 +53,15 @@ export default function App() {
             <Route path="/susurros"    element={<WhispersPage />} />
             <Route path="/encuentros"  element={<EncountersPage />} />
             <Route path="/explorar"    element={<ExplorePage />} />
-            <Route path="/perfil"      element={<ProfilePage />} />
-            <Route path="/perfil/:id"  element={<UserProfile />} />
-            <Route path="/amigos"      element={<Friends />} />
-            <Route path="/ajustes"     element={<Settings />} />
-            <Route path="/audio"       element={<Audio />} />
-            <Route path="/tecnicas"    element={<LucidTechniques />} />
+            <Route path="/perfil"              element={<ProfilePage />} />
+            <Route path="/perfil/:id"          element={<UserProfile />} />
+            <Route path="/amigos"              element={<Friends />} />
+            <Route path="/ajustes"             element={<Settings />} />
+            <Route path="/audio"               element={<Audio />} />
+            <Route path="/tecnicas"            element={<LucidTechniques />} />
+            <Route path="/notificaciones"      element={<NotificationsPage />} />
+            <Route path="/mensajes"            element={<MessagesPage />} />
+            <Route path="/mensajes/:id"        element={<ConversationPage />} />
           </Route>
 
           {/* Dream form — fullscreen, no nav */}
