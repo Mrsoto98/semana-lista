@@ -35,7 +35,7 @@ export function BottomNav() {
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.88, rotate: -10 }}
         onClick={() => navigate('/diario/nuevo')}
-        className="fixed z-[60] flex items-center justify-center"
+        className="float-add-btn fixed z-[60] flex items-center justify-center"
         style={{
           bottom: 'calc(max(88px, env(safe-area-inset-bottom) + 72px))',
           right: 20,
