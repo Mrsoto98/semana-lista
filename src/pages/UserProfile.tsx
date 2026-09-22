@@ -207,10 +207,13 @@ export default function UserProfile() {
           {/* Birth date / age */}
           {profile.birth_date && profile.birth_visibility !== 'none' && (
             <p className="text-[12px] text-white/35 mt-1">
-              🎂 {profile.birth_visibility === 'age'
-                ? `${Math.floor((Date.now() - new Date(profile.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años`
-                : new Date(profile.birth_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
-              }
+              🎂 {(() => {
+                const age = Math.floor((Date.now() - new Date(profile.birth_date!).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                const date = new Date(profile.birth_date! + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+                if (profile.birth_visibility === 'age') return `${age} años`
+                if (profile.birth_visibility === 'date') return date
+                return `${date} · ${age} años`
+              })()}
             </p>
           )}
 

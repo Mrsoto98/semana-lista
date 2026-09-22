@@ -342,10 +342,13 @@ export default function ProfilePage() {
             ) : null}
             {user.birth_date && user.birth_visibility !== 'none' && (
               <p className="text-[11px] text-white/35 mt-0.5">
-                🎂 {user.birth_visibility === 'age'
-                  ? `${Math.floor((Date.now() - new Date(user.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años`
-                  : new Date(user.birth_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
-                }
+                🎂 {(() => {
+                  const age = Math.floor((Date.now() - new Date(user.birth_date!).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                  const date = new Date(user.birth_date! + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+                  if (user.birth_visibility === 'age') return `${age} años`
+                  if (user.birth_visibility === 'date') return date
+                  return `${date} · ${age} años`
+                })()}
               </p>
             )}
             {user.bio && (

@@ -14,7 +14,7 @@ export interface User {
   default_visibility: Visibility
   user_number: number | null
   birth_date: string | null
-  birth_visibility: 'date' | 'age' | 'none'
+  birth_visibility: 'date' | 'age' | 'date_age' | 'none'
   birth_time: string | null
   location: string | null
   country: string | null

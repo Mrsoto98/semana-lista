@@ -52,7 +52,7 @@ export default function Settings() {
     const [y, m, d] = user.birth_date.split('-')
     return `${d}/${m}/${y}`
   })
-  const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'none'>(user?.birth_visibility ?? 'age')
+  const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'date_age' | 'none'>(user?.birth_visibility ?? 'age')
   const [birthTime, setBirthTime] = useState(() => {
     try { return localStorage.getItem('birth-time') ?? user?.birth_time ?? '' } catch { return '' }
   })
@@ -439,9 +439,10 @@ export default function Settings() {
 
         <div className="flex flex-col gap-2 mt-1">
           {([
-            { value: 'date', icon: '📅', label: 'Mostrar fecha completa' },
-            { value: 'age',  icon: '🎂', label: 'Mostrar solo edad' },
-            { value: 'none', icon: '🙈', label: 'No mostrar' },
+            { value: 'date',     icon: '📅', label: 'Mostrar fecha completa' },
+            { value: 'age',      icon: '🎂', label: 'Mostrar solo edad' },
+            { value: 'date_age', icon: '✨', label: 'Mostrar fecha y edad' },
+            { value: 'none',     icon: '🙈', label: 'No mostrar' },
           ] as const).map(opt => (
             <button key={opt.value} onClick={() => setBirthVisibility(opt.value)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all ${

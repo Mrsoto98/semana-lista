@@ -137,10 +137,13 @@ export default function Diary() {
             )}
             {user?.birth_date && user?.birth_visibility !== 'none' && (
               <p className="text-xs text-white/35 mt-1">
-                {'�‚ '}{user.birth_visibility === 'age'
-                  ? `${Math.floor((Date.now() - new Date(user.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años`
-                  : new Date(user.birth_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
-                }
+                🎂 {(() => {
+                  const age = Math.floor((Date.now() - new Date(user.birth_date!).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                  const date = new Date(user.birth_date! + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+                  if (user.birth_visibility === 'age') return `${age} años`
+                  if (user.birth_visibility === 'date') return date
+                  return `${date} · ${age} años`
+                })()}
               </p>
             )}
             <div className="flex items-center gap-2 mt-2.5">

@@ -91,10 +91,6 @@ export function AppLayout() {
         style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.45) 0%, transparent 70%)` }}
       />
       <div
-        className="orb w-[350px] h-[350px] bottom-[80px] right-[-80px] opacity-15"
-        style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.35) 0%, transparent 70%)` }}
-      />
-      <div
         className="orb w-[250px] h-[250px] top-[40%] left-[30%] opacity-10"
         style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.3) 0%, transparent 70%)` }}
       />
