@@ -10,6 +10,7 @@ export function AppShell() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const setAuth = useAuthStore((s) => s.setAuth)
+  const setTheme = useAuthStore((s) => s.setTheme)
   const [tutorialOpen, setTutorialOpen] = useState(false)
 
   // Keep Zustand in sync with Supabase session — handles token refresh and expiry
@@ -25,7 +26,10 @@ export function AppShell() {
           supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data }) => {
             if (data) {
               const current = useAuthStore.getState().user
-              if (current) setAuth({ ...current, ...data }, session.access_token, session.refresh_token ?? '')
+              if (current) {
+                setAuth({ ...current, ...data }, session.access_token, session.refresh_token ?? '')
+                if (data.theme_id) setTheme(data.theme_id)
+              }
             }
           })
         }

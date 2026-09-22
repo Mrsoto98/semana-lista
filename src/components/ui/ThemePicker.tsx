@@ -1,5 +1,6 @@
 import { THEMES } from '../../lib/themes'
 import { useAuthStore } from '../../lib/store'
+import { supabase } from '../../lib/supabase'
 import { cn } from '../../lib/utils'
 
 // Preview swatch colors per theme (accent light)
@@ -11,7 +12,12 @@ const SWATCH: Record<string, string> = {
 }
 
 export function ThemePicker() {
-  const { themeId, setTheme } = useAuthStore()
+  const { themeId, setTheme, user } = useAuthStore()
+
+  function handleTheme(id: import('../../types').ThemeId) {
+    setTheme(id)
+    if (user) supabase.from('profiles').update({ theme_id: id }).eq('id', user.id)
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -20,7 +26,7 @@ export function ThemePicker() {
         {THEMES.map((theme) => (
           <button
             key={theme.id}
-            onClick={() => setTheme(theme.id)}
+            onClick={() => handleTheme(theme.id as import('../../types').ThemeId)}
             title={theme.name}
             className={cn(
               'group flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all',
