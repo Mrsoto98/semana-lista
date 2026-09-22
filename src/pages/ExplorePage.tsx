@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
+import { useUnreadCounts } from '../hooks/useUnreadCounts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow, startOfMonth, format } from 'date-fns'
@@ -87,6 +88,7 @@ async function fetchFriendsFeed(offset: number, userId: string): Promise<FeedDre
 
 export default function ExplorePage() {
   const navigate = useNavigate()
+  const { notifCount } = useUnreadCounts()
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
   const [tab, setTab] = useState<Tab>('recientes')
@@ -205,7 +207,27 @@ export default function ExplorePage() {
         className="glass-header sticky top-0 z-30 px-4"
         style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 12 }}
       >
-        <h1 className="display-title mb-3" style={{ fontSize: 32 }}>Explorar</h1>
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="display-title" style={{ fontSize: 32 }}>Explorar</h1>
+          <button
+            onClick={() => navigate('/notificaciones')}
+            className="relative flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-90"
+            style={{ background: 'rgba(255,255,255,0.07)' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            {notifCount > 0 && (
+              <div
+                className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none px-1"
+                style={{ background: 'rgba(var(--glow-color), 1)' }}
+              >
+                {notifCount > 9 ? '9+' : notifCount}
+              </div>
+            )}
+          </button>
+        </div>
 
         {/* Tabs */}
         <div className="flex gap-1.5 mb-3">

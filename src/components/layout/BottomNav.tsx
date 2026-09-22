@@ -3,17 +3,16 @@ import { motion } from 'framer-motion'
 import { useUnreadCounts } from '../../hooks/useUnreadCounts'
 
 const NAV = [
-  { to: '/susurros',        icon: MoonIcon,    label: 'Susurros'  },
-  { to: '/explorar',        icon: CompassIcon, label: 'Explorar'  },
-  { to: '/mensajes',        icon: ChatIcon,    label: 'Mensajes', badge: 'msg' as const },
-  { to: '/notificaciones',  icon: BellIcon,    label: 'Notif',    badge: 'notif' as const },
-  { to: '/perfil',          icon: UserIcon,    label: 'Perfil'    },
+  { to: '/susurros',  icon: MoonIcon,    label: 'Susurros' },
+  { to: '/explorar',  icon: CompassIcon, label: 'Explorar' },
+  { to: '/mensajes',  icon: ChatIcon,    label: 'Mensajes', badge: 'msg' as const },
+  { to: '/perfil',    icon: UserIcon,    label: 'Perfil'   },
 ]
 
 export function BottomNav() {
   const navigate      = useNavigate()
   const { pathname }  = useLocation()
-  const { notifCount, msgCount } = useUnreadCounts()
+  const { msgCount }  = useUnreadCounts()
 
   function handleNavTap(to: string) {
     if (pathname === to) {
@@ -23,7 +22,6 @@ export function BottomNav() {
 
   function getBadge(badge?: 'msg' | 'notif') {
     if (badge === 'msg') return msgCount
-    if (badge === 'notif') return notifCount
     return 0
   }
 
@@ -65,7 +63,7 @@ export function BottomNav() {
                     whileTap={{ scale: 0.82 }}
                     transition={{ type: 'spring', stiffness: 520, damping: 26 }}
                     className="relative flex flex-col items-center justify-center cursor-pointer select-none"
-                    style={{ width: 56, height: 52 }}
+                    style={{ width: 66, height: 52 }}
                   >
                     {isActive && (
                       <motion.div
