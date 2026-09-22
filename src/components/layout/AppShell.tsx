@@ -18,10 +18,16 @@ export function AppShell() {
       if (event === 'SIGNED_OUT') {
         logout()
       } else if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) {
-        // Keep stored tokens fresh when Supabase auto-refreshes them
         const storedUser = useAuthStore.getState().user
         if (storedUser) {
           setAuth(storedUser, session.access_token, session.refresh_token ?? '')
+          // Fetch latest profile to sync edits from other devices
+          supabase.from('profiles').select('*').eq('id', session.user.id).single().then(({ data }) => {
+            if (data) {
+              const current = useAuthStore.getState().user
+              if (current) setAuth({ ...current, ...data }, session.access_token, session.refresh_token ?? '')
+            }
+          })
         }
       }
     })

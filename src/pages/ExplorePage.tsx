@@ -51,19 +51,15 @@ async function fetchRecentFeed(offset: number, search: string, userId?: string):
 }
 
 async function fetchPopularFeed(userId?: string): Promise<FeedDream[]> {
-  const monthStart = startOfMonth(new Date()).toISOString()
   const { data, error } = await supabase
     .from('dreams')
     .select(DREAM_SELECT)
     .eq('visibility', 'public')
-    .gte('created_at', monthStart)
-    .limit(120)
+    .gt('like_count', 0)
+    .order('like_count', { ascending: false })
+    .limit(50)
   if (error) throw error
-  return (data ?? [])
-    .map((d: any) => mapDream(d, userId))
-    .sort((a, b) => b.like_count - a.like_count)
-    .filter(d => d.like_count > 0)
-    .slice(0, 50)
+  return (data ?? []).map((d: any) => mapDream(d, userId))
 }
 
 async function fetchFriendsFeed(offset: number, userId: string): Promise<FeedDream[]> {
