@@ -1,18 +1,27 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User } from '../types'
-import { applyTheme, DEFAULT_THEME } from './themes'
+import type { User, ThemeId, DiarySkin } from '../types'
 
 interface AuthState {
   user: User | null
   accessToken: string | null
   refreshToken: string | null
-  themeId: string
+  themeId: ThemeId
+  diarySkin: DiarySkin
   setAuth: (user: User, accessToken: string, refreshToken: string) => void
+  updateUser: (patch: Partial<User>) => void
   logout: () => void
   refresh: () => Promise<string>
-  setTheme: (id: string) => void
+  setTheme: (id: ThemeId) => void
+  setDiarySkin: (skin: DiarySkin) => void
 }
+
+function applyTheme(id: ThemeId) {
+  document.documentElement.removeAttribute('data-theme')
+  if (id !== 'cosmos') document.documentElement.setAttribute('data-theme', id)
+}
+
+export const DEFAULT_THEME: ThemeId = 'cosmos'
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -21,14 +30,20 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       themeId: DEFAULT_THEME,
+      diarySkin: 'cosmico',
 
       setTheme: (id) => {
         set({ themeId: id })
         applyTheme(id)
       },
 
+      setDiarySkin: (skin) => set({ diarySkin: skin }),
+
       setAuth: (user, accessToken, refreshToken) =>
         set({ user, accessToken, refreshToken }),
+
+      updateUser: (patch) =>
+        set((s) => ({ user: s.user ? { ...s.user, ...patch } : s.user })),
 
       logout: () => {
         set({ user: null, accessToken: null, refreshToken: null })
@@ -54,13 +69,23 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'dreamlog-auth',
+      name: 'dreamlog-v2',
       partialize: (s) => ({
         user: s.user,
         accessToken: s.accessToken,
         refreshToken: s.refreshToken,
         themeId: s.themeId,
+        diarySkin: s.diarySkin,
       }),
     }
   )
 )
+
+// Apply persisted theme on store load
+const stored = localStorage.getItem('dreamlog-v2')
+if (stored) {
+  try {
+    const { state } = JSON.parse(stored)
+    if (state?.themeId) applyTheme(state.themeId)
+  } catch { /* ignore */ }
+}

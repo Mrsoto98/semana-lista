@@ -4,10 +4,29 @@ import { CosmicBackground } from '../common/CosmicBackground'
 import { BottomNav } from './BottomNav'
 import { TutorialOverlay } from '../ui/TutorialOverlay'
 import { useAuthStore } from '../../lib/store'
+import { supabase } from '../../lib/supabase'
 
 export function AppShell() {
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const setAuth = useAuthStore((s) => s.setAuth)
   const [tutorialOpen, setTutorialOpen] = useState(false)
+
+  // Keep Zustand in sync with Supabase session — handles token refresh and expiry
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        logout()
+      } else if ((event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session) {
+        // Keep stored tokens fresh when Supabase auto-refreshes them
+        const storedUser = useAuthStore.getState().user
+        if (storedUser) {
+          setAuth(storedUser, session.access_token, session.refresh_token ?? '')
+        }
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [logout, setAuth])
 
   useEffect(() => {
     if (!localStorage.getItem('tutorial-seen')) {

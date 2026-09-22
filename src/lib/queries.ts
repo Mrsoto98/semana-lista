@@ -1,5 +1,9 @@
 import { api } from './api'
-import type { Dream, FeedDream, Friend, Coincidence, Stats, DreamAnalysis, User, DreamComment, DreamPoll } from '../types'
+import type {
+  Dream, FeedDream, Friend, Coincidence, Stats,
+  DreamAnalysis, User, DreamComment, DreamPoll,
+  Whisper, WhisperReflection, WhisperFeed,
+} from '../types'
 
 // ── Auth ─────────────────────────────────────────────────────
 export const authApi = {
@@ -22,6 +26,8 @@ export const dreamsApi = {
   analyze: (id: string) => api.post<DreamAnalysis>(`/dreams/${id}/analyze`),
   reanalyze: (id: string) =>
     api.delete(`/dreams/${id}/analyze`).then(() => api.post<DreamAnalysis>(`/dreams/${id}/analyze`)),
+  suggestTitle: (body: string) =>
+    api.post<{ title: string }>('/dreams/suggest-title', { body }),
 }
 
 // ── Feed ─────────────────────────────────────────────────────
@@ -49,12 +55,30 @@ export const friendsApi = {
   block: (targetId: string) => api.post('/friends/block', { targetId }),
 }
 
-// ── Coincidences ─────────────────────────────────────────────
+// ── Coincidences / Encuentros ─────────────────────────────────
 export const coincidencesApi = {
   list: (scope?: 'friends' | 'public') =>
     api.get<Coincidence[]>('/coincidences', { params: scope ? { scope } : undefined }),
   accept: (id: string) => api.post(`/coincidences/${id}/accept`),
   dismiss: (id: string) => api.post(`/coincidences/${id}/dismiss`),
+}
+
+// ── Whispers / Susurros ───────────────────────────────────────
+export const whispersApi = {
+  feed: (params?: { sort?: WhisperFeed; limit?: number; offset?: number }) =>
+    api.get<Whisper[]>('/whispers', { params }),
+  mine: () => api.get<Whisper[]>('/whispers/mine'),
+  create: (data: { body: string; emotions?: string[]; dream_id?: string }) =>
+    api.post<Whisper>('/whispers', data),
+  remove: (id: string) => api.delete(`/whispers/${id}`),
+  resono: (id: string) =>
+    api.post<{ resono_count: number; user_resonated: boolean }>(`/whispers/${id}/resono`),
+  unresono: (id: string) =>
+    api.delete<{ resono_count: number; user_resonated: boolean }>(`/whispers/${id}/resono`),
+  reflections: (id: string) => api.get<WhisperReflection[]>(`/whispers/${id}/reflections`),
+  addReflection: (id: string, body: string) =>
+    api.post<WhisperReflection>(`/whispers/${id}/reflections`, { body }),
+  report: (id: string, reason: string) => api.post(`/whispers/${id}/report`, { reason }),
 }
 
 // ── Comments ─────────────────────────────────────────────────
@@ -90,4 +114,5 @@ export const userApi = {
   updateProfile: (data: Partial<User>) => api.patch<User>('/user/profile', data),
   export: () => api.get('/user/export', { responseType: 'blob' }),
   deleteAccount: () => api.delete('/user'),
+  publicProfile: (id: string) => api.get<User>(`/user/${id}`),
 }

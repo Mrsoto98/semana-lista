@@ -16,6 +16,10 @@ export interface User {
   user_number: number | null
   birth_date: string | null
   birth_visibility: 'date' | 'age' | 'none'
+  birth_time: string | null
+  location: string | null
+  country: string | null
+  show_zodiac: boolean
   onboarding_done: boolean
   instagram_username: string | null
   created_at: string
@@ -43,6 +47,7 @@ export interface Dream {
   interpretations?: { text: string; confidence: number }[]
   like_count?: number
   comment_count?: number
+  grid_bg?: string | null
 }
 
 export interface DreamComment {

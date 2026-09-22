@@ -67,7 +67,10 @@ export default function DiaryPage() {
       const { error } = await supabase.from('dreams').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['dreams'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dreams'] })
+      qc.invalidateQueries({ queryKey: ['my-dreams-profile'] })
+    },
   })
 
   const toggleLucidMutation = useMutation({
@@ -76,7 +79,10 @@ export default function DiaryPage() {
         .from('dreams').update({ is_lucid: !dream.is_lucid }).eq('id', dream.id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['dreams'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dreams'] })
+      qc.invalidateQueries({ queryKey: ['my-dreams-profile'] })
+    },
   })
 
   useEffect(() => {
@@ -259,8 +265,8 @@ export default function DiaryPage() {
                     <motion.div key={dream.id} variants={listItemVariants}>
                       <DreamCard
                         dream={dream}
-                        onClick={() => navigate(`/diario/${dream.id}`)}
-                        onEdit={() => navigate(`/diario/${dream.id}/editar`)}
+                        onClick={() => navigate(`/sueno/${dream.id}`)}
+                        onEdit={() => navigate(`/diario/${dream.id}`)}
                         onDelete={() => { if (confirm('¿Eliminar este sueño?')) deleteMutation.mutate(dream.id) }}
                         onToggleLucid={() => toggleLucidMutation.mutate(dream)}
                         onShare={() => setShareCardDream(dream)}

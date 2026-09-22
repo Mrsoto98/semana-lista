@@ -174,11 +174,13 @@ export function DreamNotebook({ dreams, onEdit, onDelete, onShare, onAnalyze, on
 
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => onCycleVis(dream)}
+                        aria-label={`Visibilidad: ${vis.label}`}
                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-all active:scale-95 text-white/60"
                         style={{ background: 'rgba(255,255,255,0.1)' }}>
                         {vis.icon} {vis.label}
                       </button>
                       <button onClick={() => onAnalyze(dream)} disabled={analyzing === dream.id}
+                        aria-label="Analizar con IA"
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] text-white/60 transition-all active:scale-95 disabled:opacity-40"
                         style={{ background: 'rgba(255,255,255,0.1)' }}>
                         {analyzing === dream.id
@@ -186,6 +188,7 @@ export function DreamNotebook({ dreams, onEdit, onDelete, onShare, onAnalyze, on
                           : '✦'}
                       </button>
                       <button onClick={() => onShare(dream)}
+                        aria-label="Compartir sueño"
                         className="w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-95"
                         style={{ background: 'rgba(255,255,255,0.1)' }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6">
@@ -194,9 +197,11 @@ export function DreamNotebook({ dreams, onEdit, onDelete, onShare, onAnalyze, on
                         </svg>
                       </button>
                       <button onClick={() => onEdit(dream)}
+                        aria-label="Editar sueño"
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] text-white/60 transition-all active:scale-95"
                         style={{ background: 'rgba(255,255,255,0.1)' }}>✎</button>
                       <button onClick={() => { if (confirm('¿Borrar este sueño?')) onDelete(dream.id) }}
+                        aria-label="Borrar sueño"
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] text-red-400/50 hover:text-red-400 transition-all active:scale-95"
                         style={{ background: 'rgba(255,255,255,0.07)' }}>✕</button>
                     </div>

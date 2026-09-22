@@ -72,19 +72,29 @@ export default function Diary() {
 
   const deleteMutation = useMutation({
     mutationFn: dreamsApi.remove,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['dreams'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dreams'] })
+      qc.invalidateQueries({ queryKey: ['my-dreams-profile'] })
+    },
   })
 
   const analyzeMutation = useMutation({
     mutationFn: (id: string) => dreamsApi.analyze(id).then(r => r.data),
     onMutate: (id) => setAnalyzing(id),
-    onSettled: () => { setAnalyzing(null); qc.invalidateQueries({ queryKey: ['dreams'] }) },
+    onSettled: () => {
+      setAnalyzing(null)
+      qc.invalidateQueries({ queryKey: ['dreams'] })
+      qc.invalidateQueries({ queryKey: ['my-dreams-profile'] })
+    },
   })
 
   const updateVisMutation = useMutation({
     mutationFn: ({ id, visibility }: { id: string; visibility: Visibility }) =>
       dreamsApi.update(id, { visibility }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['dreams'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dreams'] })
+      qc.invalidateQueries({ queryKey: ['my-dreams-profile'] })
+    },
   })
 
   function cycleVisibility(dream: Dream) {

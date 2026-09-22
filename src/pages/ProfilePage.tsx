@@ -10,6 +10,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../lib/store'
 import { formatUserNumber } from '../lib/formatUserNumber'
+import { getZodiac } from '../lib/zodiac'
 import { DreamCard } from '../components/dreams/DreamCard'
 import type { Dream } from '../types'
 
@@ -136,7 +137,7 @@ export default function ProfilePage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('dreams')
-        .select('id, title, body, dream_date, is_lucid, emotions, tags, visibility, summary, sleep_quality, allow_comments, allow_whisper, updated_at, created_at')
+        .select('*')
         .eq('user_id', user!.id)
         .order('dream_date', { ascending: false })
       return (data ?? []) as Dream[]
@@ -187,6 +188,10 @@ export default function ProfilePage() {
   const lucidRatio = dreams.length > 0 ? (lucidCount / dreams.length) * 100 : 0
   const streak = useMemo(() => calculateStreak(dreams), [dreams])
   const heatmapCounts = useMemo(() => buildHeatmap(dreams), [dreams])
+  const zodiac = useMemo(() => getZodiac(user?.birth_date), [user?.birth_date])
+  const showZodiac = useMemo(() => {
+    try { return localStorage.getItem('show-zodiac') === '1' } catch { return false }
+  }, [])
 
   const recurringSymbols = useMemo(() => {
     const STOP = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'en', 'a', 'y', 'que', 'me', 'mi', 'se', 'su', 'al', 'con', 'por', 'para', 'le', 'lo', 'no', 'si', 'fue', 'era', 'hay', 'muy', 'mas', 'cuando', 'donde', 'como', 'todo', 'ya', 'solo', 'he', 'yo', 'pero', 'sobre', 'sus', 'este', 'esta', 'ese', 'esa', 'tan', 'nos', 'les', 'mis', 'sus', 'que', 'sin', 'hasta', 'hacia', 'esta', 'este', 'sus', 'unos', 'unas', 'entre'])
@@ -241,7 +246,14 @@ export default function ProfilePage() {
         }}
       >
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-white">{user.name}</h1>
+          <h1 className="text-lg font-bold text-white flex items-center gap-1.5">
+            {user.name}
+            {showZodiac && zodiac && (
+              <span title={zodiac.name} style={{ color: `hsl(var(--accent-h),var(--accent-s),70%)`, fontSize: '0.95rem' }}>
+                {zodiac.symbol}
+              </span>
+            )}
+          </h1>
           <button
             onClick={() => navigate('/ajustes')}
             className="p-2 rounded-xl text-white/50 hover:text-white/80 transition-colors"
@@ -303,12 +315,25 @@ export default function ProfilePage() {
 
           {/* Name + bio */}
           <div className="mb-3">
-            <p className="font-semibold text-white text-sm">{user.name}</p>
+            <p className="font-semibold text-white text-sm flex items-center gap-1.5">
+              {user.name}
+              {showZodiac && zodiac && (
+                <span title={zodiac.name} style={{ color: `hsl(var(--accent-h),var(--accent-s),70%)`, fontSize: '0.9rem' }}>
+                  {zodiac.symbol}
+                </span>
+              )}
+            </p>
             {user.user_number != null && (
               <p className="text-[11px] mt-0.5" style={{ color: `hsl(var(--accent-h), var(--accent-s), 60%)` }}>
                 #{formatUserNumber(user.user_number)}
               </p>
             )}
+            {(user as any).location || (user as any).country ? (
+              <p className="text-[11px] text-white/35 mt-0.5 flex items-center gap-1">
+                <span>📍</span>
+                {[(user as any).location, (user as any).country].filter(Boolean).join(', ')}
+              </p>
+            ) : null}
             {user.bio && (
               <p className="text-[13px] text-white/50 mt-1 leading-snug">{user.bio}</p>
             )}
@@ -389,7 +414,7 @@ export default function ProfilePage() {
             {!hasTodayDream && dreamOfDay && !search && (
               <div
                 className="glass-card p-4 mb-4 cursor-pointer active:opacity-80 transition-opacity"
-                onClick={() => navigate(`/diario/${dreamOfDay.id}`)}
+                onClick={() => navigate(`/sueno/${dreamOfDay.id}`)}
                 style={{ borderLeft: `2px solid hsl(var(--accent-h), var(--accent-s), 50%)` }}
               >
                 <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5" style={{ fontFamily: 'var(--font-mono)' }}>
@@ -443,7 +468,7 @@ export default function ProfilePage() {
                         <DreamCard
                           key={dream.id}
                           dream={dream}
-                          onClick={() => navigate(`/diario/${dream.id}`)}
+                          onClick={() => navigate(`/sueno/${dream.id}`)}
                         />
                       ))}
                     </div>
@@ -493,6 +518,7 @@ export default function ProfilePage() {
 
 function DreamsGrid({ dreams, isLoading }: { dreams: Dream[]; isLoading: boolean }) {
   const navigate = useNavigate()
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-3 gap-0.5">
@@ -515,32 +541,38 @@ function DreamsGrid({ dreams, isLoading }: { dreams: Dream[]; isLoading: boolean
       {dreams.map(dream => (
         <button
           key={dream.id}
-          onClick={() => navigate(`/diario/${dream.id}`)}
+          onClick={() => navigate(`/sueno/${dream.id}`)}
           className="aspect-square relative overflow-hidden group"
-          style={{ background: getGradient(dream.id) }}
+          style={dream.grid_bg ? {
+            backgroundImage: `url(/grid-bg/${dream.grid_bg}.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          } : { background: getGradient(dream.id) }}
         >
+          {dream.grid_bg && <div className="absolute inset-0 bg-black/40" />}
+
           {dream.is_lucid && (
             <div className="absolute top-1.5 right-1.5 z-10 text-[9px] text-white/70 bg-black/35 rounded-full px-1 py-0.5 backdrop-blur-sm leading-none">
               ✦
             </div>
           )}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-1.5 pt-1 pb-4">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-1.5 pt-1 pb-4 z-10">
             {dream.title ? (
-              <p className="text-[10px] text-white/85 text-center leading-tight line-clamp-3 font-medium">
+              <p className="text-[10px] text-white/90 text-center leading-tight line-clamp-3 font-medium drop-shadow">
                 {dream.title}
               </p>
             ) : (
-              <p className="text-[9px] text-white/50 text-center leading-tight line-clamp-3 italic">
+              <p className="text-[9px] text-white/60 text-center leading-tight line-clamp-3 italic drop-shadow">
                 {dream.body.slice(0, 50)}
               </p>
             )}
           </div>
-          <div className="absolute bottom-1 left-0 right-0 flex justify-center">
-            <span className="text-[8px] text-white/30">
+          <div className="absolute bottom-1 left-0 right-0 flex justify-center z-10">
+            <span className="text-[8px] text-white/40 drop-shadow">
               {new Date(dream.dream_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
             </span>
           </div>
-          <div className="absolute inset-0 bg-white/0 group-active:bg-white/8 transition-colors" />
+          <div className="absolute inset-0 bg-white/0 group-active:bg-white/8 transition-colors z-20" />
         </button>
       ))}
     </div>

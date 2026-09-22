@@ -21,6 +21,8 @@ const EMOTIONS = [
 
 const QUALITY_LABELS = ['Terrible', 'Malo', 'Normal', 'Bueno', 'Increíble']
 
+const BG_IDS = ['bg-1', 'bg-2', 'bg-3', 'bg-4', 'bg-5', 'bg-6', 'bg-7', 'bg-8', 'bg-9']
+
 export default function DreamFormPage() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -39,6 +41,9 @@ export default function DreamFormPage() {
   const [emotions,       setEmotions]       = useState<string[]>([])
   const [allowComments,  setAllowComments]  = useState(true)
   const [allowWhisper,   setAllowWhisper]   = useState(false)
+  const [gridBg,         setGridBg]         = useState<string | null>(() => {
+    try { return localStorage.getItem('last-dream-bg') } catch { return null }
+  })
   const [showMore,       setShowMore]       = useState(false)
   const [listening,      setListening]      = useState(false)
   const [suggLoading,    setSuggLoading]    = useState(false)
@@ -69,6 +74,7 @@ export default function DreamFormPage() {
       setTagsRaw(existing.tags.join(', '))
       setEmotions(existing.emotions)
       setAllowComments(existing.allow_comments)
+      setGridBg(existing.grid_bg ?? null)
     }
   }, [existing])
 
@@ -83,6 +89,7 @@ export default function DreamFormPage() {
     emotions: emotions.map((e) => e.toLowerCase()),
     allow_comments: allowComments,
     allow_whisper: allowWhisper,
+    grid_bg: gridBg,
   })
 
   const createMutation = useMutation({
@@ -91,6 +98,10 @@ export default function DreamFormPage() {
       if (error) throw error
     },
     onSuccess: () => {
+      try {
+        if (gridBg) localStorage.setItem('last-dream-bg', gridBg)
+        else localStorage.removeItem('last-dream-bg')
+      } catch {}
       qc.invalidateQueries({ queryKey: ['my-dreams-profile', user?.id] })
       navigate('/perfil')
     },
@@ -102,6 +113,10 @@ export default function DreamFormPage() {
       if (error) throw error
     },
     onSuccess: () => {
+      try {
+        if (gridBg) localStorage.setItem('last-dream-bg', gridBg)
+        else localStorage.removeItem('last-dream-bg')
+      } catch {}
       qc.invalidateQueries({ queryKey: ['my-dreams-profile', user?.id] })
       qc.invalidateQueries({ queryKey: ['dream', id] })
       navigate('/perfil')
@@ -323,6 +338,40 @@ export default function DreamFormPage() {
               style={{ left: isLucid ? 26 : 4 }}
             />
           </button>
+        </div>
+
+        {/* Background picker */}
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-white/40 mb-2">Fondo de la tarjeta</label>
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+            <button
+              type="button"
+              onClick={() => setGridBg(null)}
+              className="shrink-0 w-14 h-14 rounded-xl flex items-center justify-center transition-all"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: `2px solid ${!gridBg ? 'rgba(var(--glow-color), 0.7)' : 'rgba(255,255,255,0.1)'}`,
+                boxShadow: !gridBg ? '0 0 10px rgba(var(--glow-color),0.3)' : 'none',
+              }}
+            >
+              <span className="text-white/30 text-base">✕</span>
+            </button>
+            {BG_IDS.map((bgId) => (
+              <button
+                key={bgId}
+                type="button"
+                onClick={() => setGridBg(bgId)}
+                className="shrink-0 w-14 h-14 rounded-xl overflow-hidden transition-all"
+                style={{
+                  backgroundImage: `url(/grid-bg/${bgId}.png)`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  border: `2px solid ${gridBg === bgId ? 'rgba(var(--glow-color), 0.8)' : 'rgba(255,255,255,0.1)'}`,
+                  boxShadow: gridBg === bgId ? '0 0 12px rgba(var(--glow-color),0.4)' : 'none',
+                }}
+              />
+            ))}
+          </div>
         </div>
 
         {/* More details toggle */}

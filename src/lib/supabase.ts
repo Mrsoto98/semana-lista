@@ -1,20 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-  { auth: { flowType: 'implicit' } }
-)
+const SUPABASE_URL  = 'https://nqusbtmgctafpnztrxgn.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdXNidG1nY3RhZnBuenRyeGduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5Mjk3OTcsImV4cCI6MjEwNTUwNTc5N30.jaHp37AJlGIrWchwt68i34G3p2k0trBz0TE1UUh9cB4'
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: { flowType: 'implicit' },
+})
 
 export async function signInWithGoogle() {
-  const { error } = await supabase.auth.signInWithOAuth({
+  return supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-      queryParams: {
-        prompt: 'select_account',
-      },
-    },
+    options: { redirectTo: `${window.location.origin}/auth/callback` },
   })
-  if (error) throw error
 }

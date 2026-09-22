@@ -21,24 +21,35 @@ export default function DreamDetailPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['dream-detail', id],
     queryFn: async () => {
-      const [dreamRes, likesRes, myLikeRes] = await Promise.all([
+      const [dreamRes, myLikeRes] = await Promise.all([
         supabase.from('dreams')
           .select('*, profiles!dreams_user_id_fkey(id, name, avatar_url, avatar_emoji)')
           .eq('id', id!)
           .single(),
-        supabase.from('dream_likes').select('*', { count: 'exact', head: true }).eq('dream_id', id!),
-        user ? supabase.from('dream_likes').select('user_id').eq('dream_id', id!).eq('user_id', user.id).single() : Promise.resolve({ data: null }),
+        user ? supabase.from('dream_likes').select('user_id').eq('dream_id', id!).eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
       ])
       const dream = dreamRes.data
       const profile = (dream as any)?.profiles
       return {
         dream,
         author: { id: profile?.id, name: profile?.name ?? 'Soñador', avatar_url: profile?.avatar_url ?? null, avatar_emoji: profile?.avatar_emoji ?? null },
-        like_count: likesRes.count ?? 0,
+        like_count: (dream as any)?.like_count ?? 0,
         user_liked: !!myLikeRes.data,
       }
     },
     enabled: !!id,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('dreams').delete().eq('id', id!)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dreams'] })
+      qc.invalidateQueries({ queryKey: ['my-dreams-profile'] })
+      navigate('/perfil', { replace: true })
+    },
   })
 
   const likeMutation = useMutation({
@@ -111,14 +122,28 @@ export default function DreamDetailPage() {
         </h1>
         <div className="flex items-center gap-2">
           {isMine && (
-            <button onClick={() => navigate(`/diario/${dream.id}`)}
-              className="p-2 rounded-xl text-white/40 hover:text-white/70 transition-colors"
-              style={{ background: 'rgba(255,255,255,0.05)' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
+            <>
+              <button onClick={() => navigate(`/diario/${dream.id}`)}
+                className="p-2 rounded-xl text-white/40 hover:text-white/70 transition-colors"
+                style={{ background: 'rgba(255,255,255,0.05)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button
+                onClick={() => { if (window.confirm('¿Eliminar este sueño? No se puede deshacer.')) deleteMutation.mutate() }}
+                disabled={deleteMutation.isPending}
+                className="p-2 rounded-xl transition-colors disabled:opacity-40"
+                style={{ background: 'rgba(232,88,88,0.08)', color: 'rgba(232,88,88,0.6)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/>
+                  <path d="M9 6V4h6v2"/>
+                </svg>
+              </button>
+            </>
           )}
           <button onClick={handleShare}
             className="p-2 rounded-xl text-white/40 hover:text-white/70 transition-colors"

@@ -6,57 +6,9 @@ import { supabase } from '../lib/supabase'
 import { formatUserNumber } from '../lib/formatUserNumber'
 import { ThemePicker } from '../components/ui/ThemePicker'
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import { getZodiac } from '../lib/zodiac'
 import type { Visibility } from '../types'
 
-const NB_SKINS = [
-  { id: 'cosmic',     label: 'Pergamino cósmico',   src: '/notebook/cosmic.jpg'     },
-  { id: 'leather',    label: 'Cuero lunar',          src: '/notebook/leather.jpg'    },
-  { id: 'glass',      label: 'Cristal líquido',      src: '/notebook/glass.jpg'      },
-  { id: 'manuscript', label: 'Manuscrito antiguo',   src: '/notebook/manuscript.jpg' },
-  { id: 'nebula',     label: 'Nebulosa profunda',    src: '/notebook/nebula.jpg'     },
-  { id: 'rose',       label: 'Polvo de luna rosa',   src: '/notebook/rose.jpg'       },
-  { id: 'botanical',  label: 'Jardín de medianoche', src: '/notebook/botanical.jpg'  },
-  { id: 'velvet',     label: 'Terciopelo lila',      src: '/notebook/velvet.jpg'     },
-]
-
-function NotebookSkinPicker() {
-  const [skin, setSkin] = useState(() => localStorage.getItem('nb-skin') ?? 'cosmic')
-  return (
-    <div className="glass rounded-3xl p-5 mt-4">
-      <p className="text-[11px] text-white/40 uppercase tracking-wider mb-1">Estilo de la bitácora</p>
-      <p className="text-xs text-white/30 mb-4">Elige el fondo de tus sueños</p>
-      <div className="grid grid-cols-4 gap-3">
-        {NB_SKINS.map(s => (
-          <button key={s.id} onClick={() => { setSkin(s.id); localStorage.setItem('nb-skin', s.id) }}
-            className="flex flex-col items-center gap-1.5 group">
-            <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden relative transition-all duration-200 active:scale-95"
-              style={{
-                backgroundImage: `url(${s.src})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                border: skin === s.id ? '2.5px solid rgba(255,255,255,0.7)' : '2px solid rgba(255,255,255,0.1)',
-                boxShadow: skin === s.id ? '0 0 16px rgba(255,255,255,0.25)' : 'none',
-              }}>
-              {skin === s.id && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <div className="w-6 h-6 rounded-full bg-white/90 flex items-center justify-center">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  </div>
-                </div>
-              )}
-            </div>
-            <span className="text-[9px] text-center leading-tight px-0.5"
-              style={{ color: skin === s.id ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.35)' }}>
-              {s.label}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 const VIS_OPTIONS: { value: Visibility; icon: string; label: string; desc: string }[] = [
   { value: 'private', icon: '🔒', label: 'Privado',  desc: 'Solo tú puedes verlos' },
@@ -102,6 +54,18 @@ export default function Settings() {
     return `${d}/${m}/${y}`
   })
   const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'none'>(user?.birth_visibility ?? 'age')
+  const [birthTime, setBirthTime] = useState(() => {
+    try { return localStorage.getItem('birth-time') ?? user?.birth_time ?? '' } catch { return '' }
+  })
+  const [location, setLocation] = useState(() => {
+    try { return localStorage.getItem('profile-location') ?? user?.location ?? '' } catch { return '' }
+  })
+  const [country, setCountry] = useState(() => {
+    try { return localStorage.getItem('profile-country') ?? user?.country ?? '' } catch { return '' }
+  })
+  const [showZodiac, setShowZodiac] = useState(() => {
+    try { return localStorage.getItem('show-zodiac') === '1' } catch { return false }
+  })
   const [deleteModal, setDeleteModal] = useState(false)
   const [deleteText,  setDeleteText]  = useState('')
   const [deleting,    setDeleting]    = useState(false)
@@ -154,10 +118,33 @@ export default function Settings() {
         .select()
         .single()
       if (error) throw error
+
+      // Extended fields (new columns — silently skipped if not migrated yet)
+      await supabase.from('profiles').update({
+        birth_time: birthTime || null,
+        location: location || null,
+        country: country || null,
+        show_zodiac: showZodiac,
+      }).eq('id', user!.id)
+
+      // Zodiac preference always in localStorage
+      try {
+        localStorage.setItem('show-zodiac', showZodiac ? '1' : '0')
+        localStorage.setItem('birth-time', birthTime)
+        localStorage.setItem('profile-location', location)
+        localStorage.setItem('profile-country', country)
+      } catch {}
+
       return data
     },
     onSuccess: (updated) => {
-      if (user) setAuth({ ...user, ...updated }, accessToken!, refreshToken!)
+      if (user) setAuth({
+        ...user, ...updated,
+        birth_time: birthTime || null,
+        location: location || null,
+        country: country || null,
+        show_zodiac: showZodiac,
+      }, accessToken!, refreshToken!)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     },
@@ -354,7 +341,7 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Birth date */}
+      {/* Birth date & zodiac */}
       <div className="glass rounded-3xl p-5 mb-4 flex flex-col gap-3">
         <label className="text-[11px] text-white/40 uppercase tracking-wider block">Fecha de nacimiento</label>
         <input
@@ -377,6 +364,72 @@ export default function Settings() {
           maxLength={10}
           className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white"
         />
+
+        {/* Zodiac preview */}
+        {(() => {
+          const z = getZodiac(birthDate)
+          return z ? (
+            <div className="flex items-center justify-between px-4 py-2.5 rounded-xl" style={{ background: 'rgba(var(--glow),0.08)', border: '1px solid rgba(var(--glow),0.15)' }}>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{z.emoji}</span>
+                <div>
+                  <p className="text-sm font-semibold text-white">{z.name}</p>
+                  <p className="text-[11px] text-white/35">Signo zodiacal · {z.symbol}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowZodiac(v => !v)}
+                className="flex items-center gap-1.5 text-[11px] font-medium transition-colors px-3 py-1.5 rounded-lg"
+                style={{
+                  background: showZodiac ? 'rgba(var(--glow),0.2)' : 'rgba(255,255,255,0.06)',
+                  color: showZodiac ? `hsl(var(--accent-h),var(--accent-s),80%)` : 'rgba(255,255,255,0.4)',
+                }}
+              >
+                {showZodiac ? `${z.symbol} Visible` : 'Ocultar'}
+              </button>
+            </div>
+          ) : null
+        })()}
+
+        {/* Optional birth time */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] text-white/30 uppercase tracking-wide">Hora de nacimiento (opcional)</label>
+          <input
+            type="time"
+            value={birthTime}
+            onChange={e => setBirthTime(e.target.value)}
+            className="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-white"
+            style={{ colorScheme: 'dark' }}
+          />
+        </div>
+
+        {/* Location & country */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-white/30 uppercase tracking-wide">Ciudad (opcional)</label>
+            <input
+              type="text"
+              placeholder="Ej: Barcelona"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              maxLength={80}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-white/30 uppercase tracking-wide">País (opcional)</label>
+            <input
+              type="text"
+              placeholder="Ej: España"
+              value={country}
+              onChange={e => setCountry(e.target.value)}
+              maxLength={80}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white"
+            />
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2 mt-1">
           {([
             { value: 'date', icon: '📅', label: 'Mostrar fecha completa' },
@@ -464,8 +517,6 @@ export default function Settings() {
         <ThemePicker />
       </div>
 
-      {/* Notebook skin */}
-      <NotebookSkinPicker />
 
       {/* Export dreams */}
       <ExportSection userId={user!.id} />
@@ -504,7 +555,7 @@ export default function Settings() {
 
       {/* Delete confirmation modal */}
       {deleteModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center px-4 pb-6 sm:pb-0"
+        <div className="fixed inset-0 z-[80] flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(10px)' }}
           onClick={e => { if (e.target === e.currentTarget && !deleting) setDeleteModal(false) }}>
           <div className="glass-card rounded-2xl p-6 w-full max-w-sm animate-scale-in">
@@ -574,6 +625,7 @@ export default function Settings() {
     </div>
   )
 }
+
 
 function ExportSection({ userId }: { userId: string }) {
   const [exporting, setExporting] = useState(false)
