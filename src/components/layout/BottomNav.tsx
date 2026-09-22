@@ -35,7 +35,7 @@ export function BottomNav() {
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.88, rotate: -10 }}
         onClick={() => navigate('/diario/nuevo')}
-        className="glass-btn-primary fixed z-[60] flex items-center justify-center"
+        className="fixed z-[60] flex items-center justify-center"
         style={{
           bottom: 'calc(max(88px, env(safe-area-inset-bottom) + 72px))',
           right: 20,
@@ -44,6 +44,11 @@ export function BottomNav() {
           borderRadius: '50%',
           fontSize: 24,
           lineHeight: 1,
+          fontWeight: 600,
+          color: '#fff',
+          background: `linear-gradient(135deg, hsl(var(--accent-h), var(--accent-s), 58%) 0%, hsl(var(--accent-h), var(--accent-s), 42%) 100%)`,
+          border: '1px solid rgba(var(--glow), 0.30)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.20)',
         }}
         aria-label="Añadir sueño"
         transition={{ type: 'spring', stiffness: 500, damping: 22 }}

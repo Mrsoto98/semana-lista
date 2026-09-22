@@ -178,35 +178,33 @@ export default function UserProfile() {
       </button>
 
       {/* ── Profile header ── */}
-      <div className="px-4 pb-5">
-        <div className="flex flex-col items-center mb-4">
+      <div className="px-4 pb-4">
+        <div className="flex flex-col items-center mb-3">
           {/* Avatar */}
-          <button onClick={() => profile.avatar_url && setLightbox(true)} className="relative mb-3">
-            <div className="absolute inset-0 rounded-full pointer-events-none"
-              style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.4), transparent)', filter: 'blur(14px)', transform: 'scale(1.15)' }} />
+          <button onClick={() => profile.avatar_url && setLightbox(true)} className="relative mb-2">
             {profile.avatar_url ? (
               <img src={profile.avatar_url}
-                className="w-24 h-24 rounded-full object-cover ring-2 ring-white/15 relative z-10"
+                className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-white/15"
                 alt={profile.name} />
             ) : (
-              <div className="w-24 h-24 rounded-full flex items-center justify-center text-4xl ring-2 ring-white/15 relative z-10"
+              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-3xl ring-2 ring-white/15"
                 style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.8), rgba(var(--glass-tint),0.9))' }}>
                 {profile.avatar_emoji ?? profile.name?.[0]?.toUpperCase()}
               </div>
             )}
           </button>
 
-          <h2 className="text-lg font-bold text-white">{profile.name}</h2>
+          <h2 className="text-[15px] font-bold text-white">{profile.name}</h2>
           {profile.user_number && (
-            <p className="text-[11px] accent-text mt-0.5">#{formatUserNumber(profile.user_number)}</p>
+            <p className="text-[10px] accent-text mt-0.5">#{formatUserNumber(profile.user_number)}</p>
           )}
           {profile.bio && (
-            <p className="text-[13px] text-white/50 text-center leading-snug max-w-[260px] mt-2">{profile.bio}</p>
+            <p className="text-[12px] text-white/50 text-center leading-snug max-w-[240px] mt-1.5">{profile.bio}</p>
           )}
 
           {/* Birth date / age */}
           {profile.birth_date && profile.birth_visibility !== 'none' && (
-            <p className="text-[12px] text-white/35 mt-1">
+            <p className="text-[11px] text-white/35 mt-1">
               🎂 {(() => {
                 const age = Math.floor((Date.now() - new Date(profile.birth_date!).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
                 const date = new Date(profile.birth_date! + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -219,7 +217,7 @@ export default function UserProfile() {
 
           {/* Location */}
           {(profile.location || profile.country) && (
-            <p className="text-[12px] text-white/30 mt-0.5">
+            <p className="text-[11px] text-white/30 mt-0.5">
               📍 {[profile.location, profile.country].filter(Boolean).join(', ')}
             </p>
           )}
@@ -227,33 +225,33 @@ export default function UserProfile() {
           {profile.instagram_username && (
             <a href={`https://instagram.com/${profile.instagram_username}`}
               target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-pink-400">
+              className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className="text-pink-400">
                 <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2"/>
                 <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
                 <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
               </svg>
-              <span className="text-[11px] text-pink-400/80 font-medium">@{profile.instagram_username}</span>
+              <span className="text-[10px] text-pink-400/80 font-medium">@{profile.instagram_username}</span>
             </a>
           )}
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center justify-around py-4 px-2 rounded-2xl mb-4"
+        <div className="flex items-center justify-around py-3 px-2 rounded-xl mb-3"
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="text-center">
-            <p className="text-2xl font-bold text-white leading-none">{profile.dream_count}</p>
-            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest">sueños</p>
+            <p className="text-lg font-bold text-white leading-none">{profile.dream_count}</p>
+            <p className="text-[9px] text-white/30 mt-0.5 uppercase tracking-widest">sueños</p>
           </div>
-          <div className="w-px h-10 bg-white/8" />
+          <div className="w-px h-7 bg-white/8" />
           <div className="text-center">
-            <p className="text-2xl font-bold text-white leading-none">{profile.followers_count}</p>
-            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest">seguidores</p>
+            <p className="text-lg font-bold text-white leading-none">{profile.followers_count}</p>
+            <p className="text-[9px] text-white/30 mt-0.5 uppercase tracking-widest">seguidores</p>
           </div>
-          <div className="w-px h-10 bg-white/8" />
+          <div className="w-px h-7 bg-white/8" />
           <div className="text-center">
-            <p className="text-2xl font-bold text-white leading-none">{profile.following_count}</p>
-            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest">siguiendo</p>
+            <p className="text-lg font-bold text-white leading-none">{profile.following_count}</p>
+            <p className="text-[9px] text-white/30 mt-0.5 uppercase tracking-widest">siguiendo</p>
           </div>
         </div>
 
@@ -263,7 +261,7 @@ export default function UserProfile() {
             <button
               onClick={() => followMutation.mutate({ currentlyFollowing: isFollowing })}
               disabled={followMutation.isPending}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-60 ${
+              className={`flex-1 py-2 rounded-xl text-[13px] font-semibold transition-all active:scale-95 disabled:opacity-60 ${
                 isFollowing
                   ? 'border border-white/15 bg-white/6 text-white/70 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400'
                   : 'glass-btn-primary text-white'
@@ -273,9 +271,9 @@ export default function UserProfile() {
             <button
               onClick={() => messageMutation.mutate()}
               disabled={messageMutation.isPending}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white/70 transition-all active:scale-95 disabled:opacity-60"
+              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold text-white/70 transition-all active:scale-95 disabled:opacity-60"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
               {messageMutation.isPending ? '…' : 'Mensaje'}
