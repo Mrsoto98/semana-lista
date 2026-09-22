@@ -343,34 +343,64 @@ export default function DreamFormPage() {
         {/* Background picker */}
         <div className="mb-4">
           <label className="block text-xs font-medium text-white/40 mb-2">Fondo de la tarjeta</label>
-          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex gap-2.5 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+            {/* No background option */}
             <button
               type="button"
               onClick={() => setGridBg(null)}
-              className="shrink-0 w-14 h-14 rounded-xl flex items-center justify-center transition-all"
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                border: `2px solid ${!gridBg ? 'rgba(var(--glow-color), 0.7)' : 'rgba(255,255,255,0.1)'}`,
-                boxShadow: !gridBg ? '0 0 10px rgba(var(--glow-color),0.3)' : 'none',
-              }}
+              className="shrink-0 flex flex-col items-center gap-1"
             >
-              <span className="text-white/30 text-base">✕</span>
-            </button>
-            {BG_IDS.map((bgId) => (
-              <button
-                key={bgId}
-                type="button"
-                onClick={() => setGridBg(bgId)}
-                className="shrink-0 w-14 h-14 rounded-xl overflow-hidden transition-all"
+              <div
+                className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center transition-all"
                 style={{
-                  backgroundImage: `url(/grid-bg/${bgId}.png)`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  border: `2px solid ${gridBg === bgId ? 'rgba(var(--glow-color), 0.8)' : 'rgba(255,255,255,0.1)'}`,
-                  boxShadow: gridBg === bgId ? '0 0 12px rgba(var(--glow-color),0.4)' : 'none',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: `2px solid ${!gridBg ? 'rgba(var(--glow-color), 1)' : 'rgba(255,255,255,0.12)'}`,
+                  boxShadow: !gridBg ? '0 0 0 3px rgba(var(--glow-color),0.25), 0 0 14px rgba(var(--glow-color),0.3)' : 'none',
+                  transform: !gridBg ? 'scale(1.06)' : 'scale(1)',
                 }}
-              />
-            ))}
+              >
+                <span className="text-white/40 text-lg">✕</span>
+              </div>
+              <span className="text-[9px] text-white/30">Ninguno</span>
+            </button>
+
+            {BG_IDS.map((bgId) => {
+              const selected = gridBg === bgId
+              return (
+                <button
+                  key={bgId}
+                  type="button"
+                  onClick={() => setGridBg(bgId)}
+                  className="shrink-0 flex flex-col items-center gap-1"
+                >
+                  <div
+                    className="w-[72px] h-[72px] rounded-2xl overflow-hidden relative transition-all"
+                    style={{
+                      backgroundImage: `url(/grid-bg/${bgId}.png)`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      border: `2px solid ${selected ? 'rgba(var(--glow-color), 1)' : 'rgba(255,255,255,0.10)'}`,
+                      boxShadow: selected ? '0 0 0 3px rgba(var(--glow-color),0.25), 0 0 14px rgba(var(--glow-color),0.35)' : 'none',
+                      transform: selected ? 'scale(1.06)' : 'scale(1)',
+                    }}
+                  >
+                    {selected && (
+                      <div className="absolute inset-0 flex items-end justify-end p-1.5">
+                        <div
+                          className="w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(var(--glow-color), 0.9)', backdropFilter: 'blur(4px)' }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                            <polyline points="2 6 5 9 10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[9px] text-white/30">{bgId.replace('bg-', '#')}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
