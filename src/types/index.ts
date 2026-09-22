@@ -1,5 +1,4 @@
-export type Visibility = 'private' | 'friends' | 'public'
-export type FriendshipStatus = 'pending' | 'accepted' | 'blocked'
+export type Visibility = 'private' | 'public'
 export type CoincidenceStatus = 'suggested' | 'accepted' | 'dismissed'
 export type ThemeId = 'cosmos' | 'abismo' | 'selva' | 'petalo'
 export type DiarySkin = 'cosmico' | 'cuero' | 'manuscrito' | 'vidrio' | 'nebulosa' | 'rosa' | 'botanico' | 'terciopelo'
@@ -94,20 +93,20 @@ export interface DreamAnalysis {
   cached?: boolean
 }
 
-export interface Friend {
+export interface FollowUser {
   id: string
   name: string
   avatar_url: string | null
   avatar_emoji: string | null
   bio: string | null
-  status: FriendshipStatus
-  direction: 'sent' | 'received'
+  user_number: number | null
+  followers_count: number
 }
 
 export interface Coincidence {
   id: string
   score: number
-  scope: 'friends' | 'public'
+  scope: 'public' | 'following'
   status: CoincidenceStatus
   accepted_a: boolean
   accepted_b: boolean

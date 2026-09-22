@@ -12,7 +12,6 @@ interface DreamFormProps {
 
 const VISIBILITIES: { value: Visibility; label: string; icon: string }[] = [
   { value: 'private', label: 'Privado', icon: '🔒' },
-  { value: 'friends', label: 'Amigos', icon: '👥' },
   { value: 'public',  label: 'Público', icon: '🌐' },
 ]
 

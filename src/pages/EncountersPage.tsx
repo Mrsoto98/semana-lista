@@ -8,7 +8,7 @@ import { useAuthStore } from '../lib/store'
 import { pageVariants, pageTransition, listContainerVariants, listItemVariants } from '../lib/motion'
 import type { Coincidence } from '../types'
 
-type Scope = 'friends' | 'public'
+type Scope = 'public' | 'following'
 
 function jaccardScore(a: string[], b: string[]) {
   if (!a.length || !b.length) return 0
@@ -42,12 +42,12 @@ export default function EncountersPage() {
         .order('created_at', { ascending: false })
         .limit(200)
 
-      if (scope === 'friends') {
-        const { data: fs } = await supabase.from('friendships').select('requester_id,addressee_id')
-          .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`).eq('status', 'accepted')
-        const fIds = (fs ?? []).map((f: any) => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+      if (scope === 'following') {
+        const { data: fs } = await supabase.from('follows').select('following_id')
+          .eq('follower_id', user.id)
+        const fIds = (fs ?? []).map((f: any) => f.following_id)
         if (!fIds.length) return []
-        q = q.in('user_id', fIds)
+        q = q.in('user_id', fIds).eq('visibility', 'public')
       } else {
         q = q.eq('visibility', 'public')
       }
@@ -110,8 +110,8 @@ export default function EncountersPage() {
 
         <div className="flex gap-1.5">
           {([
-            { value: 'public',  label: 'Con todos' },
-            { value: 'friends', label: 'Con amigos' },
+            { value: 'public',    label: 'Con todos' },
+            { value: 'following', label: 'Seguidos' },
           ] as const).map(({ value, label }) => (
             <button
               key={value}

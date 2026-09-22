@@ -2,7 +2,7 @@ import { useState, lazy, Suspense, useMemo } from 'react'
 const StatsContent = lazy(() => import('./Stats'))
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
-import { dreamsApi, friendsApi } from '../lib/queries'
+import { dreamsApi } from '../lib/queries'
 import { useAuthStore } from '../lib/store'
 import { DreamForm } from '../components/dreams/DreamForm'
 import { Modal } from '../components/ui/Modal'
@@ -11,7 +11,7 @@ import { ShareModal } from '../components/dreams/ShareModal'
 import { DreamNotebook } from '../components/dreams/DreamNotebook'
 import type { Dream, Visibility } from '../types'
 
-const VIS_CYCLE: Visibility[] = ['private', 'friends', 'public']
+const VIS_CYCLE: Visibility[] = ['private', 'public']
 
 // ── Streak badge ──────────────────────────────────────────────
 function StreakBadge({ streak }: { streak: number }) {
@@ -103,11 +103,6 @@ export default function Diary() {
     updateVisMutation.mutate({ id: dream.id, visibility: next })
   }
 
-  const { data: friends = [] } = useQuery({
-    queryKey: ['friends'],
-    queryFn: () => friendsApi.list().then(r => r.data),
-  })
-  const friendCount = friends.filter(f => f.status === 'accepted').length
   const lucidCount  = dreams.filter(d => d.is_lucid).length
 
   return (
@@ -173,8 +168,8 @@ export default function Diary() {
           </div>
           <div className="w-px h-8 bg-white/8" />
           <div className="text-center">
-            <p className="text-xl font-bold text-white">{friendCount}</p>
-            <p className="text-[11px] text-white/35 mt-0.5">amigos</p>
+            <p className="text-xl font-bold text-white">–</p>
+            <p className="text-[11px] text-white/35 mt-0.5">seguidores</p>
           </div>
         </div>
       </div>

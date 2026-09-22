@@ -20,7 +20,8 @@ interface OtherUser {
 }
 
 export default function ConversationPage() {
-  const { id: convId } = useParams<{ id: string }>()
+  const { id: convId, userId: pendingUserId } = useParams<{ id?: string; userId?: string }>()
+  const isPending = !!pendingUserId            // nuevo/:userId mode — no conversation created yet
   const { user }        = useAuthStore()
   const navigate        = useNavigate()
   const qc              = useQueryClient()
@@ -28,8 +29,16 @@ export default function ConversationPage() {
   const bottomRef       = useRef<HTMLDivElement>(null)
 
   const { data: otherUser } = useQuery({
-    queryKey: ['conv-other', convId, user?.id],
+    queryKey: ['conv-other', convId ?? pendingUserId, user?.id],
     queryFn: async (): Promise<OtherUser | null> => {
+      if (isPending) {
+        const { data: p } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url, avatar_emoji')
+          .eq('id', pendingUserId!)
+          .single()
+        return p as OtherUser | null
+      }
       const { data } = await supabase
         .from('conversations')
         .select('participant_1, participant_2')
@@ -44,16 +53,17 @@ export default function ConversationPage() {
         .single()
       return p as OtherUser | null
     },
-    enabled: !!convId && !!user,
+    enabled: !!(convId || pendingUserId) && !!user,
   })
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', convId],
     queryFn: async (): Promise<Message[]> => {
+      if (!convId) return []
       const { data, error } = await supabase
         .from('messages')
         .select('id, sender_id, body, read, created_at')
-        .eq('conversation_id', convId!)
+        .eq('conversation_id', convId)
         .order('created_at', { ascending: true })
       if (error) throw error
       return data as Message[]
@@ -61,9 +71,9 @@ export default function ConversationPage() {
     enabled: !!convId,
   })
 
-  // Real-time subscription
+  // Real-time subscription (only when conversation exists)
   useEffect(() => {
-    if (!convId) return
+    if (!convId || isPending) return
     const channel = supabase
       .channel(`conv:${convId}`)
       .on('postgres_changes', {
@@ -77,11 +87,11 @@ export default function ConversationPage() {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [convId])
+  }, [convId, isPending])
 
   // Mark messages as read when opening
   useEffect(() => {
-    if (!convId || !user || !messages.length) return
+    if (!convId || !user || !messages.length || isPending) return
     const unread = messages.filter((m) => !m.read && m.sender_id !== user.id)
     if (!unread.length) return
     supabase
@@ -101,17 +111,29 @@ export default function ConversationPage() {
 
   const sendMutation = useMutation({
     mutationFn: async (body: string) => {
+      let targetConvId = convId
+      if (isPending) {
+        // Create conversation on first send
+        const { data, error } = await supabase.rpc('get_or_create_conversation', {
+          user_a: user!.id,
+          user_b: pendingUserId!,
+        })
+        if (error) throw new Error(error.message)
+        targetConvId = data as string
+      }
       const { error } = await supabase.from('messages').insert({
-        conversation_id: convId,
+        conversation_id: targetConvId,
         sender_id: user!.id,
         body,
       })
       if (error) throw new Error(error.message)
+      return targetConvId
     },
-    onSuccess: () => {
+    onSuccess: (targetConvId) => {
       setText('')
-      qc.invalidateQueries({ queryKey: ['messages', convId] })
+      qc.invalidateQueries({ queryKey: ['messages', targetConvId] })
       qc.invalidateQueries({ queryKey: ['conversations', user?.id] })
+      if (isPending) navigate(`/mensajes/${targetConvId}`, { replace: true })
     },
   })
 
@@ -145,11 +167,15 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-svh" style={{ paddingBottom: 'max(80px, env(safe-area-inset-bottom) + 64px)' }}>
+    <div className="flex flex-col h-dvh">
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center gap-3 px-4 pt-12 pb-3"
-        style={{ background: 'rgb(var(--bg-deep))', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <button onClick={() => navigate('/mensajes')} className="text-white/40 hover:text-white/70 transition-colors mr-1">
+      <div className="shrink-0 flex items-center gap-3 px-4 pb-3 z-10"
+        style={{
+          background: 'rgb(var(--bg-deep))',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          paddingTop: 'max(48px, env(safe-area-inset-top) + 12px)',
+        }}>
+        <button onClick={() => navigate(isPending ? -1 as any : '/mensajes')} className="text-white/40 hover:text-white/70 transition-colors mr-1">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
@@ -168,7 +194,7 @@ export default function ConversationPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1">
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1 overscroll-contain">
         {grouped.map(({ day, messages: dayMsgs }) => (
           <div key={day}>
             <div className="text-center my-3">
@@ -202,7 +228,7 @@ export default function ConversationPage() {
       </div>
 
       {/* Input */}
-      <div className="fixed bottom-0 left-0 right-0 flex items-center gap-2 px-4 py-3"
+      <div className="shrink-0 flex items-center gap-2 px-4 py-3"
         style={{
           background: 'rgb(var(--bg-deep))',
           borderTop: '1px solid rgba(255,255,255,0.07)',

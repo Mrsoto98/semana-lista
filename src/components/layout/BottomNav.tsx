@@ -14,6 +14,9 @@ export function BottomNav() {
   const { pathname }  = useLocation()
   const { msgCount }  = useUnreadCounts()
 
+  const isConversation = /^\/mensajes\/(nuevo\/|[0-9a-f-]{36})/.test(pathname)
+  if (isConversation) return null
+
   function handleNavTap(to: string) {
     if (pathname === to) {
       window.dispatchEvent(new CustomEvent('dreamlog:scroll-top'))

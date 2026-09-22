@@ -16,7 +16,6 @@ type SkinId = typeof SKINS[number]['id']
 
 const VIS_META: Record<Visibility, { icon: string; label: string }> = {
   private: { icon: '🔒', label: 'Privado' },
-  friends: { icon: '👥', label: 'Amigos'  },
   public:  { icon: '🌐', label: 'Público' },
 }
 

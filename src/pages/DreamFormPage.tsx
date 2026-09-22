@@ -8,9 +8,8 @@ import { CosmicBackground } from '../components/common/CosmicBackground'
 import type { Visibility } from '../types'
 
 const VISIBILITIES: { value: Visibility; label: string; icon: string; desc: string }[] = [
-  { value: 'private', label: 'Solo yo',  icon: '🔒', desc: 'Solo tú puedes verlo' },
-  { value: 'friends', label: 'Amigos',   icon: '👥', desc: 'Visible para tus amigos' },
-  { value: 'public',  label: 'Público',  icon: '🌍', desc: 'Visible para todos' },
+  { value: 'private', label: 'Solo yo', icon: '🔒', desc: 'Solo tú puedes verlo' },
+  { value: 'public',  label: 'Público', icon: '🌍', desc: 'Visible para todos' },
 ]
 
 const EMOTIONS = [
@@ -34,7 +33,9 @@ export default function DreamFormPage() {
   const [title,          setTitle]          = useState('')
   const [body,           setBody]           = useState('')
   const [date,           setDate]           = useState(today)
-  const [visibility,     setVisibility]     = useState<Visibility>(user?.default_visibility ?? 'private')
+  const [visibility,     setVisibility]     = useState<Visibility>(
+    ((user?.default_visibility as string) === 'friends' ? 'private' : user?.default_visibility) ?? 'private'
+  )
   const [isLucid,        setIsLucid]        = useState(false)
   const [quality,        setQuality]        = useState<number | null>(null)
   const [tagsRaw,        setTagsRaw]        = useState('')
@@ -68,7 +69,7 @@ export default function DreamFormPage() {
       setTitle(existing.title ?? '')
       setBody(existing.body)
       setDate(existing.dream_date)
-      setVisibility(existing.visibility)
+      setVisibility((existing.visibility as string) === 'friends' ? 'private' : existing.visibility)
       setIsLucid(existing.is_lucid)
       setQuality(existing.sleep_quality)
       setTagsRaw(existing.tags.join(', '))

@@ -1,16 +1,15 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { useAuthStore } from '../lib/store'
-import { userApi } from '../lib/queries'
 import { supabase } from '../lib/supabase'
+import { getZodiac } from '../lib/zodiac'
 import type { Visibility } from '../types'
 
 const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
 
 const VIS_OPTIONS: { value: Visibility; icon: string; label: string; desc: string }[] = [
-  { value: 'private', icon: '🔒', label: 'Privado',  desc: 'Solo tú puedes verlos' },
-  { value: 'friends', icon: '👥', label: 'Amigos',   desc: 'Solo tus amigos' },
-  { value: 'public',  icon: '🌐', label: 'Público',  desc: 'Todo el mundo' },
+  { value: 'private', icon: '🔒', label: 'Privado', desc: 'Solo tú puedes verlos' },
+  { value: 'public',  icon: '🌍', label: 'Público', desc: 'Todo el mundo' },
 ]
 
 export default function Onboarding() {
@@ -23,6 +22,7 @@ export default function Onboarding() {
   const [bio, setBio]                 = useState('')
   const [birthDate, setBirthDate]     = useState('')
   const [birthText, setBirthText]     = useState('')
+  const [birthTime, setBirthTime]     = useState('')
   const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'none'>('age')
   const [avatarMode, setAvatarMode]   = useState<'emoji' | 'photo'>('emoji')
   const [selectedEmoji, setSelectedEmoji] = useState('🌙')
@@ -60,6 +60,7 @@ export default function Onboarding() {
       }
       if (birthDate) updates.birth_date = birthDate
       updates.birth_visibility = birthDate ? birthVisibility : 'none'
+      if (birthTime) updates.birth_time = birthTime
       if (avatarMode === 'emoji') {
         updates.avatar_emoji = selectedEmoji
         updates.avatar_url   = null
@@ -68,9 +69,9 @@ export default function Onboarding() {
         updates.avatar_emoji = null
       }
 
-      const { data: updated } = await userApi.updateProfile(updates)
-      setAuth({ ...user, ...updated, onboarding_done: true }, accessToken!, refreshToken!)
-      navigate('/diary')
+      await supabase.from('profiles').update(updates).eq('id', user.id)
+      setAuth({ ...user, ...(updates as object), onboarding_done: true }, accessToken!, refreshToken!)
+      navigate('/diario')
     } finally {
       setSaving(false)
     }
@@ -107,7 +108,7 @@ export default function Onboarding() {
       {/* Card */}
       <div className="glass rounded-3xl p-6 w-full max-w-sm">
 
-        {/* ── Step 0: Nombre ── */}
+        {/* Step 0: Nombre */}
         {step === 0 && (
           <div className="flex flex-col gap-5">
             <div>
@@ -129,7 +130,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* ── Step 1: Bio ── */}
+        {/* Step 1: Bio */}
         {step === 1 && (
           <div className="flex flex-col gap-5">
             <div>
@@ -161,7 +162,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* ── Step 2: Fecha de nacimiento ── */}
+        {/* Step 2: Fecha de nacimiento */}
         {step === 2 && (
           <div className="flex flex-col gap-5">
             <div>
@@ -189,7 +190,6 @@ export default function Onboarding() {
               className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/40"
             />
 
-            {/* Visibility preference — always shown so user can decide even si no pone fecha */}
             <div>
               <p className="text-xs text-white/40 mb-2.5 flex items-center gap-1.5">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -226,6 +226,32 @@ export default function Onboarding() {
               </div>
             </div>
 
+            {/* Zodiac preview */}
+            {(() => {
+              const z = getZodiac(birthDate)
+              return z ? (
+                <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl" style={{ background: 'rgba(var(--glow),0.08)', border: '1px solid rgba(var(--glow),0.15)' }}>
+                  <span className="text-2xl">{z.emoji}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{z.name} {z.symbol}</p>
+                    <p className="text-[11px] text-white/40">Tu signo zodiacal</p>
+                  </div>
+                </div>
+              ) : null
+            })()}
+
+            {/* Optional birth time */}
+            <div>
+              <p className="text-xs text-white/35 mb-1.5">Hora de nacimiento (opcional)</p>
+              <input
+                type="time"
+                value={birthTime}
+                onChange={e => setBirthTime(e.target.value)}
+                className="glass-input w-full rounded-2xl px-4 py-3 text-sm text-white"
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+
             <div className="flex gap-3">
               <button onClick={() => setStep(1)}
                 className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 hover:bg-white/8 transition-all">
@@ -239,7 +265,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* ── Step 3: Avatar ── */}
+        {/* Step 3: Avatar */}
         {step === 3 && (
           <div className="flex flex-col gap-5">
             <div>
@@ -315,7 +341,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* ── Step 4: Visibilidad ── */}
+        {/* Step 4: Visibilidad */}
         {step === 4 && (
           <div className="flex flex-col gap-5">
             <div>

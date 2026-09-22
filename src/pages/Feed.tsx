@@ -10,9 +10,8 @@ type Tab  = 'friends' | 'public'
 type Sort = 'recent' | 'popular'
 
 const VIS_BADGE: Record<Visibility, { icon: string; color: string }> = {
-  private: { icon: '�’', color: 'text-white/30' },
-  friends: { icon: '�¥', color: 'text-blue-400/60' },
-  public:  { icon: '�', color: 'text-emerald-400/60' },
+  private: { icon: "🔒", color: "text-white/30" },
+  public:  { icon: "🌐", color: "text-emerald-400/60" },
 }
 
 // ── Like button ───────────────────────────────────────────────

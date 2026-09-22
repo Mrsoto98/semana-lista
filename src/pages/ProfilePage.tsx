@@ -145,15 +145,15 @@ export default function ProfilePage() {
     enabled: !!user,
   })
 
-  const { data: friendsCount = 0 } = useQuery({
-    queryKey: ['my-friends-count', user?.id],
+  const { data: followStats = { followers: 0, following: 0 } } = useQuery({
+    queryKey: ['my-follow-stats', user?.id],
     queryFn: async () => {
-      const { count } = await supabase
-        .from('friendships')
-        .select('*', { count: 'exact', head: true })
-        .or(`requester_id.eq.${user!.id},addressee_id.eq.${user!.id}`)
-        .eq('status', 'accepted')
-      return count ?? 0
+      const { data } = await supabase
+        .from('profiles')
+        .select('followers_count, following_count')
+        .eq('id', user!.id)
+        .single()
+      return { followers: data?.followers_count ?? 0, following: data?.following_count ?? 0 }
     },
     enabled: !!user,
   })
@@ -293,14 +293,20 @@ export default function ProfilePage() {
                 <span className="text-xl font-bold text-white">{isLoading ? '–' : dreams.length}</span>
                 <span className="text-[11px] text-white/40">sueños</span>
               </button>
-              <div className="flex flex-col items-center gap-0.5 min-w-[48px]">
-                <span className="text-xl font-bold text-white">{lucidCount}</span>
-                <span className="text-[11px] text-white/40">lúcidos</span>
-              </div>
-              <div className="flex flex-col items-center gap-0.5 min-w-[48px]">
-                <span className="text-xl font-bold text-white">{friendsCount}</span>
-                <span className="text-[11px] text-white/40">amigos</span>
-              </div>
+              <button
+                onClick={() => navigate('/amigos')}
+                className="flex flex-col items-center gap-0.5 min-w-[48px] active:opacity-60 transition-opacity"
+              >
+                <span className="text-xl font-bold text-white">{followStats.followers}</span>
+                <span className="text-[11px] text-white/40">seguidores</span>
+              </button>
+              <button
+                onClick={() => navigate('/amigos')}
+                className="flex flex-col items-center gap-0.5 min-w-[48px] active:opacity-60 transition-opacity"
+              >
+                <span className="text-xl font-bold text-white">{followStats.following}</span>
+                <span className="text-[11px] text-white/40">siguiendo</span>
+              </button>
             </div>
           </div>
 

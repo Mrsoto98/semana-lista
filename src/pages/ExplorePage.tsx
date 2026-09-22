@@ -10,7 +10,7 @@ import { useAuthStore } from '../lib/store'
 import { pageVariants, pageTransition, listContainerVariants, listItemVariants } from '../lib/motion'
 import type { FeedDream } from '../types'
 
-type Tab = 'recientes' | 'populares' | 'amigos'
+type Tab = 'recientes' | 'populares' | 'seguidos'
 const PAGE_SIZE = 15
 
 // like_count / comment_count are denormalized columns on dreams maintained by DB triggers.
@@ -63,23 +63,20 @@ async function fetchPopularFeed(userId?: string): Promise<FeedDream[]> {
   return (data ?? []).map((d: any) => mapDream(d, userId))
 }
 
-async function fetchFriendsFeed(offset: number, userId: string): Promise<FeedDream[]> {
+async function fetchFollowingFeed(offset: number, userId: string): Promise<FeedDream[]> {
   const { data: fs } = await supabase
-    .from('friendships')
-    .select('requester_id, addressee_id')
-    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
-    .eq('status', 'accepted')
+    .from('follows')
+    .select('following_id')
+    .eq('follower_id', userId)
 
-  const friendIds = (fs ?? []).map((f: any) =>
-    f.requester_id === userId ? f.addressee_id : f.requester_id
-  )
-  if (friendIds.length === 0) return []
+  const followingIds = (fs ?? []).map((f: any) => f.following_id)
+  if (followingIds.length === 0) return []
 
   const { data, error } = await supabase
     .from('dreams')
     .select(DREAM_SELECT)
-    .in('user_id', friendIds)
-    .in('visibility', ['public', 'friends'])
+    .in('user_id', followingIds)
+    .eq('visibility', 'public')
     .order('created_at', { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1)
   if (error) throw error
@@ -96,9 +93,9 @@ export default function ExplorePage() {
   const [searchInput, setSearchInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const recentKey  = ['feed', 'recientes', search, user?.id]
-  const popularKey = ['feed', 'populares', user?.id]
-  const amigosKey  = ['feed', 'amigos', user?.id]
+  const recentKey   = ['feed', 'recientes', search, user?.id]
+  const popularKey  = ['feed', 'populares', user?.id]
+  const seguidosKey = ['feed', 'seguidos', user?.id]
 
   const recentQ = useInfiniteQuery({
     queryKey: recentKey,
@@ -116,20 +113,20 @@ export default function ExplorePage() {
     staleTime: 60_000,
   })
 
-  const amigosQ = useInfiniteQuery({
-    queryKey: amigosKey,
+  const seguidosQ = useInfiniteQuery({
+    queryKey: seguidosKey,
     queryFn: ({ pageParam = 0 }) =>
-      user ? fetchFriendsFeed(pageParam as number, user.id) : Promise.resolve([]),
+      user ? fetchFollowingFeed(pageParam as number, user.id) : Promise.resolve([]),
     getNextPageParam: (last, all) =>
       last.length === PAGE_SIZE ? all.flat().length : undefined,
     initialPageParam: 0,
-    enabled: tab === 'amigos' && !!user,
+    enabled: tab === 'seguidos' && !!user,
   })
 
   function mutateKey() {
     if (tab === 'recientes') return recentKey
     if (tab === 'populares') return popularKey
-    return amigosKey
+    return seguidosKey
   }
 
   const likeMutation = useMutation({
@@ -164,19 +161,19 @@ export default function ExplorePage() {
   const isLoading =
     tab === 'recientes' ? recentQ.isLoading :
     tab === 'populares' ? popularQ.isLoading :
-    amigosQ.isLoading
+    seguidosQ.isLoading
 
   const dreams: FeedDream[] =
     tab === 'recientes' ? (recentQ.data?.pages.flat() ?? []) :
     tab === 'populares' ? (popularQ.data ?? []) :
-    (amigosQ.data?.pages.flat() ?? [])
+    (seguidosQ.data?.pages.flat() ?? [])
 
   const isFetchingNextPage =
-    tab === 'recientes' ? recentQ.isFetchingNextPage : amigosQ.isFetchingNextPage
+    tab === 'recientes' ? recentQ.isFetchingNextPage : seguidosQ.isFetchingNextPage
   const hasNextPage =
-    tab === 'recientes' ? recentQ.hasNextPage : amigosQ.hasNextPage
+    tab === 'recientes' ? recentQ.hasNextPage : seguidosQ.hasNextPage
   const fetchNextPage =
-    tab === 'recientes' ? recentQ.fetchNextPage : amigosQ.fetchNextPage
+    tab === 'recientes' ? recentQ.fetchNextPage : seguidosQ.fetchNextPage
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -212,16 +209,27 @@ export default function ExplorePage() {
           <button
             onClick={() => navigate('/notificaciones')}
             className="relative flex items-center justify-center w-10 h-10 rounded-full transition-all active:scale-90"
-            style={{ background: 'rgba(255,255,255,0.07)' }}
+            style={{
+              background: notifCount > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)',
+              border: notifCount > 0 ? '1px solid rgba(239,68,68,0.35)' : '1px solid transparent',
+            }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            {/* Pulse ring when unread */}
+            {notifCount > 0 && (
+              <span className="absolute inset-0 rounded-full animate-ping"
+                style={{ background: 'rgba(239,68,68,0.2)', animationDuration: '1.8s' }} />
+            )}
+            <svg width="20" height="20" viewBox="0 0 24 24"
+              fill={notifCount > 0 ? 'rgba(239,68,68,0.15)' : 'none'}
+              stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
+              style={{ color: notifCount > 0 ? 'rgb(239,68,68)' : 'rgba(255,255,255,0.55)' }}>
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
             {notifCount > 0 && (
               <div
-                className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none px-1"
-                style={{ background: 'rgba(var(--glow-color), 1)' }}
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white leading-none px-1 shadow-lg"
+                style={{ background: 'rgb(239,68,68)', boxShadow: '0 0 8px rgba(239,68,68,0.6)' }}
               >
                 {notifCount > 9 ? '9+' : notifCount}
               </div>
@@ -232,9 +240,9 @@ export default function ExplorePage() {
         {/* Tabs */}
         <div className="flex gap-1.5 mb-3">
           {([
-            { value: 'recientes',  label: 'Recientes' },
+            { value: 'recientes', label: 'Recientes' },
             { value: 'populares', label: '🔥 Populares' },
-            { value: 'amigos',    label: 'Amigos' },
+            { value: 'seguidos',  label: 'Seguidos' },
           ] as const).map(({ value, label }) => (
             <button
               key={value}
@@ -304,11 +312,11 @@ export default function ExplorePage() {
             className="flex flex-col items-center py-24 text-center"
           >
             <div className="text-5xl mb-4 opacity-25">
-              {tab === 'populares' ? '🔥' : tab === 'amigos' ? '👥' : '🔭'}
+              {tab === 'populares' ? '🔥' : tab === 'seguidos' ? '🌙' : '🔭'}
             </div>
             <p className="text-white/40 text-sm">
-              {tab === 'amigos'
-                ? 'Tus amigos no han compartido sueños aún.'
+              {tab === 'seguidos'
+                ? 'Las personas a las que sigues no han compartido sueños aún.'
                 : tab === 'populares'
                 ? 'Ningún sueño ha recibido likes este mes todavía.'
                 : search ? `Sin resultados para "${search}"` : 'El cielo onírico está tranquilo.'}

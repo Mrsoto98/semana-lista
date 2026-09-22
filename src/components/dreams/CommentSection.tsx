@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../lib/store'
 import type { DreamComment } from '../../types'
@@ -11,27 +12,33 @@ interface Props {
 }
 
 function CommentBubble({
-  comment, myId, onReply, onDelete, indent = 0,
+  comment, myId, onReply, onDelete, indent = 0, onGoToProfile,
 }: {
   comment: DreamComment
   myId?: string
   onReply: (parentId: string, mentionName: string) => void
   onDelete: () => void
   indent?: number
+  onGoToProfile: (userId: string) => void
 }) {
   return (
     <div className="flex gap-2.5 items-start" style={{ marginLeft: indent * 28 }}>
-      {comment.user_avatar ? (
-        <img src={comment.user_avatar} className="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5" alt="" />
-      ) : (
-        <div className="w-6 h-6 rounded-full shrink-0 mt-0.5 flex items-center justify-center text-[10px] font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.7), rgba(var(--glass-tint),0.8))' }}>
-          {comment.user_name?.[0]?.toUpperCase()}
-        </div>
-      )}
+      <button onClick={() => onGoToProfile(comment.user_id)} className="shrink-0 mt-0.5">
+        {comment.user_avatar ? (
+          <img src={comment.user_avatar} className="w-6 h-6 rounded-full object-cover" alt="" />
+        ) : (
+          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+            style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.7), rgba(var(--glass-tint),0.8))' }}>
+            {comment.user_name?.[0]?.toUpperCase()}
+          </div>
+        )}
+      </button>
       <div className="flex-1 min-w-0 bg-white/4 rounded-xl px-3 py-2">
         <div className="flex items-center justify-between gap-2 mb-0.5">
-          <span className="text-[11px] font-semibold text-white/70">{comment.user_name}</span>
+          <button onClick={() => onGoToProfile(comment.user_id)}
+            className="text-[11px] font-semibold text-white/70 hover:text-white/90 transition-colors text-left">
+            {comment.user_name}
+          </button>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-white/25">
               {new Date(comment.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
@@ -77,6 +84,7 @@ async function fetchComments(dreamId: string): Promise<DreamComment[]> {
 export function CommentSection({ dreamId, allowComments, forceOpen }: Props) {
   const qc = useQueryClient()
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [text, setText] = useState('')
   const [open, setOpen] = useState(false)
   const [replyingTo, setReplyingTo] = useState<{ parentId: string; mention: string } | null>(null)
@@ -155,6 +163,7 @@ export function CommentSection({ dreamId, allowComments, forceOpen }: Props) {
                   comment={c} myId={user?.id} indent={0}
                   onReply={handleReply}
                   onDelete={() => deleteMutation.mutate(c.id)}
+                  onGoToProfile={(uid) => navigate(`/perfil/${uid}`)}
                 />
                 {repliesMap[c.id]?.map((reply) => (
                   <CommentBubble
@@ -162,6 +171,7 @@ export function CommentSection({ dreamId, allowComments, forceOpen }: Props) {
                     comment={reply} myId={user?.id} indent={1}
                     onReply={handleReply}
                     onDelete={() => deleteMutation.mutate(reply.id)}
+                    onGoToProfile={(uid) => navigate(`/perfil/${uid}`)}
                   />
                 ))}
                 {replyingTo?.parentId === c.id && (

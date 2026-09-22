@@ -110,7 +110,7 @@ function CoincidenceCard({
           />
         </div>
         <span className="text-sm font-semibold text-dream-300 shrink-0">{pct}% similitud</span>
-        <Badge>{c.scope === 'friends' ? '👥' : '🌐'} {c.scope}</Badge>
+        <Badge>{c.scope === 'following' ? '🌙' : '🌐'} {c.scope}</Badge>
       </div>
 
       {/* Two dreams side by side */}

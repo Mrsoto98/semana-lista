@@ -4,15 +4,18 @@ import { useNavigate } from 'react-router'
 import { supabase } from '../lib/supabase'
 import { formatUserNumber } from '../lib/formatUserNumber'
 import { useAuthStore } from '../lib/store'
-import type { Friend } from '../types'
+import type { FollowUser } from '../types'
 
 interface SearchUser {
   id: string
   name: string
   avatar_url: string | null
+  avatar_emoji: string | null
   bio: string | null
   user_number: number | null
 }
+
+type TabId = 'seguidores' | 'seguidos'
 
 function Avatar({ name, url, emoji, size = 10 }: { name: string; url?: string | null; emoji?: string | null; size?: number }) {
   const cls = `w-${size} h-${size} rounded-full shrink-0 object-cover`
@@ -25,10 +28,11 @@ function Avatar({ name, url, emoji, size = 10 }: { name: string; url?: string | 
   )
 }
 
-export default function Friends() {
+export default function FollowsPage() {
   const qc        = useQueryClient()
   const navigate  = useNavigate()
   const { user }  = useAuthStore()
+  const [tab, setTab]             = useState<TabId>('seguidores')
   const [query, setQuery]         = useState('')
   const [results, setResults]     = useState<SearchUser[]>([])
   const [searching, setSearching] = useState(false)
@@ -36,63 +40,61 @@ export default function Friends() {
   const [copiedNum, setCopiedNum] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const { data: friends = [], isLoading } = useQuery({
-    queryKey: ['friends', user?.id],
-    queryFn: async (): Promise<(Friend & { user_number?: number | null })[]> => {
-      if (!user) return []
-      const { data: rows } = await supabase
-        .from('friendships')
-        .select(`
-          requester_id, addressee_id, status, created_at,
-          requester:profiles!friendships_requester_id_fkey(id, name, avatar_url, avatar_emoji, bio, user_number),
-          addressee:profiles!friendships_addressee_id_fkey(id, name, avatar_url, avatar_emoji, bio, user_number)
-        `)
-        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
-        .in('status', ['pending', 'accepted'])
-      return (rows ?? []).map((r: any) => {
-        const isSender = r.requester_id === user.id
-        const other = isSender ? r.addressee : r.requester
-        return {
-          id: other?.id ?? '',
-          name: other?.name ?? 'Usuario',
-          avatar_url: other?.avatar_url ?? null,
-          avatar_emoji: other?.avatar_emoji ?? null,
-          bio: other?.bio ?? null,
-          user_number: other?.user_number ?? null,
-          status: r.status as Friend['status'],
-          direction: isSender ? 'sent' : 'received',
-        }
-      })
+  // My following IDs set — used to show correct button state everywhere
+  const { data: myFollowingIds = new Set<string>() } = useQuery({
+    queryKey: ['my-following-ids', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from('follows').select('following_id').eq('follower_id', user!.id)
+      return new Set((data ?? []).map((r: any) => r.following_id as string))
     },
-    refetchInterval: 30_000,
     enabled: !!user,
+    refetchInterval: 30_000,
   })
 
-  const accepted = friends.filter(f => f.status === 'accepted')
-  const received = friends.filter(f => f.status === 'pending' && f.direction === 'received')
-  const sent     = friends.filter(f => f.status === 'pending' && f.direction === 'sent')
-
-  const inv = () => qc.invalidateQueries({ queryKey: ['friends', user?.id] })
-
-  const acceptMutation = useMutation({
-    mutationFn: async (otherId: string) => {
-      await supabase.from('friendships').update({ status: 'accepted' })
-        .eq('requester_id', otherId).eq('addressee_id', user!.id)
+  const { data: followers = [], isLoading: loadingFollowers } = useQuery({
+    queryKey: ['followers', user?.id],
+    queryFn: async (): Promise<FollowUser[]> => {
+      const { data: rows } = await supabase.from('follows').select('follower_id').eq('following_id', user!.id)
+      if (!rows?.length) return []
+      const { data: profs } = await supabase.from('profiles')
+        .select('id, name, avatar_url, avatar_emoji, bio, user_number, followers_count')
+        .in('id', rows.map((r: any) => r.follower_id))
+      return (profs ?? []) as FollowUser[]
     },
-    onSuccess: inv,
+    enabled: !!user && tab === 'seguidores',
+    refetchInterval: 30_000,
   })
-  const declineMutation = useMutation({
-    mutationFn: async (otherId: string) => {
-      await supabase.from('friendships').delete()
-        .or(`and(requester_id.eq.${otherId},addressee_id.eq.${user!.id}),and(requester_id.eq.${user!.id},addressee_id.eq.${otherId})`)
+
+  const { data: following = [], isLoading: loadingFollowing } = useQuery({
+    queryKey: ['following', user?.id],
+    queryFn: async (): Promise<FollowUser[]> => {
+      const { data: rows } = await supabase.from('follows').select('following_id').eq('follower_id', user!.id)
+      if (!rows?.length) return []
+      const { data: profs } = await supabase.from('profiles')
+        .select('id, name, avatar_url, avatar_emoji, bio, user_number, followers_count')
+        .in('id', rows.map((r: any) => r.following_id))
+      return (profs ?? []) as FollowUser[]
     },
-    onSuccess: inv,
+    enabled: !!user && tab === 'seguidos',
+    refetchInterval: 30_000,
   })
-  const requestMutation = useMutation({
-    mutationFn: async (targetId: string) => {
-      await supabase.from('friendships').insert({ requester_id: user!.id, addressee_id: targetId })
+
+  const inv = () => {
+    qc.invalidateQueries({ queryKey: ['my-following-ids', user?.id] })
+    qc.invalidateQueries({ queryKey: ['followers', user?.id] })
+    qc.invalidateQueries({ queryKey: ['following', user?.id] })
+    qc.invalidateQueries({ queryKey: ['my-follow-stats', user?.id] })
+  }
+
+  const followMutation = useMutation({
+    mutationFn: async ({ targetId, isFollowing }: { targetId: string; isFollowing: boolean }) => {
+      if (isFollowing) {
+        await supabase.from('follows').delete().eq('follower_id', user!.id).eq('following_id', targetId)
+      } else {
+        await supabase.from('follows').insert({ follower_id: user!.id, following_id: targetId })
+      }
     },
-    onSuccess: () => { inv(); setResults([]); setQuery('') },
+    onSuccess: () => { inv(); setResults(r => r.map(u => u)) },
   })
 
   async function doSearch(e?: React.FormEvent) {
@@ -105,24 +107,18 @@ export default function Friends() {
       const numMatch = q.match(/^#?(\d{1,4})$/)
       let rows: SearchUser[] = []
       if (numMatch) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url, bio, user_number')
-          .eq('user_number', parseInt(numMatch[1]))
-          .neq('id', user!.id)
-          .limit(10)
+        const { data } = await supabase.from('profiles')
+          .select('id, name, avatar_url, avatar_emoji, bio, user_number')
+          .eq('user_number', parseInt(numMatch[1])).neq('id', user!.id).limit(10)
         rows = (data ?? []) as SearchUser[]
       } else {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, name, avatar_url, bio, user_number')
-          .ilike('name', `%${q}%`)
-          .neq('id', user!.id)
-          .limit(10)
+        const { data } = await supabase.from('profiles')
+          .select('id, name, avatar_url, avatar_emoji, bio, user_number')
+          .ilike('name', `%${q}%`).neq('id', user!.id).limit(10)
         rows = (data ?? []) as SearchUser[]
       }
       setResults(rows)
-      if (!rows.length) setSearchErr('No se encontró ningún usuario con esa búsqueda.')
+      if (!rows.length) setSearchErr('No se encontró ningún usuario.')
     } catch {
       setSearchErr('Error al buscar. Inténtalo de nuevo.')
     } finally {
@@ -139,9 +135,8 @@ export default function Friends() {
     setTimeout(() => setCopiedNum(false), 2000)
   }
 
-  function friendRelation(userId: string) {
-    return friends.find(f => f.id === userId)
-  }
+  const list = tab === 'seguidores' ? followers : following
+  const isLoading = tab === 'seguidores' ? loadingFollowers : loadingFollowing
 
   return (
     <div className="min-h-svh pb-28">
@@ -155,13 +150,9 @@ export default function Friends() {
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-white flex-1">Amigos</h1>
-        {received.length > 0 && (
-          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-            style={{ background: 'rgba(var(--glow-color),0.9)' }}>
-            {received.length}
-          </div>
-        )}
+        <h1 className="text-lg font-bold text-white flex-1">
+          {tab === 'seguidores' ? `Seguidores · ${followers.length}` : `Siguiendo · ${following.length}`}
+        </h1>
       </div>
 
       <div className="px-4 py-4 flex flex-col gap-5">
@@ -192,49 +183,73 @@ export default function Friends() {
               </button>
             </div>
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-2xl font-bold text-white leading-none">{accepted.length}</p>
-            <p className="text-[10px] text-white/30 mt-0.5">amigo{accepted.length !== 1 ? 's' : ''}</p>
-          </div>
         </div>
 
-        {/* Solicitudes recibidas */}
-        {received.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider px-1">
-              Solicitudes recibidas · {received.length}
-            </h3>
-            {received.map(f => (
-              <div key={f.id} className="glass-card rounded-2xl p-4 flex items-center gap-3">
-                <button onClick={() => navigate(`/perfil/${f.id}`)} className="shrink-0">
-                  <Avatar name={f.name} url={f.avatar_url} emoji={(f as any).avatar_emoji} size={10} />
-                </button>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white">{f.name}</p>
-                  {(f as any).user_number != null && (
-                    <p className="text-[10px] accent-text">#{formatUserNumber((f as any).user_number)}</p>
-                  )}
-                  {f.bio && <p className="text-[11px] text-white/35 truncate mt-0.5">{f.bio}</p>}
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => acceptMutation.mutate(f.id)}
-                    disabled={acceptMutation.isPending}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white glass-btn-primary transition-all active:scale-95 disabled:opacity-40"
-                  >
-                    Aceptar
+        {/* Tab switcher */}
+        <div className="flex gap-2">
+          {(['seguidores', 'seguidos'] as TabId[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                background: tab === t ? 'rgba(var(--glow), 0.20)' : 'rgba(255,255,255,0.05)',
+                color: tab === t ? `hsl(var(--accent-h), var(--accent-s), 80%)` : 'rgba(255,255,255,0.40)',
+                border: `1px solid ${tab === t ? 'rgba(var(--glow), 0.28)' : 'rgba(255,255,255,0.08)'}`,
+              }}
+            >
+              {t === 'seguidores' ? 'Seguidores' : 'Siguiendo'}
+            </button>
+          ))}
+        </div>
+
+        {/* List */}
+        <div className="flex flex-col gap-2">
+          {isLoading ? (
+            <div className="glass-card rounded-2xl h-16 shimmer" />
+          ) : list.length === 0 ? (
+            <div className="text-center py-10 glass-card rounded-2xl">
+              <div className="text-4xl mb-3">🌙</div>
+              <p className="text-white/40 text-sm font-medium">
+                {tab === 'seguidores' ? 'Nadie te sigue aún' : 'No sigues a nadie aún'}
+              </p>
+              <p className="text-white/20 text-xs mt-1">Busca soñadores abajo</p>
+            </div>
+          ) : (
+            list.map(u => {
+              const amIFollowing = myFollowingIds.has(u.id)
+              const isMutating = followMutation.isPending && followMutation.variables?.targetId === u.id
+              return (
+                <div key={u.id} className="glass-card rounded-2xl p-3.5 flex items-center gap-3">
+                  <button onClick={() => navigate(`/perfil/${u.id}`)} className="shrink-0">
+                    <Avatar name={u.name} url={u.avatar_url} emoji={u.avatar_emoji} size={10} />
+                  </button>
+                  <button onClick={() => navigate(`/perfil/${u.id}`)} className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-white">{u.name}</p>
+                    {u.user_number != null && (
+                      <p className="text-[10px] accent-text">#{formatUserNumber(u.user_number)}</p>
+                    )}
+                    {u.bio && <p className="text-[11px] text-white/35 truncate">{u.bio}</p>}
                   </button>
                   <button
-                    onClick={() => declineMutation.mutate(f.id)}
-                    className="px-3 py-1.5 rounded-xl text-xs text-white/40 bg-white/5 hover:bg-white/10 transition-all active:scale-95"
+                    onClick={() => followMutation.mutate({ targetId: u.id, isFollowing: amIFollowing })}
+                    disabled={isMutating}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all active:scale-95 disabled:opacity-40 ${
+                      amIFollowing
+                        ? 'text-white/50 bg-white/5 border border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20'
+                        : 'glass-btn-primary text-white'
+                    }`}
                   >
-                    ✕
+                    {isMutating
+                      ? <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                      : amIFollowing ? 'Siguiendo' : 'Seguir'
+                    }
                   </button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              )
+            })
+          )}
+        </div>
 
         {/* Buscador */}
         <div className="glass-card rounded-2xl p-4 flex flex-col gap-3">
@@ -274,14 +289,12 @@ export default function Friends() {
           {results.length > 0 && (
             <div className="flex flex-col gap-2 mt-1">
               {results.map(u => {
-                const rel = friendRelation(u.id)
-                const isPending  = rel?.status === 'pending'
-                const isAccepted = rel?.status === 'accepted'
-                const justSent   = requestMutation.variables === u.id && requestMutation.isPending
+                const amIFollowing = myFollowingIds.has(u.id)
+                const isMutating = followMutation.isPending && followMutation.variables?.targetId === u.id
                 return (
                   <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/4 border border-white/6">
                     <button onClick={() => navigate(`/perfil/${u.id}`)} className="shrink-0">
-                      <Avatar name={u.name} url={u.avatar_url} size={9} />
+                      <Avatar name={u.name} url={u.avatar_url} emoji={u.avatar_emoji} size={9} />
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white leading-tight">{u.name}</p>
@@ -290,23 +303,20 @@ export default function Friends() {
                       )}
                       {u.bio && <p className="text-[10px] text-white/25 truncate mt-0.5">{u.bio}</p>}
                     </div>
-                    {isAccepted ? (
-                      <span className="text-[10px] text-white/30 shrink-0">✓ Amigos</span>
-                    ) : isPending ? (
-                      <span className="text-[10px] text-white/30 shrink-0">
-                        {rel?.direction === 'sent' ? 'Solicitud enviada' : 'Te envió solicitud'}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => requestMutation.mutate(u.id)}
-                        disabled={justSent}
-                        className="glass-btn-primary px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40 transition-all active:scale-95 shrink-0"
-                      >
-                        {justSent
-                          ? <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                          : '+ Añadir'}
-                      </button>
-                    )}
+                    <button
+                      onClick={() => followMutation.mutate({ targetId: u.id, isFollowing: amIFollowing })}
+                      disabled={isMutating}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all active:scale-95 disabled:opacity-40 ${
+                        amIFollowing
+                          ? 'text-white/50 bg-white/5 border border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20'
+                          : 'glass-btn-primary text-white'
+                      }`}
+                    >
+                      {isMutating
+                        ? <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                        : amIFollowing ? 'Siguiendo' : 'Seguir'
+                      }
+                    </button>
                   </div>
                 )
               })}
@@ -314,67 +324,6 @@ export default function Friends() {
           )}
         </div>
 
-        {/* Solicitudes enviadas */}
-        {sent.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xs font-medium text-white/30 uppercase tracking-wider px-1">Solicitudes enviadas</h3>
-            {sent.map(f => (
-              <div key={f.id} className="glass-card rounded-xl p-3 flex items-center gap-3">
-                <Avatar name={f.name} url={f.avatar_url} emoji={(f as any).avatar_emoji} size={8} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white/70">{f.name}</p>
-                  {(f as any).user_number != null && (
-                    <p className="text-[10px] text-white/30">#{formatUserNumber((f as any).user_number)}</p>
-                  )}
-                  <p className="text-[10px] text-white/25">Pendiente de respuesta</p>
-                </div>
-                <button onClick={() => declineMutation.mutate(f.id)}
-                  className="text-[11px] text-white/20 hover:text-red-400 transition-colors px-2">
-                  Cancelar
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Lista de amigos */}
-        <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-medium text-white/30 uppercase tracking-wider px-1">
-            {isLoading ? 'Cargando…' : accepted.length > 0 ? `${accepted.length} amigo${accepted.length !== 1 ? 's' : ''}` : 'Amigos'}
-          </h3>
-          {isLoading ? (
-            <div className="glass-card rounded-2xl h-16 shimmer" />
-          ) : accepted.length === 0 ? (
-            <div className="text-center py-10 glass-card rounded-2xl">
-              <div className="text-4xl mb-3">🌙</div>
-              <p className="text-white/40 text-sm font-medium">Aún no tienes soñadores conectados</p>
-              <p className="text-white/20 text-xs mt-1">Busca por nombre o número arriba</p>
-            </div>
-          ) : (
-            accepted.map(f => (
-              <div key={f.id} className="glass-card rounded-2xl p-3.5 flex items-center gap-3">
-                <button onClick={() => navigate(`/perfil/${f.id}`)} className="shrink-0">
-                  <Avatar name={f.name} url={f.avatar_url} emoji={(f as any).avatar_emoji} size={10} />
-                </button>
-                <button onClick={() => navigate(`/perfil/${f.id}`)} className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold text-white">{f.name}</p>
-                  {(f as any).user_number != null && (
-                    <p className="text-[10px] accent-text">#{formatUserNumber((f as any).user_number)}</p>
-                  )}
-                  {f.bio && <p className="text-[11px] text-white/35 truncate">{f.bio}</p>}
-                </button>
-                <button
-                  onClick={() => { if (confirm(`¿Eliminar a ${f.name}?`)) declineMutation.mutate(f.id) }}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-400/10 transition-all shrink-0"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </div>
   )

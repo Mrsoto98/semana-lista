@@ -1,6 +1,6 @@
 import { api } from './api'
 import type {
-  Dream, FeedDream, Friend, Coincidence, Stats,
+  Dream, FeedDream, Coincidence, Stats,
   DreamAnalysis, User, DreamComment, DreamPoll,
   Whisper, WhisperReflection, WhisperFeed,
 } from '../types'
@@ -46,7 +46,7 @@ export const likesApi = {
 
 // ── Friends ──────────────────────────────────────────────────
 export const friendsApi = {
-  list: () => api.get<Friend[]>('/friends'),
+  list: () => api.get<any[]>('/friends'),
   search: (q: string) => api.get<Omit<User, 'email_verified' | 'default_visibility'>[]>('/friends/search', { params: { q } }),
   request: (targetId: string) => api.post('/friends/request', { targetId }),
   accept: (requesterId: string) => api.post('/friends/accept', { requesterId }),

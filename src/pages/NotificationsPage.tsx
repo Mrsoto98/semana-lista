@@ -8,7 +8,8 @@ import { useAuthStore } from '../lib/store'
 
 interface Notification {
   id: string
-  type: 'like' | 'comment' | 'comment_reply'
+  type: 'like' | 'comment' | 'comment_reply' | 'follow'
+  actor_id: string | null
   actor_name: string | null
   dream_id: string | null
   dream_title: string | null
@@ -28,6 +29,12 @@ function typeIcon(type: Notification['type']) {
       <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
     </svg>
   )
+  if (type === 'follow') return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0 mt-0.5">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+    </svg>
+  )
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-400 shrink-0 mt-0.5">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -40,6 +47,7 @@ function typeText(n: Notification) {
   const title = n.dream_title ? `"${n.dream_title}"` : 'tu sueño'
   if (n.type === 'like') return <><span className="text-white/80 font-semibold">{actor}</span> dio like a {title}</>
   if (n.type === 'comment_reply') return <><span className="text-white/80 font-semibold">{actor}</span> respondió a tu comentario en {title}</>
+  if (n.type === 'follow') return <><span className="text-white/80 font-semibold">{actor}</span> ha empezado a seguirte</>
   return <><span className="text-white/80 font-semibold">{actor}</span> comentó {title}</>
 }
 
@@ -103,7 +111,10 @@ export default function NotificationsPage() {
           notifications.map((n) => (
             <button
               key={n.id}
-              onClick={() => n.dream_id && navigate(`/sueno/${n.dream_id}`)}
+              onClick={() => {
+                if (n.type === 'follow' && n.actor_id) navigate(`/perfil/${n.actor_id}`)
+                else if (n.dream_id) navigate(`/sueno/${n.dream_id}`)
+              }}
               className="glass-card w-full rounded-2xl px-4 py-3 flex items-start gap-3 text-left transition-all active:scale-[0.98]"
               style={{ opacity: n.read ? 0.6 : 1 }}
             >

@@ -60,8 +60,9 @@ export default function App() {
             <Route path="/audio"               element={<Audio />} />
             <Route path="/tecnicas"            element={<LucidTechniques />} />
             <Route path="/notificaciones"      element={<NotificationsPage />} />
-            <Route path="/mensajes"            element={<MessagesPage />} />
-            <Route path="/mensajes/:id"        element={<ConversationPage />} />
+            <Route path="/mensajes"                    element={<MessagesPage />} />
+            <Route path="/mensajes/nuevo/:userId"      element={<ConversationPage />} />
+            <Route path="/mensajes/:id"                element={<ConversationPage />} />
           </Route>
 
           {/* Dream form — fullscreen, no nav */}

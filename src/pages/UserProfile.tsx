@@ -1,27 +1,42 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatUserNumber } from '../lib/formatUserNumber'
 import { useAuthStore } from '../lib/store'
-import type { Dream, Visibility } from '../types'
+import type { Dream } from '../types'
 
 interface PublicProfile {
   id: string; name: string; avatar_url: string | null; avatar_emoji: string | null; bio: string | null
-  user_number: number | null; friend_count: number; dream_count: number
-  instagram_username: string | null
+  user_number: number | null; followers_count: number; following_count: number; dream_count: number
+  instagram_username: string | null; show_public_stats: boolean
+  birth_date: string | null; birth_visibility: 'date' | 'age' | 'none'
+  location: string | null; country: string | null
 }
 interface ProfileResponse {
   profile: PublicProfile
   dreams: Dream[]
-  relationship: 'self' | 'friend' | 'stranger'
+  isSelf: boolean
+  isFollowing: boolean
 }
 
-const VIS_LABEL: Record<Visibility, { icon: string; label: string }> = {
-  private: { icon: '🔒', label: 'Privado' },
-  friends: { icon: '👥', label: 'Amigos' },
-  public:  { icon: '🌐', label: 'Público' },
+const GRADIENTS = [
+  'linear-gradient(160deg, #0f3460 0%, #533483 100%)',
+  'linear-gradient(160deg, #16213e 0%, #3d0f72 100%)',
+  'linear-gradient(160deg, #2c3e50 0%, #4a6fa5 100%)',
+  'linear-gradient(160deg, #0d0d2b 0%, #164778 100%)',
+  'linear-gradient(160deg, #130f40 0%, #1a6b4b 100%)',
+  'linear-gradient(160deg, #1a1a2e 0%, #5c1a2e 100%)',
+  'linear-gradient(160deg, #1a2a4a 0%, #6b3a5c 100%)',
+  'linear-gradient(160deg, #0a1628 0%, #2d5a3d 100%)',
+]
+
+function getGradient(id: string) {
+  const hash = id.replace(/-/g, '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return GRADIENTS[hash % GRADIENTS.length]
 }
+
+type Tab = 'diario' | 'cuadricula' | 'stats'
 
 export default function UserProfile() {
   const { id } = useParams<{ id: string }>()
@@ -29,61 +44,93 @@ export default function UserProfile() {
   const qc        = useQueryClient()
   const { user }  = useAuthStore()
   const [lightbox, setLightbox] = useState(false)
+  const [tab, setTab] = useState<Tab>('cuadricula')
 
   const { data, isLoading } = useQuery({
     queryKey: ['profile', id],
     queryFn: async (): Promise<ProfileResponse> => {
-      const [profileRes, dreamsRes, friendsRes, myFriendRes] = await Promise.all([
+      const [profileRes, dreamsRes, followRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', id!).single(),
-        supabase.from('dreams').select('*').eq('user_id', id!).eq('visibility', 'public').order('dream_date', { ascending: false }).limit(20),
-        supabase.from('friendships').select('*', { count: 'exact', head: true })
-          .or(`requester_id.eq.${id},addressee_id.eq.${id}`).eq('status', 'accepted'),
-        user ? supabase.from('friendships').select('status')
-          .or(`and(requester_id.eq.${user.id},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${user.id})`)
-          .single() : Promise.resolve({ data: null }),
+        supabase.from('dreams').select('*').eq('user_id', id!).eq('visibility', 'public')
+          .order('dream_date', { ascending: false }).limit(30),
+        user
+          ? supabase.from('follows').select('id').eq('follower_id', user.id).eq('following_id', id!).maybeSingle()
+          : Promise.resolve({ data: null }),
       ])
       const p = profileRes.data
-      const relationship: 'self' | 'friend' | 'stranger' = user?.id === id ? 'self'
-        : myFriendRes.data?.status === 'accepted' ? 'friend' : 'stranger'
       return {
         profile: {
           id: p?.id ?? id!, name: p?.name ?? 'Usuario',
           avatar_url: p?.avatar_url ?? null, avatar_emoji: p?.avatar_emoji ?? null,
           bio: p?.bio ?? null, user_number: p?.user_number ?? null,
-          friend_count: friendsRes.count ?? 0,
+          followers_count: p?.followers_count ?? 0,
+          following_count: p?.following_count ?? 0,
           dream_count: dreamsRes.data?.length ?? 0,
           instagram_username: p?.instagram_username ?? null,
+          show_public_stats: p?.show_public_stats !== false,
+          birth_date: p?.birth_date ?? null,
+          birth_visibility: p?.birth_visibility ?? 'none',
+          location: p?.location ?? null,
+          country: p?.country ?? null,
         },
         dreams: (dreamsRes.data ?? []) as Dream[],
-        relationship,
+        isSelf: user?.id === id,
+        isFollowing: !!(followRes as any).data,
       }
     },
     enabled: !!id,
   })
 
-  const requestMutation = useMutation({
-    mutationFn: async () => {
-      await supabase.from('friendships').insert({ requester_id: user!.id, addressee_id: id! })
+  const followMutation = useMutation({
+    mutationFn: async ({ currentlyFollowing }: { currentlyFollowing: boolean }) => {
+      if (currentlyFollowing) {
+        await supabase.from('follows').delete().eq('follower_id', user!.id).eq('following_id', id!)
+      } else {
+        await supabase.from('follows').insert({ follower_id: user!.id, following_id: id! })
+      }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['profile', id] }),
+    onMutate: async ({ currentlyFollowing }) => {
+      await qc.cancelQueries({ queryKey: ['profile', id] })
+      const previous = qc.getQueryData(['profile', id])
+      qc.setQueryData<ProfileResponse>(['profile', id], (old) => old ? {
+        ...old,
+        isFollowing: !currentlyFollowing,
+        profile: {
+          ...old.profile,
+          followers_count: old.profile.followers_count + (currentlyFollowing ? -1 : 1),
+        },
+      } : old)
+      return { previous }
+    },
+    onError: (_, __, ctx: any) => ctx && qc.setQueryData(['profile', id], ctx.previous),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['profile', id] })
+      qc.invalidateQueries({ queryKey: ['my-follow-stats', user?.id] })
+      qc.invalidateQueries({ queryKey: ['following', user?.id] })
+    },
   })
 
   const messageMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.rpc('get_or_create_conversation', {
-        user_a: user!.id,
-        user_b: id!,
-      })
-      if (error) throw error
-      return data as string
-    },
-    onSuccess: (convId) => navigate(`/mensajes/${convId}`),
+    mutationFn: async () => id!,
+    onSuccess: (userId) => navigate(`/mensajes/nuevo/${userId}`),
   })
 
   if (isLoading) return (
-    <div className="animate-fade-in flex flex-col gap-4 pt-2">
-      <div className="glass-card rounded-3xl h-48 shimmer" />
-      {[1,2,3].map(i => <div key={i} className="glass-card rounded-2xl h-28 shimmer" />)}
+    <div className="animate-fade-in -mx-4">
+      <div className="px-4">
+        <div className="w-8 h-4 rounded shimmer mb-5" />
+        <div className="flex flex-col items-center mb-4">
+          <div className="w-24 h-24 rounded-full shimmer mb-3" />
+          <div className="h-4 w-32 rounded shimmer mb-1" />
+          <div className="h-3 w-20 rounded shimmer" />
+        </div>
+        <div className="h-16 rounded-2xl shimmer mb-4" />
+        <div className="h-10 rounded-xl shimmer mb-4" />
+      </div>
+      <div className="h-px bg-white/8 mb-px" />
+      <div className="grid grid-cols-3 gap-px bg-white/5">
+        {[1,2,3,4,5,6].map(i => <div key={i} className="aspect-square shimmer" />)}
+      </div>
     </div>
   )
 
@@ -91,155 +138,381 @@ export default function UserProfile() {
     <div className="text-center py-20 text-white/40">Usuario no encontrado</div>
   )
 
-  const { profile, dreams, relationship } = data
-  const isSelf = relationship === 'self' || user?.id === id
+  const { profile, dreams, isSelf, isFollowing } = data
+
+  // Compute stats
+  const emotionCounts: Record<string, number> = {}
+  const tagCounts: Record<string, number> = {}
+  let lucidCount = 0
+  const monthCounts: Record<string, number> = {}
+
+  dreams.forEach(d => {
+    if (d.is_lucid) lucidCount++
+    d.emotions?.forEach((e: string) => { emotionCounts[e] = (emotionCounts[e] ?? 0) + 1 })
+    d.tags?.forEach((t: string) => { tagCounts[t] = (tagCounts[t] ?? 0) + 1 })
+    const mo = d.dream_date?.slice(0, 7)
+    if (mo) monthCounts[mo] = (monthCounts[mo] ?? 0) + 1
+  })
+
+  const topEmotions = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1]).slice(0, 6)
+  const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 8)
+  const lucidPct = dreams.length ? Math.round((lucidCount / dreams.length) * 100) : 0
+
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - (5 - i))
+    return d.toISOString().slice(0, 7)
+  })
+  const maxMonth = Math.max(1, ...last6Months.map(m => monthCounts[m] ?? 0))
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in -mx-4">
 
       {/* Back button */}
       <button onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-4 transition-colors">
+        className="flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-5 transition-colors mx-4">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Volver
       </button>
 
-      {/* Profile card */}
-      <div className="glass rounded-3xl p-5 mb-5 relative overflow-hidden">
-        <div className="absolute -top-8 -left-8 w-40 h-40 rounded-full opacity-25 pointer-events-none"
-          style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.6) 0%, transparent 70%)`, filter: 'blur(24px)' }} />
-
-        <div className="flex items-start gap-4 relative z-10">
-          {/* Avatar with lightbox */}
-          <button onClick={() => profile.avatar_url && setLightbox(true)} className="shrink-0">
+      {/* ── Profile header ── */}
+      <div className="px-4 pb-5">
+        <div className="flex flex-col items-center mb-4">
+          {/* Avatar */}
+          <button onClick={() => profile.avatar_url && setLightbox(true)} className="relative mb-3">
+            <div className="absolute inset-0 rounded-full pointer-events-none"
+              style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.4), transparent)', filter: 'blur(14px)', transform: 'scale(1.15)' }} />
             {profile.avatar_url ? (
               <img src={profile.avatar_url}
-                className="w-20 h-20 rounded-full object-cover ring-2 ring-white/15 hover:ring-white/30 transition-all"
+                className="w-24 h-24 rounded-full object-cover ring-2 ring-white/15 relative z-10"
                 alt={profile.name} />
             ) : (
-              <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl ring-2 ring-white/15"
+              <div className="w-24 h-24 rounded-full flex items-center justify-center text-4xl ring-2 ring-white/15 relative z-10"
                 style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.8), rgba(var(--glass-tint),0.9))' }}>
                 {profile.avatar_emoji ?? profile.name?.[0]?.toUpperCase()}
               </div>
             )}
           </button>
 
-          <div className="flex-1 min-w-0 pt-1">
-            <h2 className="text-lg font-bold text-white leading-tight">{profile.name}</h2>
-            {profile.user_number && (
-              <p className="text-[11px] accent-text mt-0.5">#{formatUserNumber(profile.user_number)}</p>
-            )}
-            {profile.bio && (
-              <p className="text-sm text-white/50 mt-1.5 leading-snug">{profile.bio}</p>
-            )}
-            {profile.instagram_username && (
-              <a
-                href={`https://instagram.com/${profile.instagram_username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-all group"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-pink-400 group-hover:text-pink-300 transition-colors">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="currentColor" strokeWidth="2"/>
-                  <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
-                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
-                </svg>
-                <span className="text-[11px] text-pink-400/80 group-hover:text-pink-300 transition-colors font-medium">@{profile.instagram_username}</span>
-              </a>
-            )}
+          <h2 className="text-lg font-bold text-white">{profile.name}</h2>
+          {profile.user_number && (
+            <p className="text-[11px] accent-text mt-0.5">#{formatUserNumber(profile.user_number)}</p>
+          )}
+          {profile.bio && (
+            <p className="text-[13px] text-white/50 text-center leading-snug max-w-[260px] mt-2">{profile.bio}</p>
+          )}
 
-            {!isSelf && (
-              <div className="mt-3 flex items-center gap-2 flex-wrap">
-                {relationship === 'stranger' && (
-                  <button onClick={() => requestMutation.mutate()}
-                    disabled={requestMutation.isPending || requestMutation.isSuccess}
-                    className="glass-btn-primary px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all active:scale-95 disabled:opacity-60">
-                    {requestMutation.isSuccess ? '✓ Solicitud enviada' : requestMutation.isPending ? 'Enviando…' : '+ Agregar amigo'}
-                  </button>
-                )}
-                {relationship === 'friend' && (
-                  <span className="text-xs text-emerald-400/70 flex items-center gap-1">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    Ya sois amigos
-                  </span>
-                )}
-                <button
-                  onClick={() => messageMutation.mutate()}
-                  disabled={messageMutation.isPending}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white/70 transition-all active:scale-95 disabled:opacity-60"
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  {messageMutation.isPending ? 'Abriendo…' : 'Mensaje'}
-                </button>
-              </div>
-            )}
+          {/* Birth date / age */}
+          {profile.birth_date && profile.birth_visibility !== 'none' && (
+            <p className="text-[12px] text-white/35 mt-1">
+              🎂 {profile.birth_visibility === 'age'
+                ? `${Math.floor((Date.now() - new Date(profile.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años`
+                : new Date(profile.birth_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+              }
+            </p>
+          )}
+
+          {/* Location */}
+          {(profile.location || profile.country) && (
+            <p className="text-[12px] text-white/30 mt-0.5">
+              📍 {[profile.location, profile.country].filter(Boolean).join(', ')}
+            </p>
+          )}
+
+          {profile.instagram_username && (
+            <a href={`https://instagram.com/${profile.instagram_username}`}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-pink-400">
+                <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+              </svg>
+              <span className="text-[11px] text-pink-400/80 font-medium">@{profile.instagram_username}</span>
+            </a>
+          )}
+        </div>
+
+        {/* Stats row */}
+        <div className="flex items-center justify-around py-4 px-2 rounded-2xl mb-4"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-white leading-none">{profile.dream_count}</p>
+            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest">sueños</p>
+          </div>
+          <div className="w-px h-10 bg-white/8" />
+          <div className="text-center">
+            <p className="text-2xl font-bold text-white leading-none">{profile.followers_count}</p>
+            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest">seguidores</p>
+          </div>
+          <div className="w-px h-10 bg-white/8" />
+          <div className="text-center">
+            <p className="text-2xl font-bold text-white leading-none">{profile.following_count}</p>
+            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-widest">siguiendo</p>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center justify-around mt-5 pt-4 border-t border-white/8">
-          <div className="text-center">
-            <p className="text-xl font-bold text-white">{profile.dream_count}</p>
-            <p className="text-[11px] text-white/35 mt-0.5">sueños</p>
+        {/* Action buttons */}
+        {!isSelf && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => followMutation.mutate({ currentlyFollowing: isFollowing })}
+              disabled={followMutation.isPending}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-60 ${
+                isFollowing
+                  ? 'border border-white/15 bg-white/6 text-white/70 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400'
+                  : 'glass-btn-primary text-white'
+              }`}>
+              {followMutation.isPending ? '…' : isFollowing ? 'Siguiendo' : 'Seguir'}
+            </button>
+            <button
+              onClick={() => messageMutation.mutate()}
+              disabled={messageMutation.isPending}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white/70 transition-all active:scale-95 disabled:opacity-60"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              {messageMutation.isPending ? '…' : 'Mensaje'}
+            </button>
           </div>
-          <div className="w-px h-8 bg-white/8" />
-          <div className="text-center">
-            <p className="text-xl font-bold text-white">{profile.friend_count}</p>
-            <p className="text-[11px] text-white/35 mt-0.5">amigos</p>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Dreams */}
-      {dreams.length === 0 ? (
-        <div className="text-center py-10 text-white/30 text-sm">
-          {relationship === 'stranger' ? 'Este usuario no tiene sueños públicos.' : 'Sin sueños visibles.'}
+      {/* ── Tab bar ── */}
+      <div className="flex items-center border-t border-white/10">
+        {/* Diario tab */}
+        <button onClick={() => setTab('diario')}
+          className="flex-1 py-3 flex items-center justify-center gap-1.5 transition-all"
+          style={{ borderBottom: tab === 'diario' ? '2px solid rgba(var(--glow-color),0.8)' : '2px solid transparent' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+            style={{ color: tab === 'diario' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          <span className="text-[11px] font-medium"
+            style={{ color: tab === 'diario' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
+            Diario
+          </span>
+        </button>
+
+        {/* Cuadrícula tab */}
+        <button onClick={() => setTab('cuadricula')}
+          className="flex-1 py-3 flex items-center justify-center gap-1.5 transition-all"
+          style={{ borderBottom: tab === 'cuadricula' ? '2px solid rgba(var(--glow-color),0.8)' : '2px solid transparent' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            style={{ color: tab === 'cuadricula' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span className="text-[11px] font-medium"
+            style={{ color: tab === 'cuadricula' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
+            Cuadrícula
+          </span>
+        </button>
+
+        {/* Dot separator + Stats (only if enabled) */}
+        {profile.show_public_stats && (
+          <>
+            <span className="text-white/15 text-lg leading-none select-none">·</span>
+            <button onClick={() => setTab('stats')}
+              className="flex-1 py-3 flex items-center justify-center gap-1.5 transition-all"
+              style={{ borderBottom: tab === 'stats' ? '2px solid rgba(var(--glow-color),0.8)' : '2px solid transparent' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                style={{ color: tab === 'stats' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+              <span className="text-[11px] font-medium"
+                style={{ color: tab === 'stats' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
+                Stats
+              </span>
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ── Content ── */}
+      {dreams.length === 0 && tab !== 'stats' ? (
+        <div className="text-center py-16 text-white/30 text-sm mx-4">
+          <div className="text-4xl mb-3 opacity-30">✦</div>
+          {isSelf ? 'Sin sueños visibles.' : 'Este usuario no tiene sueños públicos.'}
         </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {dreams.map((dream, i) => {
-            const vis = VIS_LABEL[dream.visibility]
-            return (
-              <div key={dream.id} style={{ animationDelay: `${i * 35}ms` }} className="animate-fade-in glass-card rounded-2xl p-4">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex-1 min-w-0">
-                    {dream.title && <h3 className="font-semibold text-white text-sm">{dream.title}</h3>}
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] text-white/30">
-                        {new Date(dream.dream_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                      </span>
-                      {dream.is_lucid && <span className="text-[10px] glass-pill px-1.5 py-0.5 rounded-full accent-text">✦ Lúcido</span>}
-                    </div>
-                  </div>
-                  {isSelf && (
-                    <span className="text-[10px] text-white/30 shrink-0">{vis.icon} {vis.label}</span>
-                  )}
+      ) : tab === 'cuadricula' ? (
+        <div className="grid grid-cols-3 gap-px bg-white/5 mt-px pb-24">
+          {dreams.map(dream => (
+            <button key={dream.id} onClick={() => navigate(`/sueno/${dream.id}`)}
+              className="aspect-square relative overflow-hidden group"
+              style={dream.grid_bg ? {
+                backgroundImage: `url(/grid-bg/${dream.grid_bg}.png)`,
+                backgroundSize: 'cover', backgroundPosition: 'center',
+              } : { background: getGradient(dream.id) }}>
+              {dream.grid_bg && <div className="absolute inset-0 bg-black/40" />}
+              {dream.is_lucid && (
+                <div className="absolute top-2 right-2 z-10 w-4 h-4 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+                  <span className="text-[8px] accent-text">✦</span>
                 </div>
-                <p className="text-white/55 text-sm leading-relaxed line-clamp-3">{dream.body}</p>
-                {dream.summary && (
-                  <div className="mt-3 px-3 py-2 rounded-xl border border-white/8 bg-white/3">
-                    <p className="text-[10px] text-white/35 mb-1 font-medium uppercase tracking-wider">✦ Análisis</p>
-                    <p className="text-xs text-white/55 italic">{dream.summary}</p>
+              )}
+              <div className="absolute inset-0 flex items-end p-2 z-10"
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 55%)' }}>
+                <p className="text-[9px] text-white/85 leading-tight line-clamp-2 font-medium text-left w-full drop-shadow">
+                  {dream.title || dream.body.slice(0, 40)}
+                </p>
+              </div>
+              <div className="absolute inset-0 bg-white/0 group-active:bg-white/10 transition-colors z-20" />
+            </button>
+          ))}
+        </div>
+
+      ) : tab === 'diario' ? (
+        <div className="flex flex-col pb-24">
+          {dreams.map((dream, i) => {
+            const d = new Date(dream.dream_date + 'T00:00:00')
+            const day = d.toLocaleDateString('es-ES', { weekday: 'long' })
+            const date = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+            const showHeader = i === 0 || dreams[i - 1].dream_date !== dream.dream_date
+            return (
+              <div key={dream.id}>
+                {showHeader && (
+                  <div className="px-4 pt-5 pb-2 flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-white/25 uppercase tracking-widest font-mono">{day}</span>
+                      <span className="text-[12px] text-white/40 font-medium">{date}</span>
+                    </div>
+                    <div className="flex-1 h-px bg-white/6" />
                   </div>
                 )}
-                {(dream.emotions.length > 0 || dream.tags.length > 0) && (
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {dream.emotions.slice(0,3).map(e => (
-                      <span key={e} className="text-[10px] px-2 py-0.5 rounded-full bg-white/8 text-white/50">{e}</span>
-                    ))}
-                    {dream.tags.slice(0,3).map(t => (
-                      <span key={t} className="text-[10px] px-2 py-0.5 rounded-full glass-pill accent-text">#{t}</span>
-                    ))}
+                <button onClick={() => navigate(`/sueno/${dream.id}`)}
+                  className="w-full text-left px-4 py-3 transition-colors active:bg-white/4 group">
+                  <div className="flex gap-3 items-start">
+                    <div className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
+                      style={{ background: getGradient(dream.id), minHeight: '36px' }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {dream.title ? (
+                          <h3 className="text-sm font-semibold text-white/90 leading-snug line-clamp-1">{dream.title}</h3>
+                        ) : (
+                          <h3 className="text-sm text-white/35 leading-snug italic">Sin título</h3>
+                        )}
+                        {dream.is_lucid && (
+                          <span className="text-[9px] accent-text shrink-0">✦</span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-white/40 leading-relaxed line-clamp-2">{dream.body}</p>
+                      {(dream.emotions?.length > 0 || dream.tags?.length > 0) && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {dream.emotions?.slice(0, 2).map((e: string) => (
+                            <span key={e} className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/6 text-white/35">{e}</span>
+                          ))}
+                          {dream.tags?.slice(0, 2).map((t: string) => (
+                            <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full accent-text" style={{ background: 'rgba(var(--glow-color),0.08)' }}>#{t}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                      className="shrink-0 mt-1.5 text-white/12 group-active:text-white/30 transition-colors">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
                   </div>
-                )}
+                </button>
               </div>
             )
           })}
+        </div>
+
+      ) : (
+        /* ── Stats tab ── */
+        <div className="px-4 pt-5 pb-24 flex flex-col gap-5">
+
+          {/* Summary row */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { value: dreams.length, label: 'públicos', icon: '🌙' },
+              { value: lucidCount, label: 'lúcidos', icon: '✦' },
+              { value: `${lucidPct}%`, label: 'lucidez', icon: '💫' },
+            ].map(s => (
+              <div key={s.label} className="flex flex-col items-center py-3 px-2 rounded-2xl"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <span className="text-base mb-1">{s.icon}</span>
+                <span className="text-xl font-bold text-white leading-none">{s.value}</span>
+                <span className="text-[10px] text-white/30 mt-1 uppercase tracking-wide">{s.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Monthly bar chart */}
+          {dreams.length > 0 && (
+            <div className="rounded-2xl p-4"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-4">Últimos 6 meses</p>
+              <div className="flex items-end gap-1.5 h-20">
+                {last6Months.map(m => {
+                  const count = monthCounts[m] ?? 0
+                  const pct = count / maxMonth
+                  const label = new Date(m + '-01').toLocaleDateString('es-ES', { month: 'short' })
+                  return (
+                    <div key={m} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[9px] text-white/30">{count || ''}</span>
+                      <div className="w-full rounded-t-md transition-all"
+                        style={{
+                          height: `${Math.max(count > 0 ? 4 : 0, pct * 52)}px`,
+                          background: count > 0
+                            ? `linear-gradient(to top, rgba(var(--glow-color),0.6), rgba(var(--glow-color),0.2))`
+                            : 'rgba(255,255,255,0.05)',
+                        }} />
+                      <span className="text-[9px] text-white/25">{label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Top emotions */}
+          {topEmotions.length > 0 && (
+            <div className="rounded-2xl p-4"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Emociones frecuentes</p>
+              <div className="flex flex-col gap-2">
+                {topEmotions.map(([emotion, count]) => (
+                  <div key={emotion} className="flex items-center gap-3">
+                    <span className="text-[12px] text-white/60 w-28 truncate">{emotion}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-white/8 overflow-hidden">
+                      <div className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${(count / topEmotions[0][1]) * 100}%`,
+                          background: `linear-gradient(90deg, rgba(var(--glow-color),0.7), rgba(var(--glow-color),0.3))`,
+                        }} />
+                    </div>
+                    <span className="text-[11px] text-white/30 w-4 text-right">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Top tags */}
+          {topTags.length > 0 && (
+            <div className="rounded-2xl p-4"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Etiquetas más usadas</p>
+              <div className="flex flex-wrap gap-2">
+                {topTags.map(([tag, count]) => (
+                  <div key={tag} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
+                    style={{ background: 'rgba(var(--glow-color),0.1)', border: '1px solid rgba(var(--glow-color),0.15)' }}>
+                    <span className="text-[11px] accent-text font-medium">#{tag}</span>
+                    <span className="text-[10px] text-white/30">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {dreams.length === 0 && (
+            <div className="text-center py-10 text-white/30 text-sm">Sin datos aún.</div>
+          )}
         </div>
       )}
 
@@ -255,4 +528,3 @@ export default function UserProfile() {
     </div>
   )
 }
-

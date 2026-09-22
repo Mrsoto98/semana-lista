@@ -1,4 +1,4 @@
-import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom'
+﻿import { Outlet, Navigate, useLocation, useNavigate } from 'react-router'
 import { useAuthStore } from '../../lib/store'
 import { TopBar } from './TopBar'
 import { BottomNav } from './BottomNav'
@@ -57,6 +57,8 @@ export function AppLayout() {
   if (!user) return <Navigate to="/login" replace />
   if (!user.onboarding_done) return <Navigate to="/onboarding" replace />
 
+  const isConversation = /^\/mensajes\/(nuevo\/|[0-9a-f-]{36})/.test(location.pathname)
+
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
@@ -97,19 +99,25 @@ export function AppLayout() {
         style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.3) 0%, transparent 70%)` }}
       />
 
-      {/* Top header */}
-      <TopBar onOpenTutorial={() => setTutorialOpen(true)} />
+      {/* Top header — hidden on conversation pages */}
+      {!isConversation && <TopBar onOpenTutorial={() => setTutorialOpen(true)} />}
 
       {/* Page content */}
       <main
         className="flex-1 overflow-y-auto relative z-10"
-        style={{ paddingBottom: '80px' }}
+        style={{ paddingBottom: isConversation ? 0 : '80px' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div key={location.pathname} className={`max-w-lg mx-auto px-4 py-5 ${animClass}`}>
-          <Outlet />
-        </div>
+        {isConversation ? (
+          <div key={location.pathname} className={animClass}>
+            <Outlet />
+          </div>
+        ) : (
+          <div key={location.pathname} className={`max-w-lg mx-auto px-4 py-5 ${animClass}`}>
+            <Outlet />
+          </div>
+        )}
       </main>
 
       {/* Bottom navigation */}
@@ -126,3 +134,4 @@ export function AppLayout() {
     </div>
   )
 }
+

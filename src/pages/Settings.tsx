@@ -11,9 +11,8 @@ import type { Visibility } from '../types'
 
 
 const VIS_OPTIONS: { value: Visibility; icon: string; label: string; desc: string }[] = [
-  { value: 'private', icon: '🔒', label: 'Privado',  desc: 'Solo tú puedes verlos' },
-  { value: 'friends', icon: '👥', label: 'Amigos',   desc: 'Solo tus amigos' },
-  { value: 'public',  icon: '🌍', label: 'Público',  desc: 'Todo el mundo' },
+  { value: 'private', icon: '🔒', label: 'Privado', desc: 'Solo tú puedes verlos' },
+  { value: 'public',  icon: '🌍', label: 'Público', desc: 'Todo el mundo' },
 ]
 
 const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
@@ -66,6 +65,12 @@ export default function Settings() {
   const [showZodiac, setShowZodiac] = useState(() => {
     try { return localStorage.getItem('show-zodiac') === '1' } catch { return false }
   })
+  const [showPublicStats, setShowPublicStats] = useState(() => {
+    try {
+      const v = localStorage.getItem('show-public-stats')
+      return v === null ? true : v === '1'
+    } catch { return true }
+  })
   const [deleteModal, setDeleteModal] = useState(false)
   const [deleteText,  setDeleteText]  = useState('')
   const [deleting,    setDeleting]    = useState(false)
@@ -105,7 +110,7 @@ export default function Settings() {
         name, bio, default_visibility: vis,
         instagram_username: instagram.replace('@', '').trim() || null,
         birth_date: birthDate || null,
-        birth_visibility: birthDate ? birthVisibility : 'none',
+        birth_visibility: birthVisibility,
       }
       if (avatarMode === 'emoji') {
         updates.avatar_emoji = selectedEmoji
@@ -125,14 +130,15 @@ export default function Settings() {
         location: location || null,
         country: country || null,
         show_zodiac: showZodiac,
+        show_public_stats: showPublicStats,
       }).eq('id', user!.id)
 
-      // Zodiac preference always in localStorage
       try {
         localStorage.setItem('show-zodiac', showZodiac ? '1' : '0')
         localStorage.setItem('birth-time', birthTime)
         localStorage.setItem('profile-location', location)
         localStorage.setItem('profile-country', country)
+        localStorage.setItem('show-public-stats', showPublicStats ? '1' : '0')
       } catch {}
 
       return data
@@ -144,6 +150,7 @@ export default function Settings() {
         location: location || null,
         country: country || null,
         show_zodiac: showZodiac,
+        show_public_stats: showPublicStats,
       }, accessToken!, refreshToken!)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -450,6 +457,30 @@ export default function Settings() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Public stats toggle */}
+      <div className="glass rounded-3xl p-5 mb-4">
+        <p className="text-[11px] text-white/40 uppercase tracking-wider mb-3">Perfil público</p>
+        <button type="button" onClick={() => setShowPublicStats(v => !v)}
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-center gap-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+              style={{ color: showPublicStats ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <div className="text-left">
+              <p className="text-sm text-white/80">Mostrar pestaña de estadísticas</p>
+              <p className="text-[11px] text-white/35 mt-0.5">Otras personas verán tus emociones y etiquetas frecuentes</p>
+            </div>
+          </div>
+          <div className="shrink-0 w-11 h-6 rounded-full transition-all relative"
+            style={{ background: showPublicStats ? `hsl(var(--accent-h),var(--accent-s),50%)` : 'rgba(255,255,255,0.1)' }}>
+            <div className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
+              style={{ left: showPublicStats ? '22px' : '2px' }} />
+          </div>
+        </button>
       </div>
 
       {/* Save */}
