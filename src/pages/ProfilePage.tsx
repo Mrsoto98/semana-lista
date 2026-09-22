@@ -340,6 +340,14 @@ export default function ProfilePage() {
                 {[(user as any).location, (user as any).country].filter(Boolean).join(', ')}
               </p>
             ) : null}
+            {user.birth_date && user.birth_visibility !== 'none' && (
+              <p className="text-[11px] text-white/35 mt-0.5">
+                🎂 {user.birth_visibility === 'age'
+                  ? `${Math.floor((Date.now() - new Date(user.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} años`
+                  : new Date(user.birth_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+                }
+              </p>
+            )}
             {user.bio && (
               <p className="text-[13px] text-white/50 mt-1 leading-snug">{user.bio}</p>
             )}
