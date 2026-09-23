@@ -116,7 +116,7 @@ export default function UserProfile() {
   })
 
   if (isLoading) return (
-    <div className="animate-fade-in -mx-4">
+    <div className="animate-fade-in">
       <div className="px-4">
         <div className="w-8 h-4 rounded shimmer mb-5" />
         <div className="flex flex-col items-center mb-4">
@@ -166,10 +166,10 @@ export default function UserProfile() {
   const maxMonth = Math.max(1, ...last6Months.map(m => monthCounts[m] ?? 0))
 
   return (
-    <div className="animate-fade-in -mx-4">
+    <div className="animate-fade-in">
 
       {/* ── Cover banner ── */}
-      <div className="relative w-full" style={{ height: 140, background: getGradient(profile.id), flexShrink: 0 }}>
+      <div className="-mx-4 relative" style={{ height: 140, background: getGradient(profile.id) }}>
         <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 25% 65%, rgba(255,255,255,0.10), transparent 55%)' }} />
         <button onClick={() => navigate(-1)}
           className="absolute top-4 left-4 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -282,11 +282,11 @@ export default function UserProfile() {
       </div>
 
       {/* ── Tab bar ── */}
-      <div className="flex items-center border-t border-white/10">
+      <div className="-mx-4 flex items-center border-t border-white/10">
         {/* Diario tab */}
         <button onClick={() => setTab('diario')}
           className="flex-1 py-3 flex items-center justify-center gap-1.5 transition-all"
-          style={{ borderBottom: tab === 'diario' ? '2px solid rgba(var(--glow-color),0.8)' : '2px solid transparent' }}>
+          style={{ borderBottom: tab === 'diario' ? '2px solid rgba(var(--glow),0.8)' : '2px solid transparent' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
             style={{ color: tab === 'diario' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
@@ -301,7 +301,7 @@ export default function UserProfile() {
         {/* Cuadrícula tab */}
         <button onClick={() => setTab('cuadricula')}
           className="flex-1 py-3 flex items-center justify-center gap-1.5 transition-all"
-          style={{ borderBottom: tab === 'cuadricula' ? '2px solid rgba(var(--glow-color),0.8)' : '2px solid transparent' }}>
+          style={{ borderBottom: tab === 'cuadricula' ? '2px solid rgba(var(--glow),0.8)' : '2px solid transparent' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
             style={{ color: tab === 'cuadricula' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
             <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -319,7 +319,7 @@ export default function UserProfile() {
             <span className="text-white/15 text-lg leading-none select-none">·</span>
             <button onClick={() => setTab('stats')}
               className="flex-1 py-3 flex items-center justify-center gap-1.5 transition-all"
-              style={{ borderBottom: tab === 'stats' ? '2px solid rgba(var(--glow-color),0.8)' : '2px solid transparent' }}>
+              style={{ borderBottom: tab === 'stats' ? '2px solid rgba(var(--glow),0.8)' : '2px solid transparent' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                 style={{ color: tab === 'stats' ? `hsl(var(--accent-h),var(--accent-s),75%)` : 'rgba(255,255,255,0.3)' }}>
                 <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
@@ -340,7 +340,7 @@ export default function UserProfile() {
           {isSelf ? 'Sin sueños visibles.' : 'Este usuario no tiene sueños públicos.'}
         </div>
       ) : tab === 'cuadricula' ? (
-        <div className="grid grid-cols-3 gap-px bg-white/5 mt-px pb-24">
+        <div className="-mx-4 grid grid-cols-3 gap-px bg-white/5 mt-px pb-24">
           {dreams.map(dream => (
             <button key={dream.id} onClick={() => navigate(`/sueno/${dream.id}`)}
               className="aspect-square relative overflow-hidden group"
