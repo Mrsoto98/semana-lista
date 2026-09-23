@@ -344,11 +344,11 @@ export default function UserProfile() {
           {dreams.map(dream => (
             <button key={dream.id} onClick={() => navigate(`/sueno/${dream.id}`)}
               className="relative overflow-hidden group"
-              style={{ aspectRatio: '1 / 1' }}
               style={dream.grid_bg ? {
+                aspectRatio: '1 / 1',
                 backgroundImage: `url(/grid-bg/${dream.grid_bg}.png)`,
                 backgroundSize: 'cover', backgroundPosition: 'center',
-              } : { background: getGradient(dream.id) }}>
+              } : { aspectRatio: '1 / 1', background: getGradient(dream.id) }}>
               {dream.grid_bg && <div className="absolute inset-0 bg-black/40" />}
               {dream.is_lucid && (
                 <div className="absolute top-2 right-2 z-10 w-4 h-4 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
