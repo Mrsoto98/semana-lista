@@ -333,6 +333,116 @@ function ShareThemeVisual() {
   )
 }
 
+function ExploreVisual() {
+  const [activeTab, setActiveTab] = useState(0)
+  const tabs = ['Recientes', '🔥 Popular', 'Seguidos']
+  useEffect(() => {
+    const iv = setInterval(() => setActiveTab(t => (t + 1) % 3), 1600)
+    return () => clearInterval(iv)
+  }, [])
+  const cards = [
+    { init: 'L', name: 'Luna', time: '2h', txt: 'Corría por un laberinto de espejos infinitos…', likes: 8 },
+    { init: 'A', name: 'Astro', time: '5h', txt: 'Vi una ciudad flotante entre las nubes…', likes: 23 },
+  ]
+  return (
+    <div className="mx-2 space-y-2" style={{ height: 128 }}>
+      <div className="flex gap-1.5">
+        {tabs.map((tab, i) => (
+          <motion.div key={tab}
+            animate={{
+              background: activeTab === i ? g(0.2) : g(0.05),
+              borderColor: activeTab === i ? g(0.32) : g(0.1),
+            }}
+            className="px-2.5 py-1 rounded-full text-[10px] font-medium border"
+            style={{ color: activeTab === i ? `hsl(var(--accent-h),var(--accent-s),80%)` : 'rgba(255,255,255,0.3)' }}>
+            {tab}
+          </motion.div>
+        ))}
+      </div>
+      <div className="space-y-1.5">
+        {cards.map((c, i) => (
+          <motion.div key={i}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.12 }}
+            className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+            style={{ background: g(0.06), border: `1px solid ${g(0.12)}` }}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+              style={{ background: g(0.2), color: `hsl(var(--accent-h),var(--accent-s),78%)` }}>
+              {c.init}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium text-white/70">{c.name}</span>
+                <span className="text-[9px] text-white/25 shrink-0">{c.time}</span>
+              </div>
+              <p className="text-[10px] text-white/40 leading-tight truncate">{c.txt}</p>
+            </div>
+            <div className="text-[9px] text-white/25 shrink-0">♡ {c.likes}</div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CoincidenciasVisual() {
+  const [pct, setPct] = useState(0)
+  const [revealed, setRevealed] = useState(false)
+  useEffect(() => {
+    const t1 = setTimeout(() => {
+      let i = 0
+      const iv = setInterval(() => {
+        i += 2; setPct(Math.min(i, 87))
+        if (i >= 87) { clearInterval(iv); setTimeout(() => setRevealed(true), 400) }
+      }, 18)
+      return () => clearInterval(iv)
+    }, 500)
+    return () => clearTimeout(t1)
+  }, [])
+  const scoreColor = `hsl(var(--accent-h),var(--accent-s),78%)`
+  return (
+    <div className="mx-2 space-y-2" style={{ height: 128 }}>
+      <div className="flex gap-2">
+        <div className="flex-1 rounded-xl p-2.5" style={{ background: g(0.08), border: `1px solid ${g(0.2)}` }}>
+          <p className="text-[8px] text-white/25 uppercase tracking-widest mb-1">Tu sueño</p>
+          <p className="text-[10px] text-white/65 leading-snug">Volaba sobre montañas nevadas…</p>
+        </div>
+        <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <p className="text-[8px] text-white/25 uppercase tracking-widest mb-1">Su sueño</p>
+          <motion.p className="text-[10px] leading-snug" animate={{ color: revealed ? 'rgba(255,255,255,0.65)' : 'transparent' }}
+            style={{ background: revealed ? 'none' : 'rgba(255,255,255,0.08)', borderRadius: 6 }}>
+            Surcaba nubes entre cumbres…
+          </motion.p>
+        </div>
+      </div>
+      <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(0,0,0,0.35)', border: `1px solid ${g(0.15)}` }}>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[9px] text-white/30">Similitud semántica</span>
+          <motion.span key={pct} initial={{ scale: 0.8 }} animate={{ scale: 1 }}
+            className="text-[14px] font-bold" style={{ color: scoreColor, fontFamily: 'var(--font-mono)' }}>
+            {pct}%
+          </motion.span>
+        </div>
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+          <motion.div
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.05 }}
+            className="h-full rounded-full"
+            style={{ background: `linear-gradient(90deg, ${g(0.5)}, ${g(1)})` }}
+          />
+        </div>
+        <div className="flex justify-between mt-1.5">
+          <span className="text-[9px] text-white/25">Soñador anónimo ✦</span>
+          <motion.span animate={{ color: revealed ? scoreColor : 'rgba(255,255,255,0.2)' }} className="text-[9px] font-medium">
+            {revealed ? '→ Conectar' : 'Desvelando…'}
+          </motion.span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function FinalVisual() {
   const stars = Array.from({ length: 18 }, (_, i) => ({
     x: 10 + (i * 37 + i * i * 13) % 80,
@@ -403,6 +513,20 @@ const STEPS = [
     sub: 'Sueños anónimos, emociones reales',
     body: 'Comparte fragmentos de sueños de forma completamente anónima. Ponles título, elige emociones y descubre qué resuena en otros soñadores.',
     Visual: WhisperVisual,
+  },
+  {
+    icon: '🔭',
+    title: 'Explorar',
+    sub: 'El universo onírico colectivo',
+    body: 'Navega entre sueños de toda la comunidad. Descubre los más recientes, los más populares o los de las personas que sigues. Da likes y comenta.',
+    Visual: ExploreVisual,
+  },
+  {
+    icon: '✦',
+    title: 'Coincidencias',
+    sub: 'Almas que sueñan igual que tú',
+    body: 'Nuestro sistema de IA analiza el significado profundo de tus sueños y los compara con miles de otros. Cuando hay afinidad semántica, te conectamos.',
+    Visual: CoincidenciasVisual,
   },
   {
     icon: '📊',

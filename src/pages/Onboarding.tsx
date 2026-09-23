@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router'
 import { useAuthStore } from '../lib/store'
 import { supabase } from '../lib/supabase'
@@ -7,31 +8,79 @@ import type { Visibility } from '../types'
 
 const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
 
+const COUNTRIES = [
+  { flag: '🇪🇸', name: 'España' },
+  { flag: '🇲🇽', name: 'México' },
+  { flag: '🇦🇷', name: 'Argentina' },
+  { flag: '🇨🇴', name: 'Colombia' },
+  { flag: '🇨🇱', name: 'Chile' },
+  { flag: '🇵🇪', name: 'Perú' },
+  { flag: '🇻🇪', name: 'Venezuela' },
+  { flag: '🇧🇴', name: 'Bolivia' },
+  { flag: '🇪🇨', name: 'Ecuador' },
+  { flag: '🇵🇾', name: 'Paraguay' },
+  { flag: '🇺🇾', name: 'Uruguay' },
+  { flag: '🇵🇦', name: 'Panamá' },
+  { flag: '🇨🇷', name: 'Costa Rica' },
+  { flag: '🇳🇮', name: 'Nicaragua' },
+  { flag: '🇭🇳', name: 'Honduras' },
+  { flag: '🇸🇻', name: 'El Salvador' },
+  { flag: '🇬🇹', name: 'Guatemala' },
+  { flag: '🇨🇺', name: 'Cuba' },
+  { flag: '🇩🇴', name: 'Rep. Dominicana' },
+  { flag: '🇵🇷', name: 'Puerto Rico' },
+  { flag: '🇺🇸', name: 'Estados Unidos' },
+  { flag: '🇬🇧', name: 'Reino Unido' },
+  { flag: '🇩🇪', name: 'Alemania' },
+  { flag: '🇫🇷', name: 'Francia' },
+  { flag: '🇮🇹', name: 'Italia' },
+  { flag: '🇵🇹', name: 'Portugal' },
+  { flag: '🇧🇷', name: 'Brasil' },
+  { flag: '🇯🇵', name: 'Japón' },
+  { flag: '🇨🇳', name: 'China' },
+  { flag: '🇲🇦', name: 'Marruecos' },
+]
+
 const VIS_OPTIONS: { value: Visibility; icon: string; label: string; desc: string }[] = [
   { value: 'private', icon: '🔒', label: 'Privado', desc: 'Solo tú puedes verlos' },
-  { value: 'public',  icon: '🌍', label: 'Público', desc: 'Todo el mundo' },
+  { value: 'public',  icon: '🌍', label: 'Público', desc: 'Toda la comunidad' },
 ]
+
+const stepVariants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir > 0 ? 28 : -28 }),
+  center: { opacity: 1, x: 0 },
+  exit:  (dir: number) => ({ opacity: 0, x: dir > 0 ? -28 : 28 }),
+}
 
 export default function Onboarding() {
   const navigate  = useNavigate()
   const { user, setAuth, accessToken, refreshToken } = useAuthStore()
   const fileRef   = useRef<HTMLInputElement>(null)
 
-  const [step, setStep]               = useState(0)
-  const [name, setName]               = useState(user?.name ?? '')
-  const [bio, setBio]                 = useState('')
-  const [birthDate, setBirthDate]     = useState('')
-  const [birthText, setBirthText]     = useState('')
-  const [birthTime, setBirthTime]     = useState('')
-  const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'none'>('age')
-  const [avatarMode, setAvatarMode]   = useState<'emoji' | 'photo'>('emoji')
+  const [step, setStep]           = useState(0)
+  const [dir, setDir]             = useState(1)
+  const [name, setName]           = useState(user?.name ?? '')
+  const [bio, setBio]             = useState('')
+  const [birthDate, setBirthDate] = useState('')
+  const [birthText, setBirthText] = useState('')
+  const [birthTime, setBirthTime] = useState('')
+  const [birthVisibility, setBirthVisibility] = useState<'date' | 'age' | 'date_age' | 'none'>('age')
+  const [showZodiac, setShowZodiac] = useState(true)
+  const [location, setLocation]   = useState('')
+  const [country, setCountry]     = useState('')
+  const [avatarMode, setAvatarMode] = useState<'emoji' | 'photo'>('emoji')
   const [selectedEmoji, setSelectedEmoji] = useState('🌙')
-  const [photoUrl, setPhotoUrl]       = useState<string | null>(null)
-  const [uploading, setUploading]     = useState(false)
-  const [saving, setSaving]           = useState(false)
-  const [visibility, setVisibility]   = useState<Visibility>('private')
+  const [photoUrl, setPhotoUrl]   = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [saving, setSaving]       = useState(false)
+  const [visibility, setVisibility] = useState<Visibility>('private')
 
-  const steps = ['Nombre', 'Bio', 'Cumpleaños', 'Avatar', 'Privacidad']
+  const steps = ['Nombre', 'Bio', 'Cumpleaños', 'Lugar', 'Avatar', 'Privacidad']
+
+  function goTo(next: number) {
+    setDir(next > step ? 1 : -1)
+    setStep(next)
+  }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -57,10 +106,13 @@ export default function Onboarding() {
         bio: bio || null,
         onboarding_done: true,
         default_visibility: visibility,
+        show_zodiac: showZodiac,
       }
       if (birthDate) updates.birth_date = birthDate
       updates.birth_visibility = birthDate ? birthVisibility : 'none'
       if (birthTime) updates.birth_time = birthTime
+      if (location.trim()) updates.location = location.trim()
+      if (country) updates.country = country
       if (avatarMode === 'emoji') {
         updates.avatar_emoji = selectedEmoji
         updates.avatar_url   = null
@@ -68,7 +120,6 @@ export default function Onboarding() {
         updates.avatar_url   = photoUrl
         updates.avatar_emoji = null
       }
-
       await supabase.from('profiles').update(updates).eq('id', user.id)
       setAuth({ ...user, ...(updates as object), onboarding_done: true }, accessToken!, refreshToken!)
       navigate('/diario')
@@ -77,315 +128,466 @@ export default function Onboarding() {
     }
   }
 
+  const zodiac = getZodiac(birthDate)
+  const progress = ((step + 1) / steps.length) * 100
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="orb w-[400px] h-[400px] top-[-100px] right-[-100px] opacity-20 pointer-events-none"
+      {/* Background orb */}
+      <div className="orb w-[500px] h-[500px] top-[-120px] right-[-120px] opacity-15 pointer-events-none"
+        style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.6) 0%, transparent 70%)` }} />
+      <div className="orb w-[300px] h-[300px] bottom-[-80px] left-[-80px] opacity-10 pointer-events-none"
         style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.5) 0%, transparent 70%)` }} />
 
-      <div className="text-center mb-8">
-        <div className="text-5xl mb-3 animate-float inline-block">🌙</div>
-        <h1 className="text-xl font-bold text-white">Bienvenido a Bitácora del Sueño</h1>
+      {/* Header */}
+      <div className="text-center mb-6">
+        <div className="text-5xl mb-3 inline-block" style={{ animation: 'float 3.5s ease-in-out infinite' }}>🌙</div>
+        <h1 className="text-xl font-bold text-white">Bitácora del Sueño</h1>
         <p className="text-white/35 text-sm mt-1">Cuéntanos un poco sobre ti</p>
       </div>
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-1 mb-6 flex-wrap justify-center">
-        {steps.map((s, i) => (
-          <div key={s} className="flex items-center gap-1">
-            <div className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold transition-all ${
-              i < step ? 'bg-green-500/80 text-white' :
-              i === step ? 'accent-bg text-white' :
-              'bg-white/10 text-white/30'
-            }`}>
-              {i < step ? '✓' : i + 1}
+      {/* Progress bar */}
+      <div className="w-full max-w-sm mb-5">
+        <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+          <motion.div
+            animate={{ width: `${progress}%` }}
+            transition={{ type: 'spring', stiffness: 180, damping: 28 }}
+            className="h-full rounded-full"
+            style={{ background: `linear-gradient(90deg, rgba(var(--glow),0.5), rgba(var(--glow),1))` }}
+          />
+        </div>
+        {/* Step pills */}
+        <div className="flex items-center gap-1 mt-3 justify-center overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          {steps.map((s, i) => (
+            <div key={s} className="flex items-center gap-1 shrink-0">
+              <div className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold transition-all duration-300 ${
+                i < step ? 'bg-green-500/80 text-white' :
+                i === step ? 'accent-bg text-white shadow-lg' :
+                'bg-white/8 text-white/25'
+              }`}>
+                {i < step ? '✓' : i + 1}
+              </div>
+              <span className={`text-[11px] transition-colors duration-300 ${i === step ? 'text-white/65' : 'text-white/20'}`}>{s}</span>
+              {i < steps.length - 1 && <div className="w-3 h-px bg-white/10 mx-0.5" />}
             </div>
-            <span className={`text-xs transition-colors ${i === step ? 'text-white/70' : 'text-white/25'}`}>{s}</span>
-            {i < steps.length - 1 && <div className="w-4 h-px bg-white/15 mx-1" />}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Card */}
-      <div className="glass rounded-3xl p-6 w-full max-w-sm">
+      <div className="glass rounded-3xl w-full max-w-sm overflow-hidden">
+        <AnimatePresence mode="wait" custom={dir}>
+          <motion.div
+            key={step}
+            custom={dir}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ type: 'spring', stiffness: 380, damping: 36, mass: 0.9 }}
+            className="p-6"
+          >
 
-        {/* Step 0: Nombre */}
-        {step === 0 && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <h2 className="text-white font-semibold text-lg mb-1">¿Cómo te llamamos?</h2>
-              <p className="text-white/35 text-sm">Aparecerá en tu perfil y sueños públicos.</p>
-            </div>
-            <input
-              autoFocus
-              value={name}
-              onChange={e => setName(e.target.value)}
-              maxLength={80}
-              placeholder="Tu nombre o apodo..."
-              className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/20"
-            />
-            <button onClick={() => setStep(1)} disabled={!name.trim()}
-              className="glass-btn-primary w-full py-3.5 rounded-2xl text-sm font-semibold text-white disabled:opacity-30 transition-all active:scale-[0.98]">
-              Continuar →
-            </button>
-          </div>
-        )}
-
-        {/* Step 1: Bio */}
-        {step === 1 && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <h2 className="text-white font-semibold text-lg mb-1">Cuéntanos sobre ti</h2>
-              <p className="text-white/35 text-sm">Opcional. Aparecerá en tu perfil público.</p>
-            </div>
-            <div className="relative">
-              <textarea
-                autoFocus
-                value={bio}
-                onChange={e => setBio(e.target.value)}
-                maxLength={500}
-                rows={4}
-                placeholder="Soy un soñador que..."
-                className="glass-input w-full rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/20 resize-none"
-              />
-              <span className="absolute bottom-3 right-3 text-[10px] text-white/20">{bio.length}/500</span>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setStep(0)}
-                className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 hover:bg-white/8 transition-all">
-                ← Atrás
-              </button>
-              <button onClick={() => setStep(2)}
-                className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
-                {bio.trim() ? 'Continuar →' : 'Omitir →'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Fecha de nacimiento */}
-        {step === 2 && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <h2 className="text-white font-semibold text-lg mb-1">¿Cuándo naciste?</h2>
-              <p className="text-white/35 text-sm">Opcional. Lo usamos para personalizar tu experiencia.</p>
-            </div>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="DD/MM/AAAA"
-              value={birthText}
-              onChange={e => {
-                let raw = e.target.value.replace(/[^\d]/g, '')
-                if (raw.length > 8) raw = raw.slice(0, 8)
-                let fmt = raw
-                if (raw.length > 4) fmt = raw.slice(0,2) + '/' + raw.slice(2,4) + '/' + raw.slice(4)
-                else if (raw.length > 2) fmt = raw.slice(0,2) + '/' + raw.slice(2)
-                setBirthText(fmt)
-                if (raw.length === 8) {
-                  const d = raw.slice(0,2), m = raw.slice(2,4), y = raw.slice(4,8)
-                  setBirthDate(`${y}-${m}-${d}`)
-                } else setBirthDate('')
-              }}
-              maxLength={10}
-              className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/40"
-            />
-
-            <div>
-              <p className="text-xs text-white/40 mb-2.5 flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                ¿Qué mostramos en tu perfil?
-              </p>
-              <div className="flex flex-col gap-2">
-                {([
-                  { value: 'date', icon: '📅', label: 'Fecha completa', desc: 'Ej: 14 de marzo de 1995' },
-                  { value: 'age',  icon: '🎂', label: 'Solo la edad',   desc: 'Ej: 29 años' },
-                  { value: 'none', icon: '🙈', label: 'No mostrar nada', desc: 'Guardado solo para ti' },
-                ] as const).map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setBirthVisibility(opt.value)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all ${
-                      birthVisibility === opt.value
-                        ? 'glass-nav-active'
-                        : 'bg-white/4 border border-transparent hover:bg-white/7'
-                    }`}
-                  >
-                    <span className="text-lg shrink-0">{opt.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold leading-tight ${birthVisibility === opt.value ? 'text-white' : 'text-white/60'}`}>{opt.label}</p>
-                      <p className="text-[11px] text-white/30">{opt.desc}</p>
-                    </div>
-                    {birthVisibility === opt.value && (
-                      <svg className="accent-text shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    )}
-                  </button>
-                ))}
+            {/* ── Step 0: Nombre ── */}
+            {step === 0 && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="text-white font-semibold text-lg mb-1">¿Cómo te llamamos?</h2>
+                  <p className="text-white/35 text-sm">Aparecerá en tu perfil y sueños públicos.</p>
+                </div>
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  maxLength={80}
+                  placeholder="Tu nombre o apodo..."
+                  className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/20"
+                />
+                <button onClick={() => goTo(1)} disabled={!name.trim()}
+                  className="glass-btn-primary w-full py-3.5 rounded-2xl text-sm font-semibold text-white disabled:opacity-30 transition-all active:scale-[0.98]">
+                  Continuar →
+                </button>
               </div>
-            </div>
+            )}
 
-            {/* Zodiac preview */}
-            {(() => {
-              const z = getZodiac(birthDate)
-              return z ? (
-                <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl" style={{ background: 'rgba(var(--glow),0.08)', border: '1px solid rgba(var(--glow),0.15)' }}>
-                  <span className="text-2xl">{z.emoji}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{z.name} {z.symbol}</p>
-                    <p className="text-[11px] text-white/40">Tu signo zodiacal</p>
+            {/* ── Step 1: Bio ── */}
+            {step === 1 && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="text-white font-semibold text-lg mb-1">Cuéntanos sobre ti</h2>
+                  <p className="text-white/35 text-sm">Opcional. Aparecerá en tu perfil público.</p>
+                </div>
+                <div className="relative">
+                  <textarea
+                    autoFocus
+                    value={bio}
+                    onChange={e => setBio(e.target.value)}
+                    maxLength={500}
+                    rows={4}
+                    placeholder="Soy un soñador que..."
+                    className="glass-input w-full rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/20 resize-none"
+                  />
+                  <span className="absolute bottom-3 right-3 text-[10px] text-white/20">{bio.length}/500</span>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => goTo(0)}
+                    className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 transition-all active:scale-95">
+                    ← Atrás
+                  </button>
+                  <button onClick={() => goTo(2)}
+                    className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
+                    {bio.trim() ? 'Continuar →' : 'Omitir →'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 2: Cumpleaños ── */}
+            {step === 2 && (
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h2 className="text-white font-semibold text-lg mb-1">¿Cuándo naciste?</h2>
+                  <p className="text-white/35 text-sm">Opcional. Calculamos tu carta astral y te mostramos tu signo.</p>
+                </div>
+
+                {/* Date input */}
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="DD/MM/AAAA"
+                  value={birthText}
+                  onChange={e => {
+                    let raw = e.target.value.replace(/[^\d]/g, '')
+                    if (raw.length > 8) raw = raw.slice(0, 8)
+                    let fmt = raw
+                    if (raw.length > 4) fmt = raw.slice(0,2) + '/' + raw.slice(2,4) + '/' + raw.slice(4)
+                    else if (raw.length > 2) fmt = raw.slice(0,2) + '/' + raw.slice(2)
+                    setBirthText(fmt)
+                    if (raw.length === 8) {
+                      const d = raw.slice(0,2), m = raw.slice(2,4), y = raw.slice(4,8)
+                      setBirthDate(`${y}-${m}-${d}`)
+                    } else setBirthDate('')
+                  }}
+                  maxLength={10}
+                  className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/40"
+                />
+
+                {/* Zodiac preview */}
+                <AnimatePresence>
+                  {zodiac && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
+                      style={{ background: 'rgba(var(--glow),0.08)', border: '1px solid rgba(var(--glow),0.18)' }}
+                    >
+                      <span className="text-2xl">{zodiac.emoji}</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-white">{zodiac.name} {zodiac.symbol}</p>
+                        <p className="text-[11px] text-white/40">Tu signo zodiacal</p>
+                      </div>
+                      <button
+                        onClick={() => setShowZodiac(v => !v)}
+                        className={`text-[10px] px-2 py-1 rounded-full transition-all ${showZodiac ? 'text-white/70' : 'text-white/25'}`}
+                        style={{ background: showZodiac ? 'rgba(var(--glow),0.15)' : 'rgba(255,255,255,0.05)' }}
+                      >
+                        {showZodiac ? 'Visible ✓' : 'Oculto'}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Birth time */}
+                <div>
+                  <p className="text-xs text-white/35 mb-1.5">Hora de nacimiento (opcional)</p>
+                  <input
+                    type="time"
+                    value={birthTime}
+                    onChange={e => setBirthTime(e.target.value)}
+                    className="glass-input w-full rounded-2xl px-4 py-3 text-sm text-white"
+                    style={{ colorScheme: 'dark' }}
+                  />
+                  {birthTime && (
+                    <p className="text-[11px] text-white/30 mt-1.5 px-1">
+                      Necesaria para calcular tu Ascendente y casas astrológicas.
+                    </p>
+                  )}
+                </div>
+
+                {/* Visibility */}
+                <div>
+                  <p className="text-xs text-white/40 mb-2 flex items-center gap-1.5">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 opacity-60"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    ¿Qué mostramos en tu perfil?
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {([
+                      { value: 'date',     icon: '📅', label: 'Fecha completa' },
+                      { value: 'age',      icon: '🎂', label: 'Solo la edad' },
+                      { value: 'date_age', icon: '🗓️', label: 'Fecha y edad' },
+                      { value: 'none',     icon: '🙈', label: 'No mostrar' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setBirthVisibility(opt.value)}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all ${
+                          birthVisibility === opt.value ? 'glass-nav-active' : 'bg-white/4 border border-transparent'
+                        }`}
+                      >
+                        <span className="text-base shrink-0">{opt.icon}</span>
+                        <p className={`text-[11px] font-medium leading-tight ${birthVisibility === opt.value ? 'text-white' : 'text-white/50'}`}>
+                          {opt.label}
+                        </p>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              ) : null
-            })()}
 
-            {/* Optional birth time */}
-            <div>
-              <p className="text-xs text-white/35 mb-1.5">Hora de nacimiento (opcional)</p>
-              <input
-                type="time"
-                value={birthTime}
-                onChange={e => setBirthTime(e.target.value)}
-                className="glass-input w-full rounded-2xl px-4 py-3 text-sm text-white"
-                style={{ colorScheme: 'dark' }}
-              />
-            </div>
+                <div className="flex gap-3">
+                  <button onClick={() => goTo(1)}
+                    className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 transition-all active:scale-95">
+                    ← Atrás
+                  </button>
+                  <button onClick={() => goTo(3)}
+                    className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
+                    {birthDate ? 'Continuar →' : 'Omitir →'}
+                  </button>
+                </div>
+              </div>
+            )}
 
-            <div className="flex gap-3">
-              <button onClick={() => setStep(1)}
-                className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 hover:bg-white/8 transition-all">
-                ← Atrás
-              </button>
-              <button onClick={() => setStep(3)}
-                className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
-                {birthDate ? 'Continuar →' : 'Omitir →'}
-              </button>
-            </div>
-          </div>
-        )}
+            {/* ── Step 3: Lugar de nacimiento ── */}
+            {step === 3 && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="text-white font-semibold text-lg mb-1">¿Dónde naciste?</h2>
+                  <p className="text-white/35 text-sm">Opcional. Para tu carta astral y hora solar local.</p>
+                </div>
 
-        {/* Step 3: Avatar */}
-        {step === 3 && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <h2 className="text-white font-semibold text-lg mb-1">Elige tu avatar</h2>
-              <p className="text-white/35 text-sm">Un emoji onírico o sube tu foto.</p>
-            </div>
+                <div className="space-y-3">
+                  {/* City */}
+                  <div>
+                    <label className="text-[11px] text-white/35 mb-1.5 block uppercase tracking-wide">Ciudad o pueblo</label>
+                    <input
+                      autoFocus
+                      value={location}
+                      onChange={e => setLocation(e.target.value)}
+                      placeholder="Ej: Madrid, Buenos Aires..."
+                      className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/25"
+                    />
+                  </div>
 
-            <div className="flex rounded-xl bg-white/5 p-1 gap-1">
-              {(['emoji', 'photo'] as const).map(mode => (
-                <button key={mode} onClick={() => setAvatarMode(mode)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                    avatarMode === mode ? 'glass-nav-active text-white' : 'text-white/35 hover:text-white/60'
-                  }`}>
-                  {mode === 'emoji' ? '✨ Emoji' : '📷 Foto'}
-                </button>
-              ))}
-            </div>
+                  {/* Country */}
+                  <div>
+                    <label className="text-[11px] text-white/35 mb-1.5 block uppercase tracking-wide">País</label>
+                    <div className="relative">
+                      <select
+                        value={country}
+                        onChange={e => setCountry(e.target.value)}
+                        className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white appearance-none pr-10"
+                        style={{ colorScheme: 'dark', background: 'rgba(255,255,255,0.05)' }}
+                      >
+                        <option value="" style={{ background: '#0a0c1e' }}>Selecciona tu país...</option>
+                        {COUNTRIES.map(c => (
+                          <option key={c.name} value={c.name} style={{ background: '#0a0c1e' }}>
+                            {c.flag} {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                          <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            {avatarMode === 'emoji' && (
-              <>
-                <div className="grid grid-cols-5 gap-2">
-                  {DREAM_EMOJIS.map(emoji => (
-                    <button key={emoji} onClick={() => setSelectedEmoji(emoji)}
-                      className={`aspect-square rounded-xl text-2xl flex items-center justify-center transition-all ${
-                        selectedEmoji === emoji
-                          ? 'glass-nav-active ring-2 ring-white/30 scale-110'
-                          : 'bg-white/5 hover:bg-white/10 hover:scale-105'
+                {/* Preview */}
+                <AnimatePresence>
+                  {(location.trim() || country) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                      style={{ background: 'rgba(var(--glow),0.08)', border: '1px solid rgba(var(--glow),0.18)' }}
+                    >
+                      <span className="text-2xl shrink-0">
+                        {country ? (COUNTRIES.find(c => c.name === country)?.flag ?? '🌍') : '🌍'}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-white leading-tight">
+                          {[location.trim(), country].filter(Boolean).join(', ')}
+                        </p>
+                        <p className="text-[11px] text-white/40">Lugar de nacimiento guardado</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Astrology note */}
+                <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <span className="text-base shrink-0 mt-0.5">♑</span>
+                  <p className="text-[11px] text-white/30 leading-relaxed">
+                    El lugar exacto de nacimiento permite calcular tu Ascendente, las 12 casas y la hora solar con precisión.
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button onClick={() => goTo(2)}
+                    className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 transition-all active:scale-95">
+                    ← Atrás
+                  </button>
+                  <button onClick={() => goTo(4)}
+                    className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
+                    {location.trim() || country ? 'Continuar →' : 'Omitir →'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 4: Avatar ── */}
+            {step === 4 && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="text-white font-semibold text-lg mb-1">Elige tu avatar</h2>
+                  <p className="text-white/35 text-sm">Un emoji onírico o sube tu foto.</p>
+                </div>
+
+                <div className="flex rounded-xl bg-white/5 p-1 gap-1">
+                  {(['emoji', 'photo'] as const).map(mode => (
+                    <button key={mode} onClick={() => setAvatarMode(mode)}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                        avatarMode === mode ? 'glass-nav-active text-white' : 'text-white/35'
                       }`}>
-                      {emoji}
+                      {mode === 'emoji' ? '✨ Emoji' : '📷 Foto'}
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/8">
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-2xl shrink-0"
-                    style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.4), rgba(var(--glass-tint),0.5))' }}>
-                    {selectedEmoji}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{name}</p>
-                    <p className="text-[11px] text-white/35">Así te verán otros soñadores</p>
-                  </div>
-                </div>
-              </>
-            )}
 
-            {avatarMode === 'photo' && (
-              <div className="flex flex-col items-center gap-3">
-                {photoUrl
-                  ? <img src={photoUrl} className="w-24 h-24 rounded-full object-cover ring-2 ring-white/20" alt="" />
-                  : <div className="w-24 h-24 rounded-full bg-white/8 border-2 border-dashed border-white/15 flex flex-col items-center justify-center gap-1">
-                      <span className="text-2xl">📷</span>
-                      <span className="text-[10px] text-white/30">Sin foto</span>
+                {avatarMode === 'emoji' && (
+                  <>
+                    <div className="grid grid-cols-5 gap-2">
+                      {DREAM_EMOJIS.map(emoji => (
+                        <button key={emoji} onClick={() => setSelectedEmoji(emoji)}
+                          className={`aspect-square rounded-xl text-2xl flex items-center justify-center transition-all ${
+                            selectedEmoji === emoji
+                              ? 'glass-nav-active ring-2 ring-white/25 scale-110'
+                              : 'bg-white/5 hover:bg-white/10 hover:scale-105'
+                          }`}>
+                          {emoji}
+                        </button>
+                      ))}
                     </div>
-                }
-                <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                  className="glass-btn-secondary px-5 py-2.5 rounded-xl text-sm text-white/70 transition-all active:scale-95 disabled:opacity-40">
-                  {uploading ? 'Subiendo...' : 'Elegir foto'}
-                </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/8">
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center text-2xl shrink-0"
+                        style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.4), rgba(var(--glass-tint),0.5))' }}>
+                        {selectedEmoji}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{name}</p>
+                        <p className="text-[11px] text-white/35">Así te verán otros soñadores</p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {avatarMode === 'photo' && (
+                  <div className="flex flex-col items-center gap-3">
+                    {photoUrl
+                      ? <img src={photoUrl} className="w-24 h-24 rounded-full object-cover ring-2 ring-white/20" alt="" />
+                      : <div className="w-24 h-24 rounded-full bg-white/8 border-2 border-dashed border-white/15 flex flex-col items-center justify-center gap-1">
+                          <span className="text-2xl">📷</span>
+                          <span className="text-[10px] text-white/30">Sin foto</span>
+                        </div>
+                    }
+                    <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                      className="glass-btn-secondary px-5 py-2.5 rounded-xl text-sm text-white/70 transition-all active:scale-95 disabled:opacity-40">
+                      {uploading ? 'Subiendo...' : 'Elegir foto'}
+                    </button>
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button onClick={() => goTo(3)}
+                    className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 transition-all active:scale-95">
+                    ← Atrás
+                  </button>
+                  <button onClick={() => goTo(5)}
+                    className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
+                    Continuar →
+                  </button>
+                </div>
               </div>
             )}
 
-            <div className="flex gap-3">
-              <button onClick={() => setStep(2)}
-                className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 hover:bg-white/8 transition-all">
-                ← Atrás
-              </button>
-              <button onClick={() => setStep(4)}
-                className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
-                Continuar →
-              </button>
-            </div>
-          </div>
-        )}
+            {/* ── Step 5: Privacidad ── */}
+            {step === 5 && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="text-white font-semibold text-lg mb-1">¿Quién ve tus sueños?</h2>
+                  <p className="text-white/35 text-sm">Visibilidad por defecto. Puedes cambiarlo en cada sueño.</p>
+                </div>
 
-        {/* Step 4: Visibilidad */}
-        {step === 4 && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <h2 className="text-white font-semibold text-lg mb-1">¿Quién puede ver tus sueños?</h2>
-              <p className="text-white/35 text-sm">Elige la visibilidad por defecto al publicar. Puedes cambiarlo en cada sueño.</p>
-            </div>
+                <div className="flex flex-col gap-2">
+                  {VIS_OPTIONS.map(opt => (
+                    <button key={opt.value} onClick={() => setVisibility(opt.value)}
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-all ${
+                        visibility === opt.value ? 'glass-nav-active' : 'bg-white/4 hover:bg-white/7 border border-transparent'
+                      }`}>
+                      <span className="text-xl">{opt.icon}</span>
+                      <div className="flex-1">
+                        <p className={`text-sm font-semibold ${visibility === opt.value ? 'text-white' : 'text-white/60'}`}>{opt.label}</p>
+                        <p className="text-[11px] text-white/30">{opt.desc}</p>
+                      </div>
+                      {visibility === opt.value && (
+                        <svg className="accent-text shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
 
-            <div className="flex flex-col gap-2">
-              {VIS_OPTIONS.map(opt => (
-                <button key={opt.value} onClick={() => setVisibility(opt.value)}
-                  className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-all ${
-                    visibility === opt.value ? 'glass-nav-active' : 'bg-white/4 hover:bg-white/7 border border-transparent'
-                  }`}>
-                  <span className="text-xl">{opt.icon}</span>
-                  <div className="flex-1">
-                    <p className={`text-sm font-semibold ${visibility === opt.value ? 'text-white' : 'text-white/60'}`}>{opt.label}</p>
-                    <p className="text-[11px] text-white/30">{opt.desc}</p>
-                  </div>
-                  {visibility === opt.value && (
-                    <svg className="accent-text shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
+                {/* Summary of what's been set */}
+                <div className="rounded-2xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Resumen de tu perfil</p>
+                  {[
+                    { icon: '👤', label: name || '—' },
+                    zodiac ? { icon: zodiac.emoji, label: `${zodiac.name} · ${birthTime ? birthTime : 'hora no indicada'}` } : null,
+                    (location || country) ? { icon: COUNTRIES.find(c => c.name === country)?.flag ?? '🌍', label: [location, country].filter(Boolean).join(', ') } : null,
+                  ].filter(Boolean).map((item, i) => item && (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-sm shrink-0">{item.icon}</span>
+                      <span className="text-[12px] text-white/55 truncate">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
 
-            <div className="flex gap-3">
-              <button onClick={() => setStep(3)}
-                className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 hover:bg-white/8 transition-all">
-                ← Atrás
-              </button>
-              <button onClick={finish} disabled={saving}
-                className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                {saving
-                  ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
-                  : '¡Empezar a soñar! 🌙'}
-              </button>
-            </div>
-          </div>
-        )}
+                <div className="flex gap-3">
+                  <button onClick={() => goTo(4)}
+                    className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 transition-all active:scale-95">
+                    ← Atrás
+                  </button>
+                  <button onClick={finish} disabled={saving}
+                    className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    {saving
+                      ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
+                      : '¡Empezar a soñar! 🌙'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {step < 4 && (
+      {step < 5 && (
         <button onClick={finish} disabled={saving}
           className="mt-4 text-xs text-white/20 hover:text-white/40 transition-colors">
           Omitir configuración
