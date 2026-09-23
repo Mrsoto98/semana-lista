@@ -168,43 +168,74 @@ export default function UserProfile() {
   return (
     <div className="animate-fade-in -mx-4">
 
-      {/* Back button */}
-      <button onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-5 transition-colors mx-4">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        Volver
-      </button>
+      {/* ── Cover banner ── */}
+      <div className="relative w-full" style={{ height: 140, background: getGradient(profile.id), flexShrink: 0 }}>
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 25% 65%, rgba(255,255,255,0.10), transparent 55%)' }} />
+        <button onClick={() => navigate(-1)}
+          className="absolute top-4 left-4 flex items-center justify-center rounded-full transition-all active:scale-90"
+          style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.38)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.14)' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+      </div>
 
-      {/* ── Profile header ── */}
-      <div className="px-4 pb-4">
-        <div className="flex flex-col items-center mb-3">
+      {/* ── Avatar + action buttons ── */}
+      <div className="px-4">
+        <div className="flex items-end justify-between" style={{ marginTop: -38, marginBottom: 12 }}>
           {/* Avatar */}
-          <button onClick={() => profile.avatar_url && setLightbox(true)} className="relative mb-2">
+          <button onClick={() => profile.avatar_url && setLightbox(true)} style={{ flexShrink: 0 }}>
             {profile.avatar_url ? (
-              <img src={profile.avatar_url}
-                className="w-[72px] h-[72px] rounded-full object-cover ring-2 ring-white/15"
-                alt={profile.name} />
+              <img src={profile.avatar_url} alt={profile.name}
+                style={{ width: 78, height: 78, minWidth: 78, minHeight: 78, borderRadius: '50%', objectFit: 'cover', border: '3px solid rgb(var(--bg-deep))' }} />
             ) : (
-              <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-3xl ring-2 ring-white/15"
-                style={{ background: 'linear-gradient(135deg, rgba(var(--glow-color),0.8), rgba(var(--glass-tint),0.9))' }}>
+              <div style={{
+                width: 78, height: 78, minWidth: 78, minHeight: 78, borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
+                background: getGradient(profile.id), border: '3px solid rgb(var(--bg-deep))',
+              }}>
                 {profile.avatar_emoji ?? profile.name?.[0]?.toUpperCase()}
               </div>
             )}
           </button>
 
-          <h2 className="text-[15px] font-bold text-white">{profile.name}</h2>
+          {/* Action buttons */}
+          {!isSelf && (
+            <div className="flex gap-2 pb-1">
+              <button
+                onClick={() => followMutation.mutate({ currentlyFollowing: isFollowing })}
+                disabled={followMutation.isPending}
+                className={`px-4 py-2 rounded-xl text-[13px] font-semibold transition-all active:scale-95 disabled:opacity-60 ${
+                  isFollowing
+                    ? 'border border-white/15 bg-white/6 text-white/70'
+                    : 'glass-btn-primary text-white'
+                }`}>
+                {followMutation.isPending ? '…' : isFollowing ? 'Siguiendo' : 'Seguir'}
+              </button>
+              <button
+                onClick={() => messageMutation.mutate()}
+                disabled={messageMutation.isPending}
+                className="flex items-center justify-center rounded-xl text-white/70 transition-all active:scale-95 disabled:opacity-60"
+                style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Name / username / bio / extras */}
+        <div className="mb-4">
+          <h2 className="text-[17px] font-bold text-white leading-tight">{profile.name}</h2>
           {profile.user_number && (
-            <p className="text-[10px] accent-text mt-0.5">#{formatUserNumber(profile.user_number)}</p>
+            <p className="text-[11px] accent-text mt-0.5">#{formatUserNumber(profile.user_number)}</p>
           )}
           {profile.bio && (
-            <p className="text-[12px] text-white/50 text-center leading-snug max-w-[240px] mt-1.5">{profile.bio}</p>
+            <p className="text-[13px] text-white/55 leading-snug mt-2">{profile.bio}</p>
           )}
-
-          {/* Birth date / age */}
           {profile.birth_date && profile.birth_visibility !== 'none' && (
-            <p className="text-[11px] text-white/35 mt-1">
+            <p className="text-[11px] text-white/35 mt-1.5">
               🎂 {(() => {
                 const age = Math.floor((Date.now() - new Date(profile.birth_date!).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
                 const date = new Date(profile.birth_date! + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -214,14 +245,11 @@ export default function UserProfile() {
               })()}
             </p>
           )}
-
-          {/* Location */}
           {(profile.location || profile.country) && (
             <p className="text-[11px] text-white/30 mt-0.5">
               📍 {[profile.location, profile.country].filter(Boolean).join(', ')}
             </p>
           )}
-
           {profile.instagram_username && (
             <a href={`https://instagram.com/${profile.instagram_username}`}
               target="_blank" rel="noopener noreferrer"
@@ -236,50 +264,21 @@ export default function UserProfile() {
           )}
         </div>
 
-        {/* Stats row */}
-        <div className="flex items-center justify-around py-3 px-2 rounded-xl mb-3"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="text-center">
-            <p className="text-lg font-bold text-white leading-none">{profile.dream_count}</p>
-            <p className="text-[9px] text-white/30 mt-0.5 uppercase tracking-widest">sueños</p>
+        {/* Stats row — Twitter/Instagram style */}
+        <div className="flex items-center gap-5 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-baseline gap-1">
+            <span className="text-[15px] font-bold text-white">{profile.dream_count}</span>
+            <span className="text-[11px] text-white/35">sueños</span>
           </div>
-          <div className="w-px h-7 bg-white/8" />
-          <div className="text-center">
-            <p className="text-lg font-bold text-white leading-none">{profile.followers_count}</p>
-            <p className="text-[9px] text-white/30 mt-0.5 uppercase tracking-widest">seguidores</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-[15px] font-bold text-white">{profile.followers_count}</span>
+            <span className="text-[11px] text-white/35">seguidores</span>
           </div>
-          <div className="w-px h-7 bg-white/8" />
-          <div className="text-center">
-            <p className="text-lg font-bold text-white leading-none">{profile.following_count}</p>
-            <p className="text-[9px] text-white/30 mt-0.5 uppercase tracking-widest">siguiendo</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-[15px] font-bold text-white">{profile.following_count}</span>
+            <span className="text-[11px] text-white/35">siguiendo</span>
           </div>
         </div>
-
-        {/* Action buttons */}
-        {!isSelf && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => followMutation.mutate({ currentlyFollowing: isFollowing })}
-              disabled={followMutation.isPending}
-              className={`flex-1 py-2 rounded-xl text-[13px] font-semibold transition-all active:scale-95 disabled:opacity-60 ${
-                isFollowing
-                  ? 'border border-white/15 bg-white/6 text-white/70 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400'
-                  : 'glass-btn-primary text-white'
-              }`}>
-              {followMutation.isPending ? '…' : isFollowing ? 'Siguiendo' : 'Seguir'}
-            </button>
-            <button
-              onClick={() => messageMutation.mutate()}
-              disabled={messageMutation.isPending}
-              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold text-white/70 transition-all active:scale-95 disabled:opacity-60"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              {messageMutation.isPending ? '…' : 'Mensaje'}
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ── Tab bar ── */}
