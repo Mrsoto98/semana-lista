@@ -55,14 +55,6 @@ export const friendsApi = {
   block: (targetId: string) => api.post('/friends/block', { targetId }),
 }
 
-// ── Coincidences / Encuentros ─────────────────────────────────
-export const coincidencesApi = {
-  list: (scope?: 'friends' | 'public') =>
-    api.get<Coincidence[]>('/coincidences', { params: scope ? { scope } : undefined }),
-  accept: (id: string) => api.post(`/coincidences/${id}/accept`),
-  dismiss: (id: string) => api.post(`/coincidences/${id}/dismiss`),
-}
-
 // ── Whispers / Susurros ───────────────────────────────────────
 export const whispersApi = {
   feed: (params?: { sort?: WhisperFeed; limit?: number; offset?: number }) =>
@@ -101,6 +93,13 @@ export const pollApi = {
 // ── Stats ────────────────────────────────────────────────────
 export const statsApi = {
   get: () => api.get<Stats>('/stats'),
+}
+
+// ── Coincidencias ─────────────────────────────────────────────
+export const coincidencesApi = {
+  list: () => api.get<import('../types').Coincidence[]>('/coincidences'),
+  accept: (id: string) => api.post(`/coincidences/${id}/accept`),
+  dismiss: (id: string) => api.post(`/coincidences/${id}/dismiss`),
 }
 
 // ── Push notifications ────────────────────────────────────────
