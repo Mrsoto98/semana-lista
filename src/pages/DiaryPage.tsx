@@ -188,8 +188,8 @@ export default function DiaryPage() {
           )}
         </AnimatePresence>
 
-        {/* Today CTA */}
-        {!todayDream && (
+        {/* Today CTA — only show when diary has entries */}
+        {!todayDream && allDreams.length > 0 && (
           <motion.button
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -234,16 +234,31 @@ export default function DiaryPage() {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20 text-center"
+            className="flex flex-col items-center py-10 text-center"
           >
-            <div className="text-5xl mb-4 opacity-30">☽</div>
-            <p className="text-white/50 text-sm mb-6">Tu diario está vacío.<br />Registra tu primer sueño.</p>
-            <button
-              onClick={() => navigate('/diario/nuevo')}
-              className="glass-btn-primary px-6 py-2.5 text-sm font-semibold"
-            >
-              Añadir sueño
-            </button>
+            <div className="text-6xl mb-5" style={{ filter: 'drop-shadow(0 0 24px rgba(var(--glow),0.5))' }}>☽</div>
+            <h2 className="text-xl font-semibold text-white mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
+              Tu bitácora te espera
+            </h2>
+            <p className="text-white/40 text-sm mb-8 max-w-xs leading-relaxed">
+              Escribe tu primer sueño y desbloquea coincidencias con otras personas que soñaron algo parecido.
+            </p>
+
+            {/* Value bullets */}
+            <div className="w-full max-w-xs space-y-2.5 mb-8 text-left">
+              {[
+                { icon: '✦', text: 'Detecta patrones en tus sueños con IA' },
+                { icon: '↯', text: 'Descubre coincidencias con otros soñadores' },
+                { icon: '◎', text: 'Sueños lúcidos, emociones, temas recurrentes' },
+              ].map(({ icon, text }) => (
+                <div key={text} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span className="text-sm shrink-0" style={{ color: `hsl(var(--accent-h),var(--accent-s),72%)`, fontFamily: 'var(--font-mono)' }}>{icon}</span>
+                  <span className="text-[13px] text-white/55">{text}</span>
+                </div>
+              ))}
+            </div>
+
           </motion.div>
         ) : (
           <motion.div

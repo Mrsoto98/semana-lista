@@ -18,6 +18,9 @@ export interface User {
   birth_time: string | null
   location: string | null
   country: string | null
+  residence_city: string | null
+  residence_country: string | null
+  show_residence: boolean
   show_zodiac: boolean
   onboarding_done: boolean
   instagram_username: string | null

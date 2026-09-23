@@ -68,14 +68,17 @@ export default function Onboarding() {
   const [showZodiac, setShowZodiac] = useState(true)
   const [location, setLocation]   = useState('')
   const [country, setCountry]     = useState('')
-  const [avatarMode, setAvatarMode] = useState<'emoji' | 'photo'>('emoji')
+  const [residenceCity, setResidenceCity]       = useState('')
+  const [residenceCountry, setResidenceCountry] = useState('')
+  const [showResidence, setShowResidence]       = useState(true)
+  const [avatarMode, setAvatarMode] = useState<'emoji' | 'photo'>('photo')
   const [selectedEmoji, setSelectedEmoji] = useState('🌙')
   const [photoUrl, setPhotoUrl]   = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving]       = useState(false)
   const [visibility, setVisibility] = useState<Visibility>('private')
 
-  const steps = ['Nombre', 'Bio', 'Cumpleaños', 'Lugar', 'Avatar', 'Privacidad']
+  const steps = ['Nombre', 'Bio', 'Cumpleaños', 'Lugares', 'Avatar', 'Privacidad']
 
   function goTo(next: number) {
     setDir(next > step ? 1 : -1)
@@ -113,6 +116,9 @@ export default function Onboarding() {
       if (birthTime) updates.birth_time = birthTime
       if (location.trim()) updates.location = location.trim()
       if (country) updates.country = country
+      if (residenceCity.trim()) updates.residence_city = residenceCity.trim()
+      if (residenceCountry) updates.residence_country = residenceCountry
+      updates.show_residence = showResidence
       if (avatarMode === 'emoji') {
         updates.avatar_emoji = selectedEmoji
         updates.avatar_url   = null
@@ -358,82 +364,81 @@ export default function Onboarding() {
               </div>
             )}
 
-            {/* ── Step 3: Lugar de nacimiento ── */}
+            {/* ── Step 3: Lugares ── */}
             {step === 3 && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-4">
                 <div>
-                  <h2 className="text-white font-semibold text-lg mb-1">¿Dónde naciste?</h2>
-                  <p className="text-white/35 text-sm">Opcional. Para tu carta astral y hora solar local.</p>
+                  <h2 className="text-white font-semibold text-lg mb-1">Tu lugar en el mundo</h2>
+                  <p className="text-white/35 text-sm">Opcional. Para tu carta astral y perfil.</p>
                 </div>
 
-                <div className="space-y-3">
-                  {/* City */}
-                  <div>
-                    <label className="text-[11px] text-white/35 mb-1.5 block uppercase tracking-wide">Ciudad o pueblo</label>
-                    <input
-                      autoFocus
-                      value={location}
-                      onChange={e => setLocation(e.target.value)}
-                      placeholder="Ej: Madrid, Buenos Aires..."
-                      className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/25"
-                    />
+                {/* ─ Birth place ─ */}
+                <div className="rounded-2xl p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">♑</span>
+                    <p className="text-[12px] font-semibold text-white/55 uppercase tracking-wide">Ciudad natal</p>
+                    <span className="text-[10px] text-white/25 ml-auto">Para tu carta astral</span>
                   </div>
-
-                  {/* Country */}
-                  <div>
-                    <label className="text-[11px] text-white/35 mb-1.5 block uppercase tracking-wide">País</label>
-                    <div className="relative">
-                      <select
-                        value={country}
-                        onChange={e => setCountry(e.target.value)}
-                        className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white appearance-none pr-10"
-                        style={{ colorScheme: 'dark', background: 'rgba(255,255,255,0.05)' }}
-                      >
-                        <option value="" style={{ background: '#0a0c1e' }}>Selecciona tu país...</option>
-                        {COUNTRIES.map(c => (
-                          <option key={c.name} value={c.name} style={{ background: '#0a0c1e' }}>
-                            {c.flag} {c.name}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                          <path d="M6 9l6 6 6-6"/>
-                        </svg>
-                      </div>
+                  <input
+                    autoFocus
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    placeholder="Ej: Madrid, Buenos Aires..."
+                    className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/25"
+                  />
+                  <div className="relative">
+                    <select
+                      value={country}
+                      onChange={e => setCountry(e.target.value)}
+                      className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white appearance-none pr-8"
+                      style={{ colorScheme: 'dark', background: 'rgba(255,255,255,0.05)' }}
+                    >
+                      <option value="" style={{ background: '#0a0c1e' }}>País de nacimiento...</option>
+                      {COUNTRIES.map(c => (
+                        <option key={c.name} value={c.name} style={{ background: '#0a0c1e' }}>{c.flag} {c.name}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
                     </div>
                   </div>
                 </div>
 
-                {/* Preview */}
-                <AnimatePresence>
-                  {(location.trim() || country) && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                      style={{ background: 'rgba(var(--glow),0.08)', border: '1px solid rgba(var(--glow),0.18)' }}
+                {/* ─ Residence ─ */}
+                <div className="rounded-2xl p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">🏠</span>
+                    <p className="text-[12px] font-semibold text-white/55 uppercase tracking-wide">Residencia actual</p>
+                    <button
+                      onClick={() => setShowResidence(v => !v)}
+                      className={`text-[10px] px-2 py-1 rounded-full ml-auto transition-all ${showResidence ? 'text-white/70' : 'text-white/25'}`}
+                      style={{ background: showResidence ? 'rgba(var(--glow),0.15)' : 'rgba(255,255,255,0.05)' }}
                     >
-                      <span className="text-2xl shrink-0">
-                        {country ? (COUNTRIES.find(c => c.name === country)?.flag ?? '🌍') : '🌍'}
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-white leading-tight">
-                          {[location.trim(), country].filter(Boolean).join(', ')}
-                        </p>
-                        <p className="text-[11px] text-white/40">Lugar de nacimiento guardado</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Astrology note */}
-                <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <span className="text-base shrink-0 mt-0.5">♑</span>
-                  <p className="text-[11px] text-white/30 leading-relaxed">
-                    El lugar exacto de nacimiento permite calcular tu Ascendente, las 12 casas y la hora solar con precisión.
-                  </p>
+                      {showResidence ? 'Visible en perfil ✓' : 'Oculta'}
+                    </button>
+                  </div>
+                  <input
+                    value={residenceCity}
+                    onChange={e => setResidenceCity(e.target.value)}
+                    placeholder="¿En qué ciudad vives?"
+                    className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/25"
+                  />
+                  <div className="relative">
+                    <select
+                      value={residenceCountry}
+                      onChange={e => setResidenceCountry(e.target.value)}
+                      className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white appearance-none pr-8"
+                      style={{ colorScheme: 'dark', background: 'rgba(255,255,255,0.05)' }}
+                    >
+                      <option value="" style={{ background: '#0a0c1e' }}>País de residencia...</option>
+                      {COUNTRIES.map(c => (
+                        <option key={c.name} value={c.name} style={{ background: '#0a0c1e' }}>{c.flag} {c.name}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex gap-3">
@@ -443,7 +448,7 @@ export default function Onboarding() {
                   </button>
                   <button onClick={() => goTo(4)}
                     className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
-                    {location.trim() || country ? 'Continuar →' : 'Omitir →'}
+                    {(location.trim() || country || residenceCity.trim() || residenceCountry) ? 'Continuar →' : 'Omitir →'}
                   </button>
                 </div>
               </div>
@@ -453,20 +458,62 @@ export default function Onboarding() {
             {step === 4 && (
               <div className="flex flex-col gap-5">
                 <div>
-                  <h2 className="text-white font-semibold text-lg mb-1">Elige tu avatar</h2>
-                  <p className="text-white/35 text-sm">Un emoji onírico o sube tu foto.</p>
+                  <h2 className="text-white font-semibold text-lg mb-1">Pon una foto de perfil</h2>
+                  <p className="text-white/35 text-sm">Que otros soñadores sepan quién eres.</p>
                 </div>
 
-                <div className="flex rounded-xl bg-white/5 p-1 gap-1">
-                  {(['emoji', 'photo'] as const).map(mode => (
-                    <button key={mode} onClick={() => setAvatarMode(mode)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                        avatarMode === mode ? 'glass-nav-active text-white' : 'text-white/35'
-                      }`}>
-                      {mode === 'emoji' ? '✨ Emoji' : '📷 Foto'}
+                {avatarMode === 'photo' && (
+                  <div className="flex flex-col items-center gap-4">
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      className="relative group"
+                    >
+                      {photoUrl
+                        ? <img src={photoUrl} className="w-28 h-28 rounded-full object-cover ring-2 ring-white/20" alt="" />
+                        : (
+                          <div className="w-28 h-28 rounded-full flex flex-col items-center justify-center gap-2 transition-all group-hover:opacity-80"
+                            style={{ background: 'rgba(255,255,255,0.06)', border: '2px dashed rgba(255,255,255,0.18)' }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/40">
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                              <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            <span className="text-[11px] text-white/30">Subir foto</span>
+                          </div>
+                        )
+                      }
+                      {uploading && (
+                        <div className="absolute inset-0 rounded-full flex items-center justify-center"
+                          style={{ background: 'rgba(0,0,0,0.5)' }}>
+                          <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        </div>
+                      )}
                     </button>
-                  ))}
-                </div>
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                    <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                      className="glass-btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-40">
+                      {uploading ? 'Subiendo...' : photoUrl ? '📷 Cambiar foto' : '📷 Elegir foto'}
+                    </button>
+
+                    {/* Preview with name */}
+                    {photoUrl && (
+                      <div className="flex items-center gap-3 w-full p-3 rounded-2xl bg-white/5 border border-white/8">
+                        <img src={photoUrl} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
+                        <div>
+                          <p className="text-sm font-semibold text-white">{name}</p>
+                          <p className="text-[11px] text-white/35">Así te verán otros soñadores</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => { setAvatarMode('emoji') }}
+                      className="text-[12px] text-white/30 hover:text-white/55 transition-colors"
+                    >
+                      o prefiero un emoji →
+                    </button>
+                  </div>
+                )}
 
                 {avatarMode === 'emoji' && (
                   <>
@@ -492,24 +539,13 @@ export default function Onboarding() {
                         <p className="text-[11px] text-white/35">Así te verán otros soñadores</p>
                       </div>
                     </div>
-                  </>
-                )}
-
-                {avatarMode === 'photo' && (
-                  <div className="flex flex-col items-center gap-3">
-                    {photoUrl
-                      ? <img src={photoUrl} className="w-24 h-24 rounded-full object-cover ring-2 ring-white/20" alt="" />
-                      : <div className="w-24 h-24 rounded-full bg-white/8 border-2 border-dashed border-white/15 flex flex-col items-center justify-center gap-1">
-                          <span className="text-2xl">📷</span>
-                          <span className="text-[10px] text-white/30">Sin foto</span>
-                        </div>
-                    }
-                    <button onClick={() => fileRef.current?.click()} disabled={uploading}
-                      className="glass-btn-secondary px-5 py-2.5 rounded-xl text-sm text-white/70 transition-all active:scale-95 disabled:opacity-40">
-                      {uploading ? 'Subiendo...' : 'Elegir foto'}
+                    <button
+                      onClick={() => setAvatarMode('photo')}
+                      className="text-[12px] text-white/30 hover:text-white/55 transition-colors text-center"
+                    >
+                      ← volver a usar foto
                     </button>
-                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                  </div>
+                  </>
                 )}
 
                 <div className="flex gap-3">
