@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useAuthStore } from '../lib/store'
 import { supabase } from '../lib/supabase'
+import { userApi } from '../lib/queries'
 import { formatUserNumber } from '../lib/formatUserNumber'
 import { ThemePicker } from '../components/ui/ThemePicker'
 import { usePushNotifications } from '../hooks/usePushNotifications'
@@ -168,12 +169,13 @@ export default function Settings() {
     setDeleting(true)
     setDeleteError('')
     try {
-      const { error } = await supabase.rpc('delete_own_account')
-      if (error) throw error
+      await userApi.deleteAccount()
+      await supabase.auth.signOut().catch(() => {})
       logout()
       navigate('/entrada')
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? (err instanceof Error ? err.message : 'Error desconocido')
       setDeleteError(`Error al eliminar la cuenta: ${msg}`)
       setDeleting(false)
     }
