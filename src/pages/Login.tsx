@@ -93,7 +93,7 @@ export default function Login() {
           <img
             src="/logo.png"
             alt="myDreams"
-            className="mx-auto w-full max-w-[260px] select-none -mb-2"
+            className="mx-auto w-full max-w-[320px] select-none -mb-2"
           />
           <p className="text-white/30 text-sm">Tu diario de sueños compartido</p>
         </div>

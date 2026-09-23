@@ -69,7 +69,7 @@ export default function Register() {
           <img
             src="/logo.png"
             alt="myDreams"
-            className="mx-auto w-full max-w-[260px] select-none -mb-2"
+            className="mx-auto w-full max-w-[320px] select-none -mb-2"
           />
           <p className="text-white/30 text-sm">Empieza tu diario de sueños</p>
         </div>

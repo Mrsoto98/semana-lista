@@ -97,7 +97,7 @@ export default function AuthPage({ mode = 'login' }: Props) {
           <img
             src="/logo.png"
             alt="myDreams"
-            className="mx-auto w-full max-w-[280px] select-none -mb-2"
+            className="mx-auto w-full max-w-[340px] select-none -mb-2"
           />
           <p className="text-sm text-white/40 italic">
             Tu diario de sueños compartido
