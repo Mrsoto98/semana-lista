@@ -146,10 +146,14 @@ export default function Onboarding() {
         style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.5) 0%, transparent 70%)` }} />
 
       {/* Header */}
-      <div className="text-center mb-6">
-        <div className="text-5xl mb-3 inline-block" style={{ animation: 'float 3.5s ease-in-out infinite' }}>🌙</div>
-        <h1 className="text-xl font-bold text-white">myDreams</h1>
-        <p className="text-white/35 text-sm mt-1">Cuéntanos un poco sobre ti</p>
+      <div className="text-center mb-4">
+        <img
+          src="/logo.jpg"
+          alt="myDreams"
+          className="mx-auto w-full max-w-[200px] select-none -mb-1"
+          style={{ mixBlendMode: 'screen', filter: 'brightness(1.05) saturate(1.1)' }}
+        />
+        <p className="text-white/35 text-sm">Cuéntanos un poco sobre ti</p>
       </div>
 
       {/* Progress bar */}

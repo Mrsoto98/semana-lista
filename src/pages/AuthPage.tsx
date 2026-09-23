@@ -94,19 +94,12 @@ export default function AuthPage({ mode = 'login' }: Props) {
           transition={{ duration: 0.5 }}
           className="text-center mb-8"
         >
-          <motion.div
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-            className="text-6xl mb-3 select-none"
-          >
-            ☽
-          </motion.div>
-          <h1
-            className="text-3xl font-normal tracking-tight mb-1"
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
-            myDreams
-          </h1>
+          <img
+            src="/logo.jpg"
+            alt="myDreams"
+            className="mx-auto w-full max-w-[280px] select-none -mb-2"
+            style={{ mixBlendMode: 'screen', filter: 'brightness(1.05) saturate(1.1)' }}
+          />
           <p className="text-sm text-white/40 italic">
             Tu diario de sueños compartido
           </p>

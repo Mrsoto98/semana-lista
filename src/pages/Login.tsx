@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { authApi } from '../lib/queries'
 import { signInWithGoogle } from '../lib/supabase'
@@ -90,9 +90,13 @@ export default function Login() {
       <div className="w-full max-w-sm relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4 animate-float inline-block">�™</div>
-          <h1 className="text-2xl font-bold text-white accent-glow">myDreams</h1>
-          <p className="text-white/30 mt-1 text-sm">Tu diario de sueños compartido</p>
+          <img
+            src="/logo.jpg"
+            alt="myDreams"
+            className="mx-auto w-full max-w-[260px] select-none -mb-2"
+            style={{ mixBlendMode: 'screen', filter: 'brightness(1.05) saturate(1.1)' }}
+          />
+          <p className="text-white/30 text-sm">Tu diario de sueños compartido</p>
         </div>
 
         {/* Glass panel */}
