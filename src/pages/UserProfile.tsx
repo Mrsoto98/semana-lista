@@ -166,10 +166,10 @@ export default function UserProfile() {
   const maxMonth = Math.max(1, ...last6Months.map(m => monthCounts[m] ?? 0))
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in -mt-5">
 
       {/* ── Cover banner ── */}
-      <div className="-mx-4 relative" style={{ height: 140, background: getGradient(profile.id) }}>
+      <div className="-mx-4 relative" style={{ height: 150, background: getGradient(profile.id) }}>
         <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 25% 65%, rgba(255,255,255,0.10), transparent 55%)' }} />
         <button onClick={() => navigate(-1)}
           className="absolute top-4 left-4 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -343,7 +343,8 @@ export default function UserProfile() {
         <div className="-mx-4 grid grid-cols-3 gap-px bg-white/5 mt-px pb-24">
           {dreams.map(dream => (
             <button key={dream.id} onClick={() => navigate(`/sueno/${dream.id}`)}
-              className="aspect-square relative overflow-hidden group"
+              className="relative overflow-hidden group"
+              style={{ aspectRatio: '1 / 1' }}
               style={dream.grid_bg ? {
                 backgroundImage: `url(/grid-bg/${dream.grid_bg}.png)`,
                 backgroundSize: 'cover', backgroundPosition: 'center',

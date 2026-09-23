@@ -58,6 +58,7 @@ export function AppLayout() {
   if (!user.onboarding_done) return <Navigate to="/onboarding" replace />
 
   const isConversation = /^\/mensajes\/(nuevo\/|[0-9a-f-]{36})/.test(location.pathname)
+  const isProfile = /^\/perfil\//.test(location.pathname)
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX
@@ -95,8 +96,8 @@ export function AppLayout() {
         style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.3) 0%, transparent 70%)` }}
       />
 
-      {/* Top header — hidden on conversation pages */}
-      {!isConversation && <TopBar onOpenTutorial={() => setTutorialOpen(true)} />}
+      {/* Top header — hidden on conversation and profile pages */}
+      {!isConversation && !isProfile && <TopBar onOpenTutorial={() => setTutorialOpen(true)} />}
 
       {/* Page content */}
       <main
