@@ -442,6 +442,20 @@ export default function Audio() {
         <p className="text-xs text-white/35 mt-0.5">Detecta y clasifica ronquidos y habla mientras duermes</p>
       </div>
 
+      {/* Honest limitations notice */}
+      <div className="flex gap-3 px-3.5 py-3 rounded-2xl"
+        style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)' }}>
+        <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="rgba(245,158,11,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(245,158,11,0.7)' }}>
+          Requiere que la pantalla permanezca encendida. Los navegadores móviles suspenden el audio en segundo plano.
+          Las grabaciones se guardan solo en este dispositivo.
+        </p>
+      </div>
+
       {/* ── Técnicas para soñar lúcido ── */}
       <div
         className="glass-card rounded-2xl p-4 cursor-pointer active:scale-[0.99] transition-all"

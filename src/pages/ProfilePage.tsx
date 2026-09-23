@@ -516,19 +516,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* FAB to add dream */}
-      {tab === 'diario' && (
-        <button
-          onClick={() => navigate('/diario/nuevo')}
-          className="fixed bottom-24 right-5 w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-xl z-30 transition-all active:scale-95"
-          style={{
-            background: `linear-gradient(135deg, hsl(var(--accent-h), var(--accent-s), 40%), hsl(var(--accent-h), var(--accent-s), 28%))`,
-            boxShadow: `0 4px 24px rgba(var(--glow-color), 0.5)`,
-          }}
-        >
-          +
-        </button>
-      )}
     </div>
   )
 }

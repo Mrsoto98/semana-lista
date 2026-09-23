@@ -9,7 +9,6 @@ import DiaryPage from './pages/DiaryPage'
 import DreamFormPage from './pages/DreamFormPage'
 import DreamDetailPage from './pages/DreamDetailPage'
 import WhispersPage from './pages/WhispersPage'
-import EncountersPage from './pages/EncountersPage'
 import ExplorePage from './pages/ExplorePage'
 import ProfilePage from './pages/ProfilePage'
 import Settings from './pages/Settings'
@@ -51,7 +50,6 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route path="/diario"      element={<DiaryPage />} />
             <Route path="/susurros"    element={<WhispersPage />} />
-            <Route path="/encuentros"  element={<EncountersPage />} />
             <Route path="/explorar"    element={<ExplorePage />} />
             <Route path="/perfil"              element={<ProfilePage />} />
             <Route path="/perfil/:id"          element={<UserProfile />} />

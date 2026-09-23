@@ -4,6 +4,7 @@ import { TopBar } from './TopBar'
 import { BottomNav } from './BottomNav'
 import { IOSInstallPrompt } from '../ui/IOSInstallPrompt'
 import { AndroidInstallPrompt } from '../ui/AndroidInstallPrompt'
+import { NotifBanner } from '../ui/NotifBanner'
 import { TutorialOverlay } from '../ui/TutorialOverlay'
 import { useRef, useState, useEffect } from 'react'
 
@@ -58,7 +59,9 @@ export function AppLayout() {
   if (!user.onboarding_done) return <Navigate to="/onboarding" replace />
 
   const isConversation = /^\/mensajes\/(nuevo\/|[0-9a-f-]{36})/.test(location.pathname)
-  const isProfile = /^\/perfil\//.test(location.pathname)
+  // Pages that manage their own header — TopBar would double-up
+  const isProfile = /^\/perfil(\/|$)/.test(location.pathname)
+  const isOwnHeaderPage = isProfile || location.pathname === '/diario'
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX
@@ -96,8 +99,8 @@ export function AppLayout() {
         style={{ background: `radial-gradient(circle, rgba(var(--glow-color),0.3) 0%, transparent 70%)` }}
       />
 
-      {/* Top header — hidden on conversation and profile pages */}
-      {!isConversation && !isProfile && <TopBar onOpenTutorial={() => setTutorialOpen(true)} />}
+      {/* Top header — hidden on pages that have their own header */}
+      {!isConversation && !isOwnHeaderPage && <TopBar onOpenTutorial={() => setTutorialOpen(true)} />}
 
       {/* Page content */}
       <main
@@ -111,7 +114,7 @@ export function AppLayout() {
             <Outlet />
           </div>
         ) : (
-          <div key={location.pathname} className={`max-w-lg mx-auto ${isProfile ? '' : 'px-4 py-5'} ${animClass}`}>
+          <div key={location.pathname} className={`max-w-lg mx-auto ${isOwnHeaderPage ? '' : 'px-4 py-5'} ${animClass}`}>
             <Outlet />
           </div>
         )}
@@ -122,6 +125,9 @@ export function AppLayout() {
 
       {/* Tutorial */}
       <TutorialOverlay open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
+
+      {/* Notification / install nudge banner */}
+      <NotifBanner />
 
       {/* iOS "Add to Home Screen" prompt */}
       <IOSInstallPrompt />

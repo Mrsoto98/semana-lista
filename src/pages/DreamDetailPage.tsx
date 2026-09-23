@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
+import { likesApi } from '../lib/queries'
 import { useAuthStore } from '../lib/store'
 import { CommentSection } from '../components/dreams/CommentSection'
 import { pageVariants, pageTransition } from '../lib/motion'
@@ -54,12 +55,9 @@ export default function DreamDetailPage() {
 
   const likeMutation = useMutation({
     mutationFn: async () => {
-      if (!user || !data) return
-      if (data.user_liked) {
-        await supabase.from('dream_likes').delete().eq('dream_id', id!).eq('user_id', user.id)
-      } else {
-        await supabase.from('dream_likes').insert({ dream_id: id!, user_id: user.id })
-      }
+      if (!user || !data || !id) return
+      if (data.user_liked) await likesApi.unlike(id)
+      else await likesApi.like(id)
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ['dream-detail', id] })
@@ -70,6 +68,7 @@ export default function DreamDetailPage() {
       }) : old)
     },
     onError: () => qc.invalidateQueries({ queryKey: ['dream-detail', id] }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['dream-detail', id] }),
   })
 
   function handleShare() {

@@ -168,21 +168,21 @@ export default function UserProfile() {
   return (
     <div className="animate-fade-in">
 
-      {/* ── Cover banner ── */}
-      <div className="relative" style={{ height: 150, background: getGradient(profile.id) }}>
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 25% 65%, rgba(255,255,255,0.10), transparent 55%)' }} />
+      {/* ── Top nav bar ── */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <button onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 flex items-center justify-center rounded-full transition-all active:scale-90"
-          style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.38)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.14)' }}>
+          className="flex items-center justify-center rounded-full transition-all active:scale-90 shrink-0"
+          style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
+        <span className="text-[15px] font-semibold text-white/90 truncate">{profile.name}</span>
       </div>
 
       {/* ── Avatar + action buttons ── */}
       <div className="px-4">
-        <div className="flex items-end justify-between" style={{ marginTop: -38, marginBottom: 12 }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
           {/* Avatar */}
           <button onClick={() => profile.avatar_url && setLightbox(true)} style={{ flexShrink: 0 }}>
             {profile.avatar_url ? (
