@@ -105,10 +105,10 @@ export default function AuthPage({ mode = 'login' }: Props) {
             className="text-3xl font-normal tracking-tight mb-1"
             style={{ fontFamily: 'var(--font-serif)' }}
           >
-            Bitácora del Sueño
+            myDreams
           </h1>
           <p className="text-sm text-white/40 italic">
-            Donde los sueños encuentran memoria
+            Tu diario de sueños compartido
           </p>
         </motion.div>
 

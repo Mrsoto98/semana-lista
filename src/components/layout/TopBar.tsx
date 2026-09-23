@@ -2,13 +2,14 @@ import { useLocation, useNavigate } from 'react-router'
 import { useAuthStore } from '../../lib/store'
 
 const PAGE_TITLES: Record<string, string> = {
-  '/diary':          'Mi perfil',
-  '/feed':           'Feed',
-  '/coincidences':   'Coincidencias',
-  '/stats':          'Estadísticas',
+  '/susurros':       'Susurros',
+  '/explorar':       'Explorar',
+  '/amigos':         'Amigos',
+  '/ajustes':        'Ajustes',
   '/audio':          'Monitor de sueño',
-  '/friends':        'Amigos',
-  '/settings':       'Ajustes',
+  '/tecnicas':       'Técnicas lúcidas',
+  '/notificaciones': 'Notificaciones',
+  '/mensajes':       'Mensajes',
 }
 
 interface Props {
@@ -20,7 +21,7 @@ export function TopBar({ onOpenTutorial }: Props) {
   const navigate  = useNavigate()
   const { pathname } = useLocation()
 
-  const title = PAGE_TITLES[pathname] ?? 'Bitácora del Sueño'
+  const title = PAGE_TITLES[pathname] ?? 'myDreams'
 
   return (
     <header className="glass-header sticky top-0 z-40 flex items-center justify-between px-4 h-14">

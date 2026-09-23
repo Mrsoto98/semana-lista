@@ -238,7 +238,7 @@ export default function DiaryPage() {
           >
             <div className="text-6xl mb-5" style={{ filter: 'drop-shadow(0 0 24px rgba(var(--glow),0.5))' }}>☽</div>
             <h2 className="text-xl font-semibold text-white mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
-              Tu bitácora te espera
+              Tu diario te espera
             </h2>
             <p className="text-white/40 text-sm mb-8 max-w-xs leading-relaxed">
               Escribe tu primer sueño y desbloquea coincidencias con otras personas que soñaron algo parecido.

@@ -1,6 +1,6 @@
 {
-  "name": "Bitácora del Sueño",
-  "short_name": "Bitácora",
+  "name": "myDreams",
+  "short_name": "myDreams",
   "description": "Tu diario de sueños compartido",
   "start_url": "/",
   "display": "standalone",

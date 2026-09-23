@@ -152,7 +152,7 @@ export default function ExplorePage() {
     try {
       if (sessionStorage.getItem('coincidencias-notified')) return
       sessionStorage.setItem('coincidencias-notified', '1')
-      new Notification('Bitácora del Sueño ✦', {
+      new Notification('myDreams ✦', {
         body: `${count} persona${count !== 1 ? 's' : ''} soñó algo parecido a ti.`,
         icon: '/icon-192.png',
         tag: 'coincidencias',

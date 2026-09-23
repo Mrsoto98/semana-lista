@@ -40,7 +40,7 @@ export function DreamShareCard({ dream, authorName, onClose }: Props) {
       const file = new File([blob], 'sueno.png', { type: 'image/png' })
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: dream.title || 'Mi sueño — Bitácora del Sueño' })
+        await navigator.share({ files: [file], title: dream.title || 'Mi sueño — myDreams' })
       } else {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -135,7 +135,7 @@ export function DreamShareCard({ dream, authorName, onClose }: Props) {
             {authorName && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginBottom: 2 }}>{authorName}</p>}
             <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)' }}>{dateStr}</p>
           </div>
-          <p style={{ fontSize: 11, color: `${accent}99`, letterSpacing: '0.1em', fontWeight: 600 }}>☽ BITÁCORA</p>
+          <p style={{ fontSize: 11, color: `${accent}99`, letterSpacing: '0.1em', fontWeight: 600 }}>☽ myDreams</p>
         </div>
       </div>
 

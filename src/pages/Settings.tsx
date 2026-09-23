@@ -676,13 +676,13 @@ function ExportSection({ userId }: { userId: string }) {
       let mimeType: string
       if (format === 'json') {
         content = JSON.stringify(dreams, null, 2)
-        filename = `bitacora-suenos-${new Date().toISOString().slice(0, 10)}.json`
+        filename = `mydreams-suenos-${new Date().toISOString().slice(0, 10)}.json`
         mimeType = 'application/json'
       } else {
         content = dreams.map(d =>
           `${d.dream_date}${d.is_lucid ? ' [LÚCIDO]' : ''}\n${d.title ? d.title + '\n' : ''}${d.body}\n\nEmociones: ${d.emotions?.join(', ') || '—'}\nEtiquetas: ${d.tags?.join(', ') || '—'}\n${'─'.repeat(40)}`
         ).join('\n\n')
-        filename = `bitacora-suenos-${new Date().toISOString().slice(0, 10)}.txt`
+        filename = `mydreams-suenos-${new Date().toISOString().slice(0, 10)}.txt`
         mimeType = 'text/plain;charset=utf-8'
       }
       const blob = new Blob([content], { type: mimeType })

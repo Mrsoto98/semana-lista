@@ -1,8 +1,35 @@
 import { useState, useEffect, useCallback } from 'react'
+import { pushApi } from '../lib/queries'
 
 export type PushState = 'unsupported' | 'denied' | 'granted' | 'ungranted' | 'loading'
 
 const REMINDER_KEY = 'dream-reminder-time'
+const VAPID_PUBLIC_KEY: string =
+  (import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined) ??
+  'BPapka5ECvX3gZF9l_LebBd6vkQkPxrXrtBCnBG9CW6cw8IcaQEeYt4OX-5K3vfpA4u-TLY_8sewzcM5_5HEJLY'
+
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(base64)
+  const buf = new ArrayBuffer(raw.length)
+  const out = new Uint8Array(buf)
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i)
+  return buf
+}
+
+async function subscribeWebPush() {
+  if (!VAPID_PUBLIC_KEY || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const existing = await reg.pushManager.getSubscription()
+    const sub = existing ?? await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    })
+    await pushApi.subscribe(sub.toJSON())
+  } catch {}
+}
 
 export function usePushNotifications() {
   const [state, setState] = useState<PushState>('loading')
@@ -16,7 +43,9 @@ export function usePushNotifications() {
       setState('denied')
       return
     }
-    setState(Notification.permission === 'granted' ? 'granted' : 'ungranted')
+    const granted = Notification.permission === 'granted'
+    setState(granted ? 'granted' : 'ungranted')
+    if (granted) subscribeWebPush()
   }, [])
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -26,6 +55,7 @@ export function usePushNotifications() {
       const permission = await Notification.requestPermission()
       const granted = permission === 'granted'
       setState(granted ? 'granted' : permission === 'denied' ? 'denied' : 'ungranted')
+      if (granted) subscribeWebPush()
       return granted
     } catch {
       setState('ungranted')
@@ -76,7 +106,7 @@ function scheduleLocalReminder(time: string) {
     if (next <= now) next.setDate(next.getDate() + 1)
     const ms = next.getTime() - now.getTime()
     reminderTimer = setTimeout(() => {
-      new Notification('Bitácora del Sueño ☽', {
+      new Notification('myDreams ☽', {
         body: '¿Qué soñaste anoche? Anota tu sueño antes de que se desvanezca.',
         icon: '/icon-192.png',
         badge: '/icon-192.png',

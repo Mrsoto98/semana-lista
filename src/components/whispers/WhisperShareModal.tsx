@@ -206,7 +206,7 @@ export function WhisperShareModal({ whisper, onClose }: Props) {
               fontFamily: 'Inter, sans-serif',
               fontWeight: 300,
             }}>
-              Bitácora del Sueño
+              myDreams
             </div>
           </div>
         </div>
@@ -239,7 +239,7 @@ export function WhisperShareModal({ whisper, onClose }: Props) {
             {whisper.body.slice(0, 100)}{whisper.body.length > 100 ? '…' : ''}
           </p>
           <p style={{ fontSize: 8, color: `${currentStyle.textColor}50`, marginTop: 12, letterSpacing: 2 }}>
-            BITÁCORA DEL SUEÑO
+            myDreams
           </p>
         </div>
 

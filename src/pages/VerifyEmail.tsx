@@ -27,7 +27,7 @@ export default function VerifyEmail() {
           <>
             <div className="text-5xl mb-4">✅</div>
             <h2 className="text-2xl font-bold text-white mb-2">Email verificado</h2>
-            <p className="text-slate-400 mb-6">Ya puedes iniciar sesión en DreamLog.</p>
+            <p className="text-slate-400 mb-6">Ya puedes iniciar sesión en myDreams.</p>
             <Link to="/login" className="text-dream-400 hover:text-dream-300">Ir al inicio de sesión →</Link>
           </>
         )}

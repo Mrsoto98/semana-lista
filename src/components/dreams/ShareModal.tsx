@@ -72,7 +72,7 @@ const FONT = '-apple-system, BlinkMacSystemFont, Arial, sans-serif'
 
 function drawBrand(ctx: CanvasRenderingContext2D, color = 'rgba(255,255,255,0.35)') {
   ctx.font = `bold 40px ${FONT}`; ctx.fillStyle = color; ctx.textAlign = 'center'
-  ctx.fillText('BITÁCORA DEL SUEÑO', W / 2, 108)
+  ctx.fillText('myDreams', W / 2, 108)
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D, authorName: string, dream: Dream, color = 'rgba(255,255,255,0.3)') {
@@ -152,7 +152,7 @@ function tMinimal(ctx: CanvasRenderingContext2D, dream: Dream, author: string) {
   ctx.strokeStyle = vg; ctx.lineWidth = 6
   ctx.beginPath(); ctx.moveTo(100, H * .12); ctx.lineTo(100, H * .88); ctx.stroke()
   ctx.font = `bold 38px ${FONT}`; ctx.fillStyle = 'rgba(147,99,255,0.7)'; ctx.textAlign = 'left'
-  ctx.fillText('BITÁCORA DEL SUEÑO', 150, 138)
+  ctx.fillText('myDreams', 150, 138)
   const d = new Date(dream.dream_date).toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })
   ctx.font = `38px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillText(d, 150, 202)
   ctx.font = 'bold 320px serif'; ctx.fillStyle = 'rgba(147,99,255,0.07)'; ctx.textAlign = 'left'
@@ -261,20 +261,20 @@ export function ShareModal({ dream, authorName, onClose }: Props) {
     setSharing(true)
     canvas.toBlob(async (blob) => {
       if (!blob) { setSharing(false); return }
-      const file = new File([blob], 'sueno-bitacora.jpg', { type: 'image/jpeg' })
+      const file = new File([blob], 'sueno-mydreams.jpg', { type: 'image/jpeg' })
       try {
         if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: dream.title || 'Mi sueño — Bitácora del Sueño' })
+          await navigator.share({ files: [file], title: dream.title || 'Mi sueño — myDreams' })
         } else {
           // Desktop fallback: download
           const url = URL.createObjectURL(blob)
-          const a = document.createElement('a'); a.href = url; a.download = 'sueno-bitacora.jpg'; a.click()
+          const a = document.createElement('a'); a.href = url; a.download = 'sueno-mydreams.jpg'; a.click()
           setTimeout(() => URL.revokeObjectURL(url), 1000)
         }
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
           const url = URL.createObjectURL(blob)
-          const a = document.createElement('a'); a.href = url; a.download = 'sueno-bitacora.jpg'; a.click()
+          const a = document.createElement('a'); a.href = url; a.download = 'sueno-mydreams.jpg'; a.click()
           setTimeout(() => URL.revokeObjectURL(url), 1000)
         }
       }

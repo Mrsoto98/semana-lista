@@ -91,7 +91,7 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-4 animate-float inline-block">�™</div>
-          <h1 className="text-2xl font-bold text-white accent-glow">Bitácora del Sueño</h1>
+          <h1 className="text-2xl font-bold text-white accent-glow">myDreams</h1>
           <p className="text-white/30 mt-1 text-sm">Tu diario de sueños compartido</p>
         </div>
 

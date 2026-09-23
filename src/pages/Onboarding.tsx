@@ -148,7 +148,7 @@ export default function Onboarding() {
       {/* Header */}
       <div className="text-center mb-6">
         <div className="text-5xl mb-3 inline-block" style={{ animation: 'float 3.5s ease-in-out infinite' }}>🌙</div>
-        <h1 className="text-xl font-bold text-white">Bitácora del Sueño</h1>
+        <h1 className="text-xl font-bold text-white">myDreams</h1>
         <p className="text-white/35 text-sm mt-1">Cuéntanos un poco sobre ti</p>
       </div>
 

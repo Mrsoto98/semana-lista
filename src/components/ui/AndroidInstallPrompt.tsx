@@ -102,7 +102,7 @@ export function AndroidInstallPrompt() {
                   🌙
                 </div>
                 <div>
-                  <p className="font-bold text-white text-base leading-tight">Bitácora del Sueño</p>
+                  <p className="font-bold text-white text-base leading-tight">myDreams</p>
                   <p className="text-xs text-white/40 mt-0.5">Instalar como app</p>
                 </div>
               </div>

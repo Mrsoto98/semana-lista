@@ -481,7 +481,7 @@ function FinalVisual() {
 const STEPS = [
   {
     icon: '☽',
-    title: 'Bienvenido a\nBitácora del Sueño',
+    title: 'Bienvenido a\nmyDreams',
     sub: 'Tu diario onírico personal',
     body: 'Registra tus sueños cada mañana, analiza tus patrones, comparte con amigos y entrena la lucidez. Todo en un solo lugar.',
     Visual: WelcomeVisual,
@@ -539,14 +539,14 @@ const STEPS = [
     icon: '🎨',
     title: 'Comparte y personaliza',
     sub: 'Hazla completamente tuya',
-    body: 'Genera tarjetas de sueño para Stories con mantener pulsado → Compartir. Elige entre 4 temas de color y 8 fondos de bitácora. Activa el recordatorio diario para no olvidar.',
+    body: 'Genera tarjetas de sueño para Stories con mantener pulsado → Compartir. Elige entre 4 temas de color y 8 fondos. Activa el recordatorio diario para no olvidar.',
     Visual: ShareThemeVisual,
   },
   {
     icon: '🌙',
     title: '¡Todo listo!',
     sub: 'El universo onírico te espera',
-    body: 'Esta noche, antes de dormir, pon el teléfono cerca. Al despertar, abre la app y anota lo que recuerdes — aunque sean solo fragmentos. Tu bitácora empieza esta noche.',
+    body: 'Esta noche, antes de dormir, pon el teléfono cerca. Al despertar, abre la app y anota lo que recuerdes — aunque sean solo fragmentos. Tu diario empieza esta noche.',
     Visual: FinalVisual,
   },
 ]
