@@ -111,7 +111,7 @@ export function AppLayout() {
             <Outlet />
           </div>
         ) : (
-          <div key={location.pathname} className={`max-w-lg mx-auto px-4 py-5 ${animClass}`}>
+          <div key={location.pathname} className={`max-w-lg mx-auto ${isProfile ? '' : 'px-4 py-5'} ${animClass}`}>
             <Outlet />
           </div>
         )}

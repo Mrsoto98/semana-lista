@@ -166,10 +166,10 @@ export default function UserProfile() {
   const maxMonth = Math.max(1, ...last6Months.map(m => monthCounts[m] ?? 0))
 
   return (
-    <div className="animate-fade-in -mt-5">
+    <div className="animate-fade-in">
 
       {/* ── Cover banner ── */}
-      <div className="-mx-4 relative" style={{ height: 150, background: getGradient(profile.id) }}>
+      <div className="relative" style={{ height: 150, background: getGradient(profile.id) }}>
         <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 25% 65%, rgba(255,255,255,0.10), transparent 55%)' }} />
         <button onClick={() => navigate(-1)}
           className="absolute top-4 left-4 flex items-center justify-center rounded-full transition-all active:scale-90"
@@ -282,7 +282,7 @@ export default function UserProfile() {
       </div>
 
       {/* ── Tab bar ── */}
-      <div className="-mx-4 flex items-center border-t border-white/10">
+      <div className="flex items-center border-t border-white/10">
         {/* Diario tab */}
         <button onClick={() => setTab('diario')}
           className="flex-1 py-3 flex items-center justify-center gap-1.5 transition-all"
@@ -340,7 +340,7 @@ export default function UserProfile() {
           {isSelf ? 'Sin sueños visibles.' : 'Este usuario no tiene sueños públicos.'}
         </div>
       ) : tab === 'cuadricula' ? (
-        <div className="-mx-4 grid grid-cols-3 gap-px bg-white/5 mt-px pb-24">
+        <div className="grid grid-cols-3 gap-px bg-white/5 mt-px pb-24">
           {dreams.map(dream => (
             <button key={dream.id} onClick={() => navigate(`/sueno/${dream.id}`)}
               className="relative overflow-hidden group"
