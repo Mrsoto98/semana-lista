@@ -128,7 +128,7 @@ export default function ExplorePage() {
 
   const coincidencesQ = useQuery({
     queryKey: coincidencesKey,
-    queryFn: () => coincidencesApi.list(),
+    queryFn: () => coincidencesApi.list().then(r => r.data),
     enabled: tab === 'coincidencias' && !!user,
     staleTime: 5 * 60_000,
   })
