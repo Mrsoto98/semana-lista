@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router'
 import { useAuthStore } from '../lib/store'
 import { supabase } from '../lib/supabase'
+import { api } from '../lib/api'
 import { getZodiac } from '../lib/zodiac'
 import type { Visibility } from '../types'
 
@@ -89,20 +90,18 @@ export default function Onboarding() {
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file || !user) return
-    // Preview local inmediato — se ve la foto aunque falle la subida
+    if (!file) return
     setPhotoUrl(URL.createObjectURL(file))
     setUploadError('')
     setUploading(true)
     try {
-      const ext  = file.name.split('.').pop()
-      const path = `${user.id}/avatar.${ext}`
-      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-      if (error) { setUploadError('No se pudo subir la foto. Verifica que el bucket "avatars" existe en Supabase.'); return }
-      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-      const real = data.publicUrl + `?t=${Date.now()}`
-      setPhotoUrl(real)
-      setUploadedUrl(real)
+      const form = new FormData()
+      form.append('file', file)
+      const { data } = await api.post<{ url: string }>('/user/avatar', form)
+      setPhotoUrl(data.url)
+      setUploadedUrl(data.url)
+    } catch {
+      setUploadError('No se pudo subir la foto. Inténtalo de nuevo.')
     } finally {
       setUploading(false)
     }
