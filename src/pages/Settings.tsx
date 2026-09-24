@@ -169,6 +169,11 @@ export default function Settings() {
     setDeleting(true)
     setDeleteError('')
     try {
+      // Refresh token directly via Supabase (bypasses Render backend, no cold-start risk)
+      const { data: { session } } = await supabase.auth.refreshSession()
+      if (session) {
+        setAuth(user!, session.access_token, session.refresh_token ?? '')
+      }
       await userApi.deleteAccount()
       await supabase.auth.signOut().catch(() => {})
       logout()
