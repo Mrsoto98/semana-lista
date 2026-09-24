@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express'
-import { createClient } from '@supabase/supabase-js'
+import { createRemoteJWKSet, jwtVerify } from 'jose'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://nqusbtmgctafpnztrxgn.supabase.co'
+const JWKS_URL = `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+const JWKS = createRemoteJWKSet(new URL(JWKS_URL))
+
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization
   if (!header?.startsWith('Bearer ')) {
     res.status(401).json({ error: 'No autorizado' })
@@ -15,15 +15,15 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
   const token = header.slice(7)
 
-  supabase.auth.getUser(token).then(({ data, error }) => {
-    if (error || !data.user) {
-      res.status(401).json({ error: 'Token inválido o expirado' })
-      return
+  try {
+    const { payload } = await jwtVerify(token, JWKS, { issuer: SUPABASE_URL + '/auth/v1' })
+    req.user = {
+      id: payload.sub!,
+      email: (payload as { email?: string }).email ?? '',
     }
-    req.user = { id: data.user.id, email: data.user.email! }
     next()
-  }).catch((err) => {
-    console.error('[requireAuth] unexpected error:', err)
-    res.status(500).json({ error: 'Error de autenticación' })
-  })
+  } catch (err) {
+    console.error('[requireAuth] JWT verification failed:', (err as Error).message)
+    res.status(401).json({ error: 'Token inválido o expirado' })
+  }
 }
