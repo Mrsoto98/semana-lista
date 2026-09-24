@@ -53,11 +53,18 @@ export const useAuthStore = create<AuthState>()(
         const { refreshToken } = get()
         if (!refreshToken) throw new Error('No refresh token')
 
-        const res = await fetch('/api/auth/refresh', {
+        const doRefresh = () => fetch('/api/auth/refresh', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken }),
         })
+
+        let res = await doRefresh()
+        // Render free tier cold start can cause 504 — retry once after 3s
+        if (res.status >= 500) {
+          await new Promise(r => setTimeout(r, 3000))
+          res = await doRefresh()
+        }
         if (!res.ok) {
           set({ user: null, accessToken: null, refreshToken: null })
           throw new Error('Session expired')
