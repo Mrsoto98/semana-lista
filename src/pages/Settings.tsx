@@ -578,7 +578,7 @@ export default function Settings() {
 
       {/* Delete account */}
       <button onClick={() => { setDeleteModal(true); setDeleteText(''); setDeleteError('') }}
-        className="w-full mt-2 mb-8 py-3.5 rounded-2xl text-sm font-medium text-red-500/50 hover:text-red-500 border border-red-500/10 hover:border-red-500/25 hover:bg-red-500/5 transition-all flex items-center justify-center gap-2">
+        className="w-full mt-2 mb-8 py-3.5 rounded-2xl text-sm font-medium text-red-500/70 hover:text-red-500 border border-red-500/20 hover:border-red-500/35 hover:bg-red-500/5 transition-all flex items-center justify-center gap-2">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
           <path d="M10 11v6"/><path d="M14 11v6"/>

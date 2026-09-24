@@ -1,9 +1,8 @@
 import axios from 'axios'
 import { useAuthStore } from './store'
 
-const BASE_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}`
-  : '/api'
+// Strip BOM (﻿) that can appear when copy-pasting into Vercel env vars
+const BASE_URL = (import.meta.env.VITE_API_URL ?? '/api').replace(/^﻿/, '').trim()
 
 export const api = axios.create({ baseURL: BASE_URL })
 
