@@ -6,7 +6,8 @@ export const config = {
 
 export default async function middleware(request) {
   const url = new URL(request.url)
-  const backendUrl = BACKEND + url.pathname + url.search
+  const backendPath = url.pathname.replace(/^\/api/, '') || '/'
+  const backendUrl = BACKEND + backendPath + url.search
 
   const headers = new Headers()
   const auth = request.headers.get('authorization')
