@@ -1,8 +1,8 @@
 import axios from 'axios'
 import { useAuthStore } from './store'
 
-// Strip BOM (﻿) that can appear when copy-pasting into Vercel env vars
-const BASE_URL = (import.meta.env.VITE_API_URL ?? '/api').replace(/^﻿/, '').trim()
+// Use /api which Vercel proxies to the backend — eliminates CORS issues
+const BASE_URL = '/api'
 
 export const api = axios.create({ baseURL: BASE_URL })
 
