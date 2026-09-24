@@ -13,6 +13,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return
   const url = new URL(e.request.url)
+  // Never intercept API calls — let the browser handle them directly
+  if (url.pathname.startsWith('/api/')) return
   if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
     e.respondWith(fetch(e.request, { cache: 'no-store' }))
     return
