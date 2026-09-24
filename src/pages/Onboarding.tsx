@@ -74,6 +74,8 @@ export default function Onboarding() {
   const [avatarMode, setAvatarMode] = useState<'emoji' | 'photo'>('photo')
   const [selectedEmoji, setSelectedEmoji] = useState('🌙')
   const [photoUrl, setPhotoUrl]   = useState<string | null>(null)
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving]       = useState(false)
   const [visibility, setVisibility] = useState<Visibility>('private')
@@ -88,13 +90,19 @@ export default function Onboarding() {
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !user) return
+    // Preview local inmediato — se ve la foto aunque falle la subida
+    setPhotoUrl(URL.createObjectURL(file))
+    setUploadError('')
     setUploading(true)
     try {
       const ext  = file.name.split('.').pop()
       const path = `${user.id}/avatar.${ext}`
-      await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (error) { setUploadError('No se pudo subir la foto. Verifica que el bucket "avatars" existe en Supabase.'); return }
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-      setPhotoUrl(data.publicUrl + `?t=${Date.now()}`)
+      const real = data.publicUrl + `?t=${Date.now()}`
+      setPhotoUrl(real)
+      setUploadedUrl(real)
     } finally {
       setUploading(false)
     }
@@ -122,8 +130,8 @@ export default function Onboarding() {
       if (avatarMode === 'emoji') {
         updates.avatar_emoji = selectedEmoji
         updates.avatar_url   = null
-      } else if (photoUrl) {
-        updates.avatar_url   = photoUrl
+      } else if (uploadedUrl) {
+        updates.avatar_url   = uploadedUrl
         updates.avatar_emoji = null
       }
       await supabase.from('profiles').update(updates).eq('id', user.id)
@@ -498,6 +506,7 @@ export default function Onboarding() {
                       className="glass-btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-40">
                       {uploading ? 'Subiendo...' : photoUrl ? '📷 Cambiar foto' : '📷 Elegir foto'}
                     </button>
+                    {uploadError && <p className="text-xs text-red-400/80 text-center px-2">{uploadError}</p>}
 
                     {/* Preview with name */}
                     {photoUrl && (
