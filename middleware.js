@@ -1,4 +1,4 @@
-const BACKEND = 'https://dreamlog-backend-a1xo.onrender.com'
+const BACKEND = 'https://dreamlog-backend-alxo.onrender.com'
 
 export const config = {
   matcher: '/api/:path*',

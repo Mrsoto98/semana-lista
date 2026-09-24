@@ -1,6 +1,6 @@
 export const config = { runtime: 'edge' }
 
-const BACKEND = 'https://dreamlog-backend-a1xo.onrender.com'
+const BACKEND = 'https://dreamlog-backend-alxo.onrender.com'
 
 export default async function handler(request) {
   const url = new URL(request.url)
