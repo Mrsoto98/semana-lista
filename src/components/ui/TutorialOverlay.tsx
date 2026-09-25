@@ -37,53 +37,71 @@ function WelcomeVisual() {
 
 function ExploreVisual() {
   const [activeTab, setActiveTab] = useState(0)
-  const tabs = ['Recientes', '🔥 Popular', 'Seguidos']
+  const tabs = ['Recientes', '🔥 Popular', 'Seguidos', '✦ Coincidencias']
   useEffect(() => {
-    const iv = setInterval(() => setActiveTab(t => (t + 1) % 3), 1600)
+    const iv = setInterval(() => setActiveTab(t => (t + 1) % 4), 1400)
     return () => clearInterval(iv)
   }, [])
   const cards = [
     { init: 'L', name: 'Luna', time: '2h', txt: 'Corría por un laberinto de espejos infinitos…', likes: 8 },
     { init: 'A', name: 'Astro', time: '5h', txt: 'Vi una ciudad flotante entre las nubes…', likes: 23 },
   ]
+  const coincCard = { pct: 87, name: 'Soñador anónimo', txt: 'Volaba sobre montañas nevadas…' }
   return (
-    <div className="mx-2 space-y-2" style={{ height: 110 }}>
-      <div className="flex gap-1.5">
+    <div className="mx-2 space-y-2" style={{ height: 150 }}>
+      <div className="flex gap-1.5 flex-wrap">
         {tabs.map((tab, i) => (
           <motion.div key={tab}
             animate={{
               background: activeTab === i ? g(0.2) : g(0.05),
               borderColor: activeTab === i ? g(0.32) : g(0.1),
             }}
-            className="px-2.5 py-1 rounded-full text-[10px] font-medium border"
+            className="px-2 py-1 rounded-full text-[9px] font-medium border"
             style={{ color: activeTab === i ? `hsl(var(--accent-h),var(--accent-s),80%)` : 'rgba(255,255,255,0.3)' }}>
             {tab}
           </motion.div>
         ))}
       </div>
-      <div className="space-y-1.5">
-        {cards.map((c, i) => (
-          <motion.div key={i}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.12 }}
-            className="flex items-center gap-2.5 rounded-xl px-3 py-2"
-            style={{ background: g(0.06), border: `1px solid ${g(0.12)}` }}>
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-              style={{ background: g(0.2), color: `hsl(var(--accent-h),var(--accent-s),78%)` }}>
-              {c.init}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-medium text-white/70">{c.name}</span>
-                <span className="text-[9px] text-white/25 shrink-0">{c.time}</span>
+      {activeTab < 3 ? (
+        <div className="space-y-1.5">
+          {cards.map((c, i) => (
+            <motion.div key={i}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2"
+              style={{ background: g(0.06), border: `1px solid ${g(0.12)}` }}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                style={{ background: g(0.2), color: `hsl(var(--accent-h),var(--accent-s),78%)` }}>
+                {c.init}
               </div>
-              <p className="text-[10px] text-white/40 leading-tight truncate">{c.txt}</p>
-            </div>
-            <div className="text-[9px] text-white/25 shrink-0">♡ {c.likes}</div>
-          </motion.div>
-        ))}
-      </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-white/70">{c.name}</span>
+                  <span className="text-[9px] text-white/25 shrink-0">{c.time}</span>
+                </div>
+                <p className="text-[10px] text-white/40 leading-tight truncate">{c.txt}</p>
+              </div>
+              <div className="text-[9px] text-white/25 shrink-0">♡ {c.likes}</div>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl px-3 py-3 space-y-2"
+          style={{ background: g(0.06), border: `1px solid ${g(0.18)}` }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-white/40">{coincCard.name}</span>
+            <span className="text-[12px] font-bold" style={{ color: `hsl(var(--accent-h),var(--accent-s),78%)`, fontFamily: 'var(--font-mono)' }}>{coincCard.pct}%</span>
+          </div>
+          <p className="text-[11px] text-white/65 leading-snug">{coincCard.txt}</p>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+            <motion.div animate={{ width: `${coincCard.pct}%` }} transition={{ duration: 1.2, ease: 'easeOut' }}
+              className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${g(0.5)}, ${g(1)})` }} />
+          </div>
+          <p className="text-[9px] text-white/30">Similitud semántica · IA analiza el significado</p>
+        </motion.div>
+      )}
     </div>
   )
 }
@@ -99,7 +117,7 @@ function WhisperVisual() {
   }, [])
   return (
     <div className="mx-2 rounded-[18px] p-4 relative overflow-hidden"
-      style={{ height: 110, background: 'rgba(184,164,232,0.07)', border: '1px solid rgba(184,164,232,0.2)' }}>
+      style={{ height: 150, background: 'rgba(184,164,232,0.07)', border: '1px solid rgba(184,164,232,0.2)' }}>
       <div className="absolute top-3 left-3 text-4xl leading-none opacity-10 select-none"
         style={{ fontFamily: 'var(--font-serif)', color: '#B8A4E8' }}>"</div>
       <p className="text-[13px] text-white/75 leading-relaxed mb-3 relative z-10"
@@ -142,7 +160,7 @@ function MessagesVisual() {
     return () => [t1, t2, t3, t4, t5].forEach(clearTimeout)
   }, [])
   return (
-    <div className="mx-2 space-y-2.5" style={{ height: 110 }}>
+    <div className="mx-2 space-y-2.5" style={{ height: 150 }}>
       <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
         style={{ background: g(0.07), border: `1px solid ${g(0.18)}` }}>
         <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] shrink-0"
@@ -204,7 +222,7 @@ function ProfileVisual() {
     today: i === 34,
   }))
   return (
-    <div className="mx-2 space-y-2.5" style={{ height: 110 }}>
+    <div className="mx-2 space-y-2.5" style={{ height: 150 }}>
       <div className="flex gap-2.5 items-center">
         <div className="flex items-center gap-2 px-3 py-2 rounded-2xl shrink-0"
           style={{ background: g(0.1), border: `1px solid ${g(0.22)}` }}>
@@ -343,7 +361,7 @@ const STEPS: TutStep[] = [
     icon: '🔭',
     title: 'Explorar',
     sub: 'El universo onírico colectivo',
-    body: 'Sueños de toda la comunidad — los más recientes, los más populares, los de personas que sigues. Lee, da likes y comenta.',
+    body: 'Sueños de toda la comunidad: recientes, populares, seguidos y coincidencias con tu forma de soñar. Lee, da likes y comenta.',
     Visual: ExploreVisual,
   },
   {
@@ -488,6 +506,7 @@ export function TutorialOverlay({ open, onClose }: Props) {
       >
         <div className="max-w-lg mx-auto rounded-[28px] overflow-hidden"
           style={{
+            minHeight: '70vh',
             background: 'linear-gradient(160deg, rgba(8,12,32,0.98) 0%, rgba(3,5,18,0.99) 100%)',
             border: `1px solid ${g(0.28)}`,
             boxShadow: `0 -8px 48px ${g(0.12)}, 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 ${g(0.1)}`,
