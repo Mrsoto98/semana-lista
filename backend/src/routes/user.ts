@@ -241,12 +241,16 @@ router.delete('/', async (req, res) => {
     [userId])
   await run('profiles', `DELETE FROM profiles WHERE id = $1`, [userId])
 
-  // Remove from Supabase Auth
+  // Remove from Supabase Auth (non-fatal if user already deleted)
   const { error: authError } = await supabase.auth.admin.deleteUser(userId).catch(e => ({ error: e }))
   if (authError) {
     const msg = (authError as Error).message ?? String(authError)
-    console.error('[deleteAccount] Auth removal failed:', msg)
-    errors.push(`supabase_auth: ${msg}`)
+    if (msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('no encontrado')) {
+      console.log('[deleteAccount] Auth user already deleted, skipping')
+    } else {
+      console.error('[deleteAccount] Auth removal failed:', msg)
+      errors.push(`supabase_auth: ${msg}`)
+    }
   }
 
   if (errors.length > 0) {
