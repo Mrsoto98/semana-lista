@@ -71,7 +71,7 @@ export default function Onboarding() {
   const [country, setCountry]     = useState('')
   const [residenceCity, setResidenceCity]       = useState('')
   const [residenceCountry, setResidenceCountry] = useState('')
-  const [showResidence, setShowResidence]       = useState(true)
+  const [locationVisibility, setLocationVisibility] = useState<'birth' | 'residence' | 'both' | 'none'>('both')
   const [avatarMode, setAvatarMode] = useState<'emoji' | 'photo'>('photo')
   const [selectedEmoji, setSelectedEmoji] = useState('🌙')
   const [photoUrl, setPhotoUrl]   = useState<string | null>(null)
@@ -125,7 +125,7 @@ export default function Onboarding() {
       if (country) updates.country = country
       if (residenceCity.trim()) updates.residence_city = residenceCity.trim()
       if (residenceCountry) updates.residence_country = residenceCountry
-      updates.show_residence = showResidence
+      updates.location_visibility = locationVisibility
       if (avatarMode === 'emoji') {
         updates.avatar_emoji = selectedEmoji
         updates.avatar_url   = null
@@ -420,13 +420,6 @@ export default function Onboarding() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-base">🏠</span>
                     <p className="text-[12px] font-semibold text-white/55 uppercase tracking-wide">Residencia actual</p>
-                    <button
-                      onClick={() => setShowResidence(v => !v)}
-                      className={`text-[10px] px-2 py-1 rounded-full ml-auto transition-all ${showResidence ? 'text-white/70' : 'text-white/25'}`}
-                      style={{ background: showResidence ? 'rgba(var(--glow),0.15)' : 'rgba(255,255,255,0.05)' }}
-                    >
-                      {showResidence ? 'Visible en perfil ✓' : 'Oculta'}
-                    </button>
                   </div>
                   <input
                     value={residenceCity}
@@ -450,6 +443,28 @@ export default function Onboarding() {
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
                     </div>
                   </div>
+                </div>
+
+                {/* ─ Location visibility ─ */}
+                <div className="rounded-2xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p className="text-[12px] font-semibold text-white/55 uppercase tracking-wide mb-3">📍 ¿Qué mostrar en tu perfil?</p>
+                  {([
+                    { value: 'both',      icon: '🌍', label: 'Nacimiento y residencia' },
+                    { value: 'residence', icon: '🏠', label: 'Solo residencia' },
+                    { value: 'birth',     icon: '📍', label: 'Solo ciudad natal' },
+                    { value: 'none',      icon: '🙈', label: 'No mostrar ubicación' },
+                  ] as const).map(opt => (
+                    <button key={opt.value} type="button" onClick={() => setLocationVisibility(opt.value)}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-left transition-all ${
+                        locationVisibility === opt.value ? 'glass-nav-active' : 'bg-white/4 border border-transparent'
+                      }`}>
+                      <span className="text-base shrink-0">{opt.icon}</span>
+                      <span className={`text-sm ${locationVisibility === opt.value ? 'text-white font-medium' : 'text-white/55'}`}>{opt.label}</span>
+                      {locationVisibility === opt.value && (
+                        <svg className="ml-auto accent-text shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      )}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="flex gap-3">

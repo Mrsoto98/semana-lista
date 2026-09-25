@@ -63,6 +63,15 @@ export default function Settings() {
   const [country, setCountry] = useState(() => {
     try { return localStorage.getItem('profile-country') ?? user?.country ?? '' } catch { return '' }
   })
+  const [residenceCity, setResidenceCity] = useState(() => {
+    try { return localStorage.getItem('profile-residence-city') ?? user?.residence_city ?? '' } catch { return '' }
+  })
+  const [residenceCountry, setResidenceCountry] = useState(() => {
+    try { return localStorage.getItem('profile-residence-country') ?? user?.residence_country ?? '' } catch { return '' }
+  })
+  const [locationVisibility, setLocationVisibility] = useState<'birth' | 'residence' | 'both' | 'none'>(
+    user?.location_visibility ?? 'birth'
+  )
   const [showZodiac, setShowZodiac] = useState(() => {
     try { return localStorage.getItem('show-zodiac') === '1' } catch { return false }
   })
@@ -130,6 +139,9 @@ export default function Settings() {
         birth_time: birthTime || null,
         location: location || null,
         country: country || null,
+        residence_city: residenceCity || null,
+        residence_country: residenceCountry || null,
+        location_visibility: locationVisibility,
         show_zodiac: showZodiac,
         show_public_stats: showPublicStats,
       }).eq('id', user!.id)
@@ -139,6 +151,8 @@ export default function Settings() {
         localStorage.setItem('birth-time', birthTime)
         localStorage.setItem('profile-location', location)
         localStorage.setItem('profile-country', country)
+        localStorage.setItem('profile-residence-city', residenceCity)
+        localStorage.setItem('profile-residence-country', residenceCountry)
         localStorage.setItem('show-public-stats', showPublicStats ? '1' : '0')
       } catch {}
 
@@ -150,6 +164,9 @@ export default function Settings() {
         birth_time: birthTime || null,
         location: location || null,
         country: country || null,
+        residence_city: residenceCity || null,
+        residence_country: residenceCountry || null,
+        location_visibility: locationVisibility,
         show_zodiac: showZodiac,
         show_public_stats: showPublicStats,
       }, accessToken!, refreshToken!)
@@ -418,30 +435,54 @@ export default function Settings() {
           />
         </div>
 
-        {/* Location & country */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] text-white/30 uppercase tracking-wide">Ciudad (opcional)</label>
-            <input
-              type="text"
-              placeholder="Ej: Barcelona"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              maxLength={80}
-              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white"
-            />
+        {/* Birth location */}
+        <div>
+          <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">📍 Ciudad natal</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input type="text" placeholder="Ej: Barcelona" value={location}
+              onChange={e => setLocation(e.target.value)} maxLength={80}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white" />
+            <input type="text" placeholder="Ej: España" value={country}
+              onChange={e => setCountry(e.target.value)} maxLength={80}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white" />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] text-white/30 uppercase tracking-wide">País (opcional)</label>
-            <input
-              type="text"
-              placeholder="Ej: España"
-              value={country}
-              onChange={e => setCountry(e.target.value)}
-              maxLength={80}
-              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white"
-            />
+        </div>
+
+        {/* Residence */}
+        <div>
+          <p className="text-[10px] text-white/30 uppercase tracking-wide mb-2">🏠 Residencia actual</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input type="text" placeholder="Ciudad actual" value={residenceCity}
+              onChange={e => setResidenceCity(e.target.value)} maxLength={80}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white" />
+            <input type="text" placeholder="País actual" value={residenceCountry}
+              onChange={e => setResidenceCountry(e.target.value)} maxLength={80}
+              className="glass-input w-full rounded-xl px-3 py-2.5 text-sm text-white" />
           </div>
+        </div>
+
+        {/* Location visibility */}
+        <div className="flex flex-col gap-2">
+          <p className="text-[10px] text-white/30 uppercase tracking-wide">¿Qué mostrar en tu perfil?</p>
+          {([
+            { value: 'both',      icon: '🌍', label: 'Nacimiento y residencia' },
+            { value: 'residence', icon: '🏠', label: 'Solo residencia' },
+            { value: 'birth',     icon: '📍', label: 'Solo ciudad natal' },
+            { value: 'none',      icon: '🙈', label: 'No mostrar' },
+          ] as const).map(opt => (
+            <button key={opt.value} onClick={() => setLocationVisibility(opt.value)}
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all ${
+                locationVisibility === opt.value ? 'glass-nav-active' : 'bg-white/4 hover:bg-white/7'
+              }`}>
+              <span>{opt.icon}</span>
+              <span className={`text-sm ${locationVisibility === opt.value ? 'text-white font-medium' : 'text-white/50'}`}>{opt.label}</span>
+              {locationVisibility === opt.value && (
+                <svg className="ml-auto accent-text" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+            </button>
+          ))}
         </div>
 
         <div className="flex flex-col gap-2 mt-1">

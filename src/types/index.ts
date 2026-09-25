@@ -20,7 +20,7 @@ export interface User {
   country: string | null
   residence_city: string | null
   residence_country: string | null
-  show_residence: boolean
+  location_visibility: 'birth' | 'residence' | 'both' | 'none'
   show_zodiac: boolean
   onboarding_done: boolean
   instagram_username: string | null

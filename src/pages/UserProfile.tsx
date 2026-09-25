@@ -12,6 +12,8 @@ interface PublicProfile {
   instagram_username: string | null; show_public_stats: boolean
   birth_date: string | null; birth_visibility: 'date' | 'age' | 'none'
   location: string | null; country: string | null
+  residence_city: string | null; residence_country: string | null
+  location_visibility: 'birth' | 'residence' | 'both' | 'none'
 }
 interface ProfileResponse {
   profile: PublicProfile
@@ -72,6 +74,9 @@ export default function UserProfile() {
           birth_visibility: p?.birth_visibility ?? 'none',
           location: p?.location ?? null,
           country: p?.country ?? null,
+          residence_city: p?.residence_city ?? null,
+          residence_country: p?.residence_country ?? null,
+          location_visibility: (p?.location_visibility as 'birth' | 'residence' | 'both' | 'none') ?? 'birth',
         },
         dreams: (dreamsRes.data ?? []) as Dream[],
         isSelf: user?.id === id,
@@ -245,11 +250,20 @@ export default function UserProfile() {
               })()}
             </p>
           )}
-          {(profile.location || profile.country) && (
-            <p className="text-[11px] text-white/30 mt-0.5">
-              📍 {[profile.location, profile.country].filter(Boolean).join(', ')}
-            </p>
-          )}
+          {(() => {
+            const v = profile.location_visibility
+            const birthParts = [profile.location, profile.country].filter(Boolean)
+            const resParts   = [profile.residence_city, profile.residence_country].filter(Boolean)
+            const showBirth  = (v === 'birth' || v === 'both') && birthParts.length > 0
+            const showRes    = (v === 'residence' || v === 'both') && resParts.length > 0
+            if (!showBirth && !showRes) return null
+            return (
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                {showBirth && <p className="text-[11px] text-white/30">📍 {birthParts.join(', ')}</p>}
+                {showRes   && <p className="text-[11px] text-white/30">🏠 {resParts.join(', ')}</p>}
+              </div>
+            )
+          })()}
           {profile.instagram_username && (
             <a href={`https://instagram.com/${profile.instagram_username}`}
               target="_blank" rel="noopener noreferrer"
