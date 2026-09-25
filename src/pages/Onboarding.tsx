@@ -79,7 +79,7 @@ export default function Onboarding() {
   const [uploadError, setUploadError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving]       = useState(false)
-  const [visibility, setVisibility] = useState<Visibility>('private')
+  const [visibility, setVisibility] = useState<Visibility>('public')
 
   const steps = ['Nombre', 'Bio', 'Cumpleaños', 'Lugares', 'Avatar', 'Privacidad']
 
