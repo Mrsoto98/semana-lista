@@ -143,7 +143,7 @@ function toUser(p: Record<string, unknown>): User {
     country:              (p.country as string | null) ?? null,
     residence_city:       (p.residence_city as string | null) ?? null,
     residence_country:    (p.residence_country as string | null) ?? null,
-    show_residence:       (p.show_residence as boolean) ?? true,
+    location_visibility:  (p.location_visibility as User['location_visibility']) ?? 'birth',
     show_zodiac:          (p.show_zodiac as boolean) ?? false,
     onboarding_done:      (p.onboarding_done as boolean) ?? false,
     instagram_username:   (p.instagram_username as string | null) ?? null,
