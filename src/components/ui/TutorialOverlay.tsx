@@ -12,7 +12,7 @@ function WelcomeVisual() {
     { icon: '📊', a: 180 }, { icon: '🎨', a: 240 }, { icon: '🔔', a: 300 },
   ]
   return (
-    <div className="relative flex items-center justify-center" style={{ height: 110 }}>
+    <div className="relative flex items-center justify-center" style={{ height: 160 }}>
       <div className="absolute w-28 h-28 rounded-full" style={{ border: `1px solid ${g(0.18)}`, animation: 'tutRotate 14s linear infinite' }} />
       <div className="absolute w-20 h-20 rounded-full" style={{ border: `1px dashed ${g(0.1)}` }} />
       <div className="text-5xl z-10" style={{ filter: `drop-shadow(0 0 22px ${g(0.9)})`, animation: 'tutFloat 3.5s ease-in-out infinite' }}>☽</div>
@@ -559,8 +559,8 @@ export function TutorialOverlay({ open, onClose }: Props) {
                 </div>
               )}
 
-              {/* Icon (only on non-nav steps) */}
-              {!isNavStep && (
+              {/* Icon — only for finish step (welcome has its own moon in the visual) */}
+              {current.type === 'finish' && (
                 <div className="flex justify-center mb-4">
                   <span className="text-5xl block"
                     style={{ filter: `drop-shadow(0 0 20px ${g(0.6)})`, animation: 'tutFloat 3.5s ease-in-out infinite' }}>
@@ -574,10 +574,14 @@ export function TutorialOverlay({ open, onClose }: Props) {
                 <current.Visual />
               </div>
 
-              {/* Text */}
-              <h2 className="text-xl font-bold text-white text-center leading-tight mb-1 whitespace-pre-line">
-                {current.title}
-              </h2>
+              {/* Title: logo image for welcome, text for the rest */}
+              {current.type === 'welcome' ? (
+                <img src="/logo.png" alt="myDreams" className="mx-auto w-full max-w-[200px] select-none mb-1" />
+              ) : (
+                <h2 className="text-xl font-bold text-white text-center leading-tight mb-1 whitespace-pre-line">
+                  {current.title}
+                </h2>
+              )}
               <p className="text-[12px] font-semibold text-center mb-2" style={{ color: g(0.85) }}>
                 {current.sub}
               </p>
