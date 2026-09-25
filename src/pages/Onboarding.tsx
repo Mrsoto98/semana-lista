@@ -155,10 +155,9 @@ export default function Onboarding() {
       {/* Header */}
       <div className="text-center mb-4">
         <img
-          src="/logo.jpg"
+          src="/logo.png"
           alt="myDreams"
-          className="mx-auto w-full max-w-[200px] select-none -mb-1"
-          style={{ mixBlendMode: 'screen', filter: 'brightness(1.05) saturate(1.1)' }}
+          className="mx-auto w-full max-w-[260px] select-none -mb-2"
         />
         <p className="text-white/35 text-sm">Cuéntanos un poco sobre ti</p>
       </div>
