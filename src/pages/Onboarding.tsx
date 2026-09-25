@@ -174,9 +174,9 @@ export default function Onboarding() {
           />
         </div>
         {/* Step pills */}
-        <div className="flex items-center gap-1 mt-3 justify-center overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex items-center gap-1 mt-3 justify-center flex-wrap">
           {steps.map((s, i) => (
-            <div key={s} className="flex items-center gap-1 shrink-0">
+            <div key={s} className="flex items-center gap-1">
               <div className={`flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold transition-all duration-300 ${
                 i < step ? 'bg-green-500/80 text-white' :
                 i === step ? 'accent-bg text-white shadow-lg' :
@@ -184,7 +184,7 @@ export default function Onboarding() {
               }`}>
                 {i < step ? '✓' : i + 1}
               </div>
-              <span className={`text-[11px] transition-colors duration-300 ${i === step ? 'text-white/65' : 'text-white/20'}`}>{s}</span>
+              {i === step && <span className="text-[11px] text-white/65">{s}</span>}
               {i < steps.length - 1 && <div className="w-3 h-px bg-white/10 mx-0.5" />}
             </div>
           ))}
