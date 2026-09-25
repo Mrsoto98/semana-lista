@@ -254,7 +254,7 @@ function FinalVisual() {
     delay: i * 0.12,
   }))
   return (
-    <div className="relative flex items-center justify-center" style={{ height: 110 }}>
+    <div className="relative flex items-center justify-center" style={{ height: 160 }}>
       {stars.map((s, i) => (
         <div key={i} className="absolute rounded-full"
           style={{
@@ -559,15 +559,7 @@ export function TutorialOverlay({ open, onClose }: Props) {
                 </div>
               )}
 
-              {/* Icon — only for finish step (welcome has its own moon in the visual) */}
-              {current.type === 'finish' && (
-                <div className="flex justify-center mb-4">
-                  <span className="text-5xl block"
-                    style={{ filter: `drop-shadow(0 0 20px ${g(0.6)})`, animation: 'tutFloat 3.5s ease-in-out infinite' }}>
-                    {current.icon}
-                  </span>
-                </div>
-              )}
+              {/* No icon above visual — welcome/finish have icons inside their visuals */}
 
               {/* Visual */}
               <div className="mb-4 overflow-hidden">
