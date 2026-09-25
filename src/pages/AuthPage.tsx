@@ -83,7 +83,7 @@ export default function AuthPage({ mode = 'login' }: Props) {
   }
 
   return (
-    <div className="relative min-h-svh flex flex-col items-center justify-center px-4 py-12">
+    <div className="relative min-h-svh flex flex-col items-center justify-center px-4 py-6 overflow-y-auto">
       <CosmicBackground />
 
       <div className="relative z-10 w-full max-w-[380px]">
@@ -92,12 +92,12 @@ export default function AuthPage({ mode = 'login' }: Props) {
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-8"
+          className="text-center mb-5"
         >
           <img
             src="/logo.png"
             alt="myDreams"
-            className="mx-auto w-full max-w-[340px] select-none -mb-2"
+            className="mx-auto w-full max-w-[220px] select-none -mb-1"
           />
           <p className="text-sm text-white/40 italic">
             Tu diario de sueños compartido
@@ -109,10 +109,10 @@ export default function AuthPage({ mode = 'login' }: Props) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="glass rounded-[24px] p-7"
+          className="glass rounded-[24px] p-5"
         >
           {/* Mode toggle */}
-          <div className="flex rounded-xl overflow-hidden mb-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex rounded-xl overflow-hidden mb-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
             {(['login', 'register'] as const).map((m) => (
               <button
                 key={m}
@@ -134,7 +134,7 @@ export default function AuthPage({ mode = 'login' }: Props) {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Name field — only for register */}
             <AnimatePresence>
               {!isLogin && (
@@ -229,7 +229,7 @@ export default function AuthPage({ mode = 'login' }: Props) {
           </form>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
+          <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
             <span className="text-xs text-white/25">o</span>
             <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
