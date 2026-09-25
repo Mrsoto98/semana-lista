@@ -196,9 +196,10 @@ export default function Settings() {
       logout()
       navigate('/entrada')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-        ?? (err instanceof Error ? err.message : 'Error desconocido')
-      setDeleteError(`Error al eliminar la cuenta: ${msg}`)
+      const axiosErr = err as { response?: { data?: { error?: string; details?: string[] } }; message?: string }
+      const details = axiosErr.response?.data?.details?.join(' | ') ?? ''
+      const msg = axiosErr.response?.data?.error ?? axiosErr.message ?? 'Error desconocido'
+      setDeleteError(`Error: ${msg}${details ? ` — ${details}` : ''}`)
       setDeleting(false)
     }
   }
