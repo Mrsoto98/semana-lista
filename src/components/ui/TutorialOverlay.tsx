@@ -568,7 +568,10 @@ export function TutorialOverlay({ open, onClose }: Props) {
 
               {/* Title: logo image for welcome, text for the rest */}
               {current.type === 'welcome' ? (
-                <img src="/logo.png" alt="myDreams" className="mx-auto w-full max-w-[200px] select-none mb-1" />
+                <div className="text-center mb-1">
+                  <p className="text-white/55 text-sm mb-1">Bienvenido a</p>
+                  <img src="/logo.png" alt="myDreams" className="mx-auto w-full max-w-[200px] select-none" />
+                </div>
               ) : (
                 <h2 className="text-xl font-bold text-white text-center leading-tight mb-1 whitespace-pre-line">
                   {current.title}
