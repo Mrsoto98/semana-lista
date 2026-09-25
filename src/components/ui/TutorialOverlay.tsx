@@ -500,20 +500,19 @@ export function TutorialOverlay({ open, onClose }: Props) {
         transition={{ type: 'spring', stiffness: 260, damping: 32 }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        className="fixed inset-x-0 bottom-0 z-[101] px-4"
-        style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}
+        className="fixed inset-x-0 bottom-0 z-[101] px-4 flex flex-col"
+        style={{ height: '82vh', paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="max-w-lg mx-auto rounded-[28px] overflow-hidden"
+        <div className="max-w-lg w-full mx-auto rounded-[28px] overflow-hidden flex flex-col flex-1"
           style={{
-            minHeight: '70vh',
             background: 'linear-gradient(160deg, rgba(8,12,32,0.98) 0%, rgba(3,5,18,0.99) 100%)',
             border: `1px solid ${g(0.28)}`,
             boxShadow: `0 -8px 48px ${g(0.12)}, 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 ${g(0.1)}`,
           }}>
 
           {/* Top handle + controls */}
-          <div className="flex items-center justify-between px-5 pt-3 pb-1">
+          <div className="flex items-center justify-between px-5 pt-3 pb-1 shrink-0">
             <div className="w-10 h-1 rounded-full" style={{ background: g(0.22) }} />
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
@@ -546,7 +545,7 @@ export function TutorialOverlay({ open, onClose }: Props) {
               animate="center"
               exit="exit"
               transition={{ type: 'spring', stiffness: 380, damping: 36, mass: 0.9 }}
-              className="px-5 pt-3 pb-3"
+              className="px-5 pt-2 pb-2 flex-1 flex flex-col justify-center overflow-hidden"
             >
               {/* Interactive nav selector — only for nav steps */}
               {isNavStep && (
@@ -606,7 +605,7 @@ export function TutorialOverlay({ open, onClose }: Props) {
           </AnimatePresence>
 
           {/* Navigation buttons */}
-          <div className="px-5 pb-6 flex gap-3 mt-1">
+          <div className="px-5 pb-5 flex gap-3 shrink-0">
             {step > 0 && (
               <button onClick={goPrev}
                 className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-90"
