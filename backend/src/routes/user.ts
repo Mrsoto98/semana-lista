@@ -1,9 +1,19 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
+import multer from 'multer'
 import { query } from '../db/client.js'
 import { requireAuth } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true)
+    else cb(new Error('Solo se permiten imágenes') as unknown as null, false)
+  },
+})
 
 const router = Router()
 router.use(requireAuth)
@@ -132,7 +142,7 @@ router.get('/export', async (req, res) => {
     ),
   ])
 
-  res.setHeader('Content-Disposition', 'attachment; filename=bitacora-export.json')
+  res.setHeader('Content-Disposition', 'attachment; filename=mydreams-export.json')
   res.json({
     exportedAt: new Date().toISOString(),
     profile: profile.rows[0],
@@ -142,18 +152,110 @@ router.get('/export', async (req, res) => {
   })
 })
 
+// ── POST /user/avatar ─────────────────────────────────────────
+router.post('/avatar', upload.single('file'), async (req, res) => {
+  if (!req.file) { res.status(400).json({ error: 'No se envió ningún archivo' }); return }
+  const userId = req.user!.id
+  const ext    = req.file.mimetype.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg'
+  const path   = `${userId}/avatar.${ext}`
+
+  // Delete any existing avatar for this user (handles extension changes)
+  const { data: existing } = await supabase.storage.from('avatars').list(userId)
+  if (existing?.length) {
+    await supabase.storage.from('avatars').remove(existing.map(f => `${userId}/${f.name}`))
+  }
+
+  const { error } = await supabase.storage.from('avatars').upload(path, req.file.buffer, {
+    contentType:  req.file.mimetype,
+    cacheControl: '31536000',
+    upsert:       true,
+  })
+  if (error) { res.status(500).json({ error: 'Error al subir la imagen' }); return }
+
+  const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+  res.json({ url: `${publicUrl}?t=${Date.now()}` })
+})
+
 // ── DELETE /user ──────────────────────────────────────────────
 router.delete('/', async (req, res) => {
   const userId = req.user!.id
+  const errors: string[] = []
 
-  // Delete from Supabase Auth (cascades to profiles via FK)
-  const { error } = await supabase.auth.admin.deleteUser(userId)
-  if (error) {
-    res.status(500).json({ error: 'Error al eliminar la cuenta' })
+  const run = async (label: string, sql: string, params: unknown[]) => {
+    try {
+      const r = await query(sql, params)
+      console.log(`[deleteAccount] ${label}: ${r.rowCount} rows deleted`)
+    } catch (e) {
+      const msg = (e as Error).message
+      if (msg.includes('does not exist')) {
+        console.log(`[deleteAccount] ${label}: table does not exist, skipping`)
+        return
+      }
+      console.error(`[deleteAccount] FAILED ${label}:`, msg)
+      errors.push(`${label}: ${msg}`)
+    }
+  }
+
+  // FK-safe deletion order
+  await run('dream_poll_votes',
+    `DELETE FROM dream_poll_votes
+     WHERE user_id = $1
+        OR poll_id IN (SELECT dp.id FROM dream_polls dp JOIN dreams d ON d.id = dp.dream_id WHERE d.user_id = $1)`,
+    [userId])
+  await run('dream_polls',
+    `DELETE FROM dream_polls WHERE dream_id IN (SELECT id FROM dreams WHERE user_id = $1)`,
+    [userId])
+  await run('dream_likes',
+    `DELETE FROM dream_likes WHERE user_id = $1 OR dream_id IN (SELECT id FROM dreams WHERE user_id = $1)`,
+    [userId])
+  await run('dream_comments',
+    `DELETE FROM dream_comments WHERE user_id = $1 OR dream_id IN (SELECT id FROM dreams WHERE user_id = $1)`,
+    [userId])
+  await run('dream_mentions',
+    `DELETE FROM dream_mentions WHERE mentioned_user_id = $1 OR dream_id IN (SELECT id FROM dreams WHERE user_id = $1)`,
+    [userId])
+  await run('dream_analyses',
+    `DELETE FROM dream_analyses WHERE dream_id IN (SELECT id FROM dreams WHERE user_id = $1)`,
+    [userId])
+  await run('coincidences',
+    `DELETE FROM coincidences
+     WHERE dream_a_id IN (SELECT id FROM dreams WHERE user_id = $1)
+        OR dream_b_id IN (SELECT id FROM dreams WHERE user_id = $1)`,
+    [userId])
+  await run('reports',         `DELETE FROM reports WHERE reporter_id = $1`, [userId])
+  await run('dreams',          `DELETE FROM dreams WHERE user_id = $1`, [userId])
+  await run('push_subscriptions', `DELETE FROM push_subscriptions WHERE user_id = $1`, [userId])
+  await run('friendships',
+    `DELETE FROM friendships WHERE requester_id = $1 OR addressee_id = $1`,
+    [userId])
+  await run('messages',
+    `DELETE FROM messages
+     WHERE sender_id = $1
+        OR conversation_id IN (SELECT id FROM conversations WHERE participant_1 = $1 OR participant_2 = $1)`,
+    [userId])
+  await run('conversations',
+    `DELETE FROM conversations WHERE participant_1 = $1 OR participant_2 = $1`,
+    [userId])
+  await run('notifications',
+    `DELETE FROM notifications WHERE user_id = $1 OR actor_id = $1`,
+    [userId])
+  await run('profiles', `DELETE FROM profiles WHERE id = $1`, [userId])
+
+  // Remove from Supabase Auth
+  const { error: authError } = await supabase.auth.admin.deleteUser(userId).catch(e => ({ error: e }))
+  if (authError) {
+    const msg = (authError as Error).message ?? String(authError)
+    console.error('[deleteAccount] Auth removal failed:', msg)
+    errors.push(`supabase_auth: ${msg}`)
+  }
+
+  if (errors.length > 0) {
+    console.error('[deleteAccount] Completed with errors:', errors)
+    res.status(500).json({ error: 'Algunos datos no pudieron eliminarse', details: errors })
     return
   }
 
-  res.json({ message: 'Cuenta eliminada correctamente.' })
+  res.json({ ok: true })
 })
 
 export default router
