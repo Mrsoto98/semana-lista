@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type ComponentType } from 'react'
+import { useNavigate } from 'react-router'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const g = (a: number) => `rgba(var(--glow), ${a})`
@@ -394,17 +395,19 @@ export function TutorialOverlay({ open, onClose }: Props) {
   const [dir, setDir]     = useState(1)
   const touchStartX       = useRef(0)
   const isLast            = step === STEPS.length - 1
+  const navigate          = useNavigate()
 
   useEffect(() => { if (open) { setStep(0); setDir(1) } }, [open])
 
-  const close = useCallback(() => {
+  const close = useCallback((finished = false) => {
     localStorage.setItem('tutorial-seen', '1')
     navigator.vibrate?.([8, 40, 8])
     onClose()
-  }, [onClose])
+    if (finished) navigate('/perfil')
+  }, [onClose, navigate])
 
   const goNext = useCallback(() => {
-    if (isLast) { close(); return }
+    if (isLast) { close(true); return }
     setDir(1); setStep(s => s + 1)
     navigator.vibrate?.(8)
   }, [isLast, close])
@@ -446,7 +449,7 @@ export function TutorialOverlay({ open, onClose }: Props) {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100]"
         style={{ background: 'rgba(2,4,18,0.90)', backdropFilter: 'blur(20px)' }}
-        onClick={close}
+        onClick={() => close(false)}
       />
 
       {/* Ambient glow */}
@@ -506,7 +509,7 @@ export function TutorialOverlay({ open, onClose }: Props) {
                 ))}
               </div>
               <span className="text-[11px] font-medium" style={{ color: g(0.55) }}>{step + 1}/{STEPS.length}</span>
-              <button onClick={close}
+              <button onClick={() => close(false)}
                 className="text-[11px] text-white/25 hover:text-white/55 transition-colors px-2 py-1 rounded-lg"
                 style={{ border: `1px solid rgba(255,255,255,0.07)` }}>
                 Saltar

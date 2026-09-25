@@ -135,7 +135,9 @@ export default function Onboarding() {
       }
       await supabase.from('profiles').update(updates).eq('id', user.id)
       setAuth({ ...user, ...(updates as object), onboarding_done: true }, accessToken!, refreshToken!)
-      navigate('/diario')
+      localStorage.removeItem('tutorial-seen')
+      navigate('/perfil')
+      setTimeout(() => window.dispatchEvent(new CustomEvent('open-tutorial')), 700)
     } finally {
       setSaving(false)
     }
