@@ -7,7 +7,7 @@ const client = new OpenAI({
   timeout: 30_000,
 })
 
-export const MODEL = 'llama-3.3-70b-versatile'
+export const MODEL = 'openai/gpt-oss-120b'
 
 const SYSTEM_PROMPT = `Eres un intérprete de sueños experto en psicología junguiana, simbolismo universal y tradiciones oníricas. Ofreces análisis profundos, reveladores y personales que ayudan al soñador a entender qué le está comunicando su inconsciente.
 
