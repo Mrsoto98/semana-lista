@@ -54,17 +54,19 @@ export function DreamShareModal({ dream, onClose }: Props) {
   // Font size scales down for long texts so everything fits on the card
   const cardFontSize = bodyLen < 200 ? 50 : bodyLen < 400 ? 40 : bodyLen < 700 ? 32 : 26
 
-  // Preview shows a bit more context (scaled preview is tiny so still truncate a bit)
-  const previewBody = dream.body.length > 320 ? dream.body.slice(0, 320) + '…' : dream.body
+  // Preview text — modal thumbnail is tiny so still truncate, but generously
+  const previewBody = dream.body.length > 450 ? dream.body.slice(0, 450) + '…' : dream.body
 
   async function handleDownload() {
     if (!cardRef.current) return
     setGenerating(true)
     try {
       const html2canvas = (await import('html2canvas')).default
+      // Use the card's actual rendered height so long dreams aren't clipped
+      const actualHeight = cardRef.current.scrollHeight
       const canvas = await html2canvas(cardRef.current, {
         width: 1080,
-        height: isStory ? 1920 : 1080,
+        height: actualHeight,
         scale: 1,
         useCORS: true,
         backgroundColor: null,
@@ -155,13 +157,14 @@ export function DreamShareModal({ dream, onClose }: Props) {
             ref={cardRef}
             style={{
               width: 1080,
-              height: isStory ? 1920 : 1080,
+              minHeight: isStory ? 1920 : 1080,
               background: currentStyle.bg,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               padding: 120,
+              paddingBottom: 200,
               position: 'relative',
               fontFamily: '"Instrument Serif", Georgia, serif',
             }}
