@@ -11,6 +11,7 @@ import type { Coincidence, DreamAnalysis } from '../types'
 import { useAuthStore } from '../lib/store'
 import { pageVariants, pageTransition, listContainerVariants, listItemVariants } from '../lib/motion'
 import type { FeedDream } from '../types'
+import { DreamShareModal } from '../components/dreams/DreamShareModal'
 
 type Tab = 'recientes' | 'populares' | 'seguidos' | 'coincidencias'
 const PAGE_SIZE = 15
@@ -97,6 +98,7 @@ export default function ExplorePage() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [analyses, setAnalyses] = useState<Record<string, DreamAnalysis | 'loading' | 'error'>>({})
   const [openAnalysis, setOpenAnalysis] = useState<string | null>(null)
+  const [shareDream, setShareDream] = useState<FeedDream | null>(null)
 
   const recentKey       = ['feed', 'recientes', search, user?.id]
   const popularKey      = ['feed', 'populares', user?.id]
@@ -398,6 +400,13 @@ export default function ExplorePage() {
         )}
       </header>
 
+      {/* Share modal */}
+      <AnimatePresence>
+        {shareDream && (
+          <DreamShareModal dream={shareDream} onClose={() => setShareDream(null)} />
+        )}
+      </AnimatePresence>
+
       {/* Feed */}
       <div
         ref={scrollRef}
@@ -483,6 +492,7 @@ export default function ExplorePage() {
                   analysisOpen={openAnalysis === dream.id}
                   onAnalyze={() => analyzeMutation.mutate(dream.id)}
                   onToggleAnalysis={() => setOpenAnalysis(prev => prev === dream.id ? null : dream.id)}
+                  onShare={() => setShareDream(dream)}
                 />
               </motion.div>
             ))}
@@ -636,6 +646,7 @@ function FeedCard({
   analysisOpen,
   onAnalyze,
   onToggleAnalysis,
+  onShare,
 }: {
   dream: FeedDream
   rank?: number
@@ -646,6 +657,7 @@ function FeedCard({
   analysisOpen: boolean
   onAnalyze: () => void
   onToggleAnalysis: () => void
+  onShare: () => void
 }) {
   const timeAgo = formatDistanceToNow(new Date(dream.created_at), { addSuffix: true, locale: es })
   const hasAnalysis = analysisState && analysisState !== 'loading' && analysisState !== 'error'
@@ -792,6 +804,18 @@ function FeedCard({
           </svg>
           <span>{dream.comment_count > 0 ? dream.comment_count : 'Comentar'}</span>
         </button>
+
+        <motion.button
+          whileTap={{ scale: 0.90 }}
+          onClick={onShare}
+          className="flex items-center gap-1 text-[12px] text-white/30 hover:text-white/60 transition-colors"
+          title="Compartir como imagen"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </motion.button>
 
         <div className="ml-auto">
           {!analysisState ? (
