@@ -171,7 +171,7 @@ router.get('/search', async (req, res) => {
          LIMIT 10`
       : `SELECT id, name, avatar_url, bio, user_number
          FROM profiles
-         WHERE (name ILIKE $1 OR email ILIKE $1)
+         WHERE name ILIKE $1
            AND id != $2
          LIMIT 20`,
     isFormattedNumber ? [parsedNum, userId] : [`%${q}%`, userId]
