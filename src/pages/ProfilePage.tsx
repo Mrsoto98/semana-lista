@@ -457,17 +457,11 @@ export default function ProfilePage() {
                 ))}
               </div>
             ) : dreams.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="flex flex-col items-center justify-center py-10 text-center">
                 <div className="text-5xl mb-4 opacity-30">☽</div>
-                <p className="text-white/50 text-sm mb-6">
+                <p className="text-white/50 text-sm">
                   Tu diario está vacío.<br />Registra tu primer sueño.
                 </p>
-                <button
-                  onClick={() => navigate('/diario/nuevo')}
-                  className="glass-btn-primary px-6 py-2.5 text-sm font-semibold"
-                >
-                  Añadir sueño
-                </button>
               </div>
             ) : (
               <div className="space-y-5">
