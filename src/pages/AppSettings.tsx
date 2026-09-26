@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router'
 import { useAuthStore } from '../lib/store'
 import { supabase } from '../lib/supabase'
 import { userApi } from '../lib/queries'
-import { ThemePicker } from '../components/ui/ThemePicker'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import type { Visibility } from '../types'
 
@@ -157,12 +156,6 @@ export default function AppSettings() {
           )}
         </div>
       )}
-
-      {/* Theme */}
-      <div className="glass rounded-3xl p-5 mb-4">
-        <p className="text-[11px] text-white/40 uppercase tracking-wider mb-3">Tema de color</p>
-        <ThemePicker />
-      </div>
 
       {/* Export dreams */}
       <ExportSection userId={user!.id} />

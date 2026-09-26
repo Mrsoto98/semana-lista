@@ -5,6 +5,7 @@ import { useAuthStore } from '../lib/store'
 import { supabase } from '../lib/supabase'
 import { formatUserNumber } from '../lib/formatUserNumber'
 import { getZodiac } from '../lib/zodiac'
+import { ThemePicker } from '../components/ui/ThemePicker'
 
 const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
 
@@ -456,6 +457,12 @@ export default function Settings() {
               style={{ left: showPublicStats ? '22px' : '2px' }} />
           </div>
         </button>
+      </div>
+
+      {/* Color theme */}
+      <div className="glass rounded-3xl p-5 mb-4">
+        <p className="text-[11px] text-white/40 uppercase tracking-wider mb-3">Tema de color</p>
+        <ThemePicker />
       </div>
 
       {/* Save */}

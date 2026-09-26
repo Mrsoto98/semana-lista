@@ -5,6 +5,7 @@ import { useAuthStore } from '../lib/store'
 import { supabase } from '../lib/supabase'
 import { api } from '../lib/api'
 import { getZodiac } from '../lib/zodiac'
+import { ThemePicker } from '../components/ui/ThemePicker'
 import type { Visibility } from '../types'
 
 const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
@@ -81,7 +82,7 @@ export default function Onboarding() {
   const [saving, setSaving]       = useState(false)
   const [visibility, setVisibility] = useState<Visibility>('public')
 
-  const steps = ['Nombre', 'Bio', 'Cumpleaños', 'Lugares', 'Avatar', 'Privacidad']
+  const steps = ['Nombre', 'Bio', 'Cumpleaños', 'Lugares', 'Avatar', 'Privacidad', 'Tema']
 
   function goTo(next: number) {
     setDir(next > step ? 1 : -1)
@@ -637,6 +638,29 @@ export default function Onboarding() {
                     className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 transition-all active:scale-95">
                     ← Atrás
                   </button>
+                  <button onClick={() => goTo(6)}
+                    className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white transition-all active:scale-[0.98]">
+                    Continuar →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 6: Tema de color ── */}
+            {step === 6 && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="text-white font-semibold text-lg mb-1">¿Qué color te inspira?</h2>
+                  <p className="text-white/35 text-sm">El tema de color de tu experiencia en myDreams. Puedes cambiarlo cuando quieras.</p>
+                </div>
+
+                <ThemePicker />
+
+                <div className="flex gap-3">
+                  <button onClick={() => goTo(5)}
+                    className="flex-1 py-3 rounded-2xl text-sm text-white/40 bg-white/5 transition-all active:scale-95">
+                    ← Atrás
+                  </button>
                   <button onClick={finish} disabled={saving}
                     className="flex-1 glass-btn-primary py-3 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                     {saving
@@ -651,7 +675,7 @@ export default function Onboarding() {
         </AnimatePresence>
       </div>
 
-      {step < 5 && (
+      {step < 6 && (
         <button onClick={finish} disabled={saving}
           className="mt-4 text-xs text-white/20 hover:text-white/40 transition-colors">
           Omitir configuración
