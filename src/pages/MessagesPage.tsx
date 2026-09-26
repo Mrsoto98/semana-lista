@@ -123,18 +123,18 @@ export default function MessagesPage() {
 
   return (
     <div className="min-h-svh" style={{ paddingBottom: 100 }}>
-      <div className="sticky top-0 z-10 px-4 pt-12 pb-3"
+      <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3"
         style={{ background: 'rgb(var(--bg-deep))', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <h1 className="text-lg font-bold text-white mb-3">Mensajes</h1>
-        <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <h1 className="text-base font-bold text-white shrink-0">Mensajes</h1>
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Buscar persona…"
-            className="glass-input w-full rounded-xl pl-9 pr-4 py-2.5 text-sm"
+            className="glass-input w-full rounded-xl pl-8 pr-3 py-2 text-sm"
           />
         </div>
       </div>
