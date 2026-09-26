@@ -51,11 +51,8 @@ export function DreamShareModal({ dream, onClose }: Props) {
   const isStory = format === 'story'
 
   const bodyLen = dream.body.length
-  // Font size scales down for long texts so everything fits on the card
-  const cardFontSize = bodyLen < 200 ? 50 : bodyLen < 400 ? 40 : bodyLen < 700 ? 32 : 26
-
-  // Preview text — modal thumbnail is tiny so still truncate, but generously
-  const previewBody = dream.body.length > 450 ? dream.body.slice(0, 450) + '…' : dream.body
+  // Larger base sizes, scales down for very long dreams
+  const cardFontSize = bodyLen < 300 ? 58 : bodyLen < 600 ? 46 : bodyLen < 1000 ? 36 : 28
 
   async function handleDownload() {
     if (!cardRef.current) return
@@ -163,22 +160,24 @@ export function DreamShareModal({ dream, onClose }: Props) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: 120,
-              paddingBottom: 200,
+              paddingTop: 80,
+              paddingLeft: 80,
+              paddingRight: 80,
+              paddingBottom: 150,
               position: 'relative',
               fontFamily: '"Instrument Serif", Georgia, serif',
             }}
           >
-            <div style={{ fontSize: 180, color: currentStyle.accent, opacity: 0.15, lineHeight: 1, marginBottom: -40 }}>"</div>
+            <div style={{ fontSize: 120, color: currentStyle.accent, opacity: 0.15, lineHeight: 1, marginBottom: -20 }}>"</div>
 
             {dream.title && (
               <p style={{
-                fontSize: 42,
+                fontSize: 40,
                 color: currentStyle.accent,
                 textAlign: 'center',
                 fontStyle: 'italic',
-                marginBottom: 32,
-                maxWidth: 840,
+                marginBottom: 28,
+                maxWidth: 900,
               }}>
                 {dream.title}
               </p>
@@ -186,21 +185,21 @@ export function DreamShareModal({ dream, onClose }: Props) {
 
             <p style={{
               fontSize: cardFontSize,
-              lineHeight: 1.55,
+              lineHeight: 1.6,
               color: currentStyle.textColor,
               textAlign: 'center',
               fontStyle: 'italic',
-              maxWidth: 840,
+              maxWidth: 900,
             }}>
               {dream.body}
             </p>
 
             {dream.emotions.length > 0 && (
-              <div style={{ display: 'flex', gap: 16, marginTop: 60, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', gap: 16, marginTop: 48, flexWrap: 'wrap', justifyContent: 'center' }}>
                 {dream.emotions.map(e => (
                   <span key={e} style={{
-                    fontSize: 30,
-                    padding: '10px 28px',
+                    fontSize: 28,
+                    padding: '8px 24px',
                     borderRadius: 100,
                     background: `${currentStyle.accent}25`,
                     border: `1px solid ${currentStyle.accent}40`,
@@ -215,18 +214,18 @@ export function DreamShareModal({ dream, onClose }: Props) {
 
             <div style={{
               position: 'absolute',
-              bottom: 80,
+              bottom: 60,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 8,
+              gap: 6,
             }}>
-              <p style={{ fontSize: 26, color: `${currentStyle.textColor}60`, fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+              <p style={{ fontSize: 24, color: `${currentStyle.textColor}60`, fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
                 {dream.author_name}
               </p>
               <p style={{
-                fontSize: 24,
-                color: `${currentStyle.textColor}40`,
+                fontSize: 22,
+                color: `${currentStyle.textColor}35`,
                 letterSpacing: 6,
                 textTransform: 'uppercase',
                 fontFamily: 'Inter, sans-serif',
@@ -238,42 +237,54 @@ export function DreamShareModal({ dream, onClose }: Props) {
           </div>
         </div>
 
-        {/* Scaled preview */}
+        {/* Scaled preview — auto height, shows full text */}
         <div
-          className="rounded-xl overflow-hidden mx-auto mb-5"
+          className="rounded-xl overflow-y-auto mx-auto mb-5"
           style={{
             width: '100%',
-            maxWidth: 240,
-            aspectRatio: isStory ? '9/16' : '1/1',
+            maxWidth: 200,
+            maxHeight: '52vh',
             background: currentStyle.bg,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-            position: 'relative',
+            padding: '16px 14px 20px',
           }}
         >
-          <div style={{ fontSize: 32, color: currentStyle.accent, opacity: 0.2 }}>"</div>
+          <div style={{ fontSize: 24, color: currentStyle.accent, opacity: 0.2, marginBottom: -4 }}>"</div>
           {dream.title && (
-            <p style={{ fontSize: 9, color: currentStyle.accent, fontFamily: 'var(--font-serif)', fontStyle: 'italic', textAlign: 'center', marginBottom: 4 }}>
+            <p style={{ fontSize: 8, color: currentStyle.accent, fontFamily: 'var(--font-serif)', fontStyle: 'italic', textAlign: 'center', marginBottom: 4 }}>
               {dream.title}
             </p>
           )}
           <p style={{
-            fontSize: 10,
-            lineHeight: 1.6,
+            fontSize: 9,
+            lineHeight: 1.65,
             color: currentStyle.textColor,
             textAlign: 'center',
             fontFamily: 'var(--font-serif)',
             fontStyle: 'italic',
           }}>
-            {dream.body.slice(0, 250)}{dream.body.length > 250 ? '…' : ''}
+            {dream.body}
           </p>
-          <p style={{ fontSize: 7, color: `${currentStyle.textColor}50`, marginTop: 10, letterSpacing: 2 }}>
+          {dream.emotions.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {dream.emotions.map(e => (
+                <span key={e} style={{
+                  fontSize: 6,
+                  padding: '2px 6px',
+                  borderRadius: 100,
+                  background: `${currentStyle.accent}20`,
+                  color: currentStyle.accent,
+                  textTransform: 'capitalize',
+                }}>{e}</span>
+              ))}
+            </div>
+          )}
+          <p style={{ fontSize: 6.5, color: `${currentStyle.textColor}50`, marginTop: 10, letterSpacing: 1.5 }}>
             {dream.author_name}
           </p>
-          <p style={{ fontSize: 6, color: `${currentStyle.textColor}40`, marginTop: 2, letterSpacing: 2 }}>
+          <p style={{ fontSize: 5.5, color: `${currentStyle.textColor}35`, marginTop: 2, letterSpacing: 2 }}>
             myDreams
           </p>
         </div>
