@@ -235,9 +235,9 @@ export default function UserProfile() {
           <h2 className="text-[17px] font-bold text-white leading-tight flex items-center gap-1.5">
             {profile.name}
             {(profile as any).is_verified && (
-              <svg width="15" height="15" viewBox="0 0 22 22" fill="none" aria-label="Verificado">
-                <circle cx="11" cy="11" r="11" fill="#4FC3F7"/>
-                <polyline points="5.5,11 9,14.5 16.5,7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#4FC3F7" aria-label="Verificado">
+                <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34z"/>
+                <polyline points="8,12.5 10.5,15 16,9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </svg>
             )}
           </h2>
