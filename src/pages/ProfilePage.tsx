@@ -323,6 +323,12 @@ export default function ProfilePage() {
           <div className="mb-3">
             <p className="font-semibold text-white text-sm flex items-center gap-1.5">
               {user.name}
+              {(user as any).is_verified && (
+                <svg width="15" height="15" viewBox="0 0 22 22" fill="none" aria-label="Verificado" title="Cuenta verificada">
+                  <circle cx="11" cy="11" r="11" fill="#4FC3F7"/>
+                  <polyline points="5.5,11 9,14.5 16.5,7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
               {showZodiac && zodiac && (
                 <span title={zodiac.name} style={{ color: `hsl(var(--accent-h),var(--accent-s),70%)`, fontSize: '0.9rem' }}>
                   {zodiac.symbol}
