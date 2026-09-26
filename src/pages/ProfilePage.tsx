@@ -255,7 +255,7 @@ export default function ProfilePage() {
         style={{ overscrollBehavior: 'contain' }}
       >
         {/* Profile section */}
-        <div className="px-4 pt-3 pb-3">
+        <div className="px-4 pt-10 pb-3">
           {/* Avatar + stats */}
           <div className="flex items-center gap-5 mb-3">
             <div
