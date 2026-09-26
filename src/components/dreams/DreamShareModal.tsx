@@ -50,7 +50,12 @@ export function DreamShareModal({ dream, onClose }: Props) {
   const currentStyle = STYLES.find(s => s.id === style)!
   const isStory = format === 'story'
 
-  const previewBody = dream.body.length > 280 ? dream.body.slice(0, 280) + '…' : dream.body
+  const bodyLen = dream.body.length
+  // Font size scales down for long texts so everything fits on the card
+  const cardFontSize = bodyLen < 200 ? 50 : bodyLen < 400 ? 40 : bodyLen < 700 ? 32 : 26
+
+  // Preview shows a bit more context (scaled preview is tiny so still truncate a bit)
+  const previewBody = dream.body.length > 320 ? dream.body.slice(0, 320) + '…' : dream.body
 
   async function handleDownload() {
     if (!cardRef.current) return
@@ -177,14 +182,14 @@ export function DreamShareModal({ dream, onClose }: Props) {
             )}
 
             <p style={{
-              fontSize: 50,
+              fontSize: cardFontSize,
               lineHeight: 1.55,
               color: currentStyle.textColor,
               textAlign: 'center',
               fontStyle: 'italic',
               maxWidth: 840,
             }}>
-              {previewBody}
+              {dream.body}
             </p>
 
             {dream.emotions.length > 0 && (
@@ -260,7 +265,7 @@ export function DreamShareModal({ dream, onClose }: Props) {
             fontFamily: 'var(--font-serif)',
             fontStyle: 'italic',
           }}>
-            {dream.body.slice(0, 120)}{dream.body.length > 120 ? '…' : ''}
+            {dream.body.slice(0, 250)}{dream.body.length > 250 ? '…' : ''}
           </p>
           <p style={{ fontSize: 7, color: `${currentStyle.textColor}50`, marginTop: 10, letterSpacing: 2 }}>
             {dream.author_name}
