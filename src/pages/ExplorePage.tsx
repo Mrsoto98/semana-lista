@@ -732,7 +732,7 @@ function FeedCard({
                  style={{ color: `hsl(var(--accent-h),var(--accent-s),60%)` }}>
                 ✦ Análisis IA
               </p>
-              <p className="text-[12px] text-white/60 italic leading-relaxed mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
+              <p className="text-[13px] text-white/70 leading-relaxed mb-2">
                 {(analysisState as DreamAnalysis).summary}
               </p>
               {(analysisState as DreamAnalysis).emotional_tone && (
@@ -740,6 +740,11 @@ function FeedCard({
                       style={{ background: 'rgba(var(--glow),0.10)', color: `hsl(var(--accent-h),var(--accent-s),65%)` }}>
                   {(analysisState as DreamAnalysis).emotional_tone}
                 </span>
+              )}
+              {(analysisState as DreamAnalysis).interpretations?.[0] && (
+                <p className="text-[11px] text-white/45 leading-relaxed mb-2 pt-2 border-t border-white/6">
+                  {(analysisState as DreamAnalysis).interpretations[0].text}
+                </p>
               )}
               {(analysisState as DreamAnalysis).themes?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">

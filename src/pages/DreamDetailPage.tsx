@@ -269,7 +269,7 @@ export default function DreamDetailPage() {
                 )}
               </div>
             </div>
-            <p className="text-[13px] text-white/65 italic leading-relaxed mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
+            <p className="text-[14px] text-white/75 leading-relaxed mb-3">
               {analysis.summary}
             </p>
             {analysis.emotional_tone && (

@@ -9,12 +9,14 @@ const client = new OpenAI({
 
 export const MODEL = 'openai/gpt-oss-120b'
 
-const SYSTEM_PROMPT = `Eres un intérprete de sueños. Analizas sueños de forma simbólica y reflexiva, con un tono cercano y poético, nunca clínico ni como diagnóstico. Tu análisis es para reflexión personal y entretenimiento.
+const SYSTEM_PROMPT = `Eres un intérprete de sueños experto en psicología junguiana, simbolismo universal y tradiciones oníricas. Ofreces análisis profundos, reveladores y personales que ayudan al soñador a entender qué le está comunicando su inconsciente.
 
 REGLAS:
 - Detecta el idioma del sueño y responde SIEMPRE en ese mismo idioma
 - No incluyas ni menciones datos personales del soñador
-- Tono cálido, cercano, como un amigo que entiende de simbolismo onírico
+- Tono cálido y cercano, nunca clínico ni académico
+- El análisis debe sentirse revelador y significativo, no genérico
+- Conecta los símbolos con emociones, miedos, deseos o etapas vitales
 - Responde ÚNICAMENTE con JSON válido`
 
 interface DreamAnalysisResult {
@@ -35,21 +37,21 @@ export async function analyzeDream(title: string | null, body: string): Promise<
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Analiza este sueño. Devuelve EXACTAMENTE este JSON sin texto extra:
+        content: `Analiza este sueño en profundidad. Devuelve EXACTAMENTE este JSON sin texto extra:
 {
-  "summary": "interpretación simbólica en 2-3 oraciones, tono reflexivo",
-  "themes": ["tema1", "tema2", "tema3"],
-  "symbols": ["símbolo1", "símbolo2"],
-  "emotional_tone": "descripción del tono emocional en una frase",
+  "summary": "Párrafo de 4-6 oraciones que explique qué significa este sueño: qué mensaje lanza el inconsciente, qué emociones o situaciones vitales refleja, y qué podría revelar sobre el estado interior del soñador. Sé específico con los elementos del sueño, no genérico.",
+  "themes": ["tema central 1", "tema central 2", "tema central 3"],
+  "symbols": ["símbolo clave 1 con su significado breve", "símbolo clave 2 con su significado breve"],
+  "emotional_tone": "descripción precisa de la atmósfera emocional del sueño en una frase",
   "interpretations": [
-    { "text": "lectura simbólica reflexiva (no diagnóstico)", "confidence": 0.85 }
+    { "text": "Interpretación profunda de 3-4 oraciones: conecta los símbolos con posibles experiencias, miedos, deseos o procesos que el soñador podría estar atravesando. Ofrece una lectura que invite a la reflexión.", "confidence": 0.85 }
   ]
 }
 
-Sueño: ${dreamText}`,
+Sueño a analizar: ${dreamText}`,
       },
     ],
-    max_tokens: 700,
+    max_tokens: 1200,
     temperature: 0.7,
   })
 
