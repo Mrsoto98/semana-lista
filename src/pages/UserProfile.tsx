@@ -123,6 +123,8 @@ export default function UserProfile() {
     onSuccess: (userId) => navigate(`/mensajes/nuevo/${userId}`),
   })
 
+  const zodiac = useMemo(() => getZodiac(data?.profile?.birth_date ?? null), [data?.profile?.birth_date])
+
   if (isLoading) return (
     <div className="animate-fade-in">
       <div className="px-4">
@@ -147,8 +149,6 @@ export default function UserProfile() {
   )
 
   const { profile, dreams, isSelf, isFollowing } = data
-
-  const zodiac = useMemo(() => getZodiac(profile.birth_date), [profile.birth_date])
 
   // Compute stats
   const emotionCounts: Record<string, number> = {}

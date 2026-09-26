@@ -78,6 +78,7 @@ export interface FeedDream extends Dream {
   author_name: string
   author_avatar: string | null
   author_avatar_emoji: string | null
+  author_is_verified: boolean
   like_count: number
   user_liked: boolean
   comment_count: number

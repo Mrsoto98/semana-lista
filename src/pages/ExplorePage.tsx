@@ -23,7 +23,7 @@ const DREAM_SELECT = `
   id, title, body, dream_date, is_lucid, emotions, tags, visibility,
   like_count, comment_count,
   created_at, updated_at,
-  profiles!dreams_user_id_fkey(id, name, avatar_url, avatar_emoji),
+  profiles!dreams_user_id_fkey(id, name, avatar_url, avatar_emoji, is_verified),
   dream_likes(user_id)
 `
 
@@ -34,6 +34,7 @@ function mapDream(d: any, userId?: string): FeedDream {
     author_name: d.profiles?.name ?? 'Anónimo',
     author_avatar: d.profiles?.avatar_url ?? null,
     author_avatar_emoji: d.profiles?.avatar_emoji ?? null,
+    author_is_verified: d.profiles?.is_verified ?? false,
     like_count: d.like_count ?? 0,
     user_liked: userId ? (d.dream_likes ?? []).some((l: any) => l.user_id === userId) : false,
     comment_count: d.comment_count ?? 0,
@@ -655,7 +656,7 @@ function FeedCard({
       className={`glass-card p-4 ${dream.is_lucid ? 'lucid-border' : ''}`}
     >
       {/* Author row */}
-      <div className="flex items-center gap-2.5 mb-3">
+      <div className="flex items-center gap-2.5 mb-2">
         <button onClick={onOpen} className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
                style={{ background: 'rgba(var(--glow), 0.20)' }}>
@@ -664,7 +665,15 @@ function FeedCard({
               : dream.author_avatar_emoji ?? dream.author_name[0]?.toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-[12px] font-medium text-white/75 truncate">{dream.author_name}</p>
+            <p className="text-[12px] font-medium text-white/75 truncate flex items-center gap-1">
+              {dream.author_name}
+              {dream.author_is_verified && (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#4FC3F7" className="shrink-0">
+                  <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34z"/>
+                  <polyline points="8,12.5 10.5,15 16,9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </svg>
+              )}
+            </p>
             <p className="text-[10px] text-white/30">{timeAgo}</p>
           </div>
         </button>
