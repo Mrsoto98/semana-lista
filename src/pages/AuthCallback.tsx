@@ -72,7 +72,7 @@ export default function AuthCallback() {
         }
 
         setAuth(user, session.access_token, session.refresh_token ?? '')
-        navigate(user.onboarding_done ? '/diario' : '/bienvenida')
+        navigate(user.onboarding_done ? '/perfil' : '/bienvenida')
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         setDebugMsg(`Error inesperado: ${msg}`)
