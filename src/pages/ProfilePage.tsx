@@ -334,12 +334,20 @@ export default function ProfilePage() {
                 #{formatUserNumber(user.user_number)}
               </p>
             )}
-            {(user as any).location || (user as any).country ? (
-              <p className="text-[11px] text-white/35 mt-0.5 flex items-center gap-1">
-                <span>📍</span>
-                {[(user as any).location, (user as any).country].filter(Boolean).join(', ')}
-              </p>
-            ) : null}
+            {(() => {
+              const v = (user as any).location_visibility ?? 'birth'
+              const birthParts = [(user as any).location, (user as any).country].filter(Boolean)
+              const resParts   = [(user as any).residence_city, (user as any).residence_country].filter(Boolean)
+              const showBirth  = (v === 'birth' || v === 'both') && birthParts.length > 0
+              const showRes    = (v === 'residence' || v === 'both') && resParts.length > 0
+              if (!showBirth && !showRes) return null
+              return (
+                <div className="flex flex-col gap-0.5 mt-0.5">
+                  {showBirth && <p className="text-[11px] text-white/35 flex items-center gap-1"><span>📍</span>{birthParts.join(', ')}</p>}
+                  {showRes   && <p className="text-[11px] text-white/35 flex items-center gap-1"><span>🏠</span>{resParts.join(', ')}</p>}
+                </div>
+              )
+            })()}
             {user.birth_date && user.birth_visibility !== 'none' && (
               <p className="text-[11px] text-white/35 mt-0.5">
                 🎂 {(() => {
