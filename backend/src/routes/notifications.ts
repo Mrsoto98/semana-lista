@@ -64,7 +64,7 @@ export async function sendMorningReminders() {
   const payload = JSON.stringify({
     title: '🌙 Bitácora del Sueño',
     body: '¿Tuviste algún sueño esta noche? Regístralo antes de que lo olvides ✨',
-    url: '/diary',
+    url: '/diario',
   })
   const results = await Promise.allSettled(
     rows.map(sub =>

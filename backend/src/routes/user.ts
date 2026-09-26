@@ -30,7 +30,7 @@ const UpdateProfileSchema = z.object({
   avatar_emoji: z.string().max(10).nullable().optional(),
   default_visibility: z.enum(['private', 'friends', 'public']).optional(),
   birth_date: z.string().nullable().optional(),
-  birth_visibility: z.enum(['date', 'age', 'none']).optional(),
+  birth_visibility: z.enum(['date', 'age', 'date_age', 'none']).optional(),
   onboarding_done: z.boolean().optional(),
   instagram_username: z.string().max(30).nullable().optional(),
 })
