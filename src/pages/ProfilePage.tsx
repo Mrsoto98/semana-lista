@@ -233,36 +233,21 @@ export default function ProfilePage() {
   if (!user) return null
 
   return (
-    <div className="flex flex-col h-svh">
+    <div className="flex flex-col h-svh relative">
 
-      {/* Sticky header */}
-      <header
-        className="sticky top-0 z-30 px-4 pb-3 flex-shrink-0"
-        style={{
-          paddingTop: 'max(12px, env(safe-area-inset-top))',
-          background: 'rgba(8,8,20,0.88)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-        }}
+      {/* Floating settings button */}
+      <div
+        className="absolute z-30 right-4 flex-shrink-0 pointer-events-none"
+        style={{ top: 'max(12px, env(safe-area-inset-top))' }}
       >
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-white flex items-center gap-1.5">
-            {user.name}
-            {showZodiac && zodiac && (
-              <span title={zodiac.name} style={{ color: `hsl(var(--accent-h),var(--accent-s),70%)`, fontSize: '0.95rem' }}>
-                {zodiac.symbol}
-              </span>
-            )}
-          </h1>
-          <button
-            onClick={() => navigate('/ajustes')}
-            className="p-2 rounded-xl text-white/50 hover:text-white/80 transition-colors"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
-          >
-            <SettingsIcon />
-          </button>
-        </div>
-      </header>
+        <button
+          onClick={() => navigate('/ajustes')}
+          className="pointer-events-auto p-2 rounded-xl text-white/50 hover:text-white/80 transition-colors"
+          style={{ background: 'transparent' }}
+        >
+          <SettingsIcon />
+        </button>
+      </div>
 
       <div
         ref={scrollRef}
