@@ -9,21 +9,20 @@ export default function AuthCallback() {
   const navigate    = useNavigate()
   const { setAuth } = useAuthStore()
   const resolved = useRef(false)
-  const [debugMsg, setDebugMsg] = useState('Esperando sesión de Supabase…')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check for errors in the URL (e.g. bad_oauth_state)
     const params = new URLSearchParams(window.location.search)
     const urlError = params.get('error_description') ?? params.get('error')
     if (urlError) {
-      setDebugMsg(`Error OAuth: ${urlError}`)
+      setError('No se pudo iniciar sesión. Redirigiendo…')
+      setTimeout(() => navigate('/entrada'), 3000)
       return
     }
 
     async function handleSession(session: Session) {
       if (resolved.current) return
       resolved.current = true
-      setDebugMsg('Sesión recibida, cargando perfil…')
 
       try {
         const { data: profile, error } = await supabase
@@ -33,15 +32,14 @@ export default function AuthCallback() {
           .single()
 
         if (error && error.code !== 'PGRST116') {
-          setDebugMsg(`Error al leer perfil: ${error.message} (${error.code})`)
-          setTimeout(() => navigate('/entrada'), 4000)
+          setError('Error al cargar tu perfil. Redirigiendo…')
+          setTimeout(() => navigate('/entrada'), 3000)
           return
         }
 
         let user: User
 
         if (!profile) {
-          setDebugMsg('Perfil no encontrado, creando…')
           const meta       = session.user.user_metadata
           const name       = meta?.full_name ?? meta?.name ?? session.user.email?.split('@')[0] ?? 'Usuario'
           const avatar_url = meta?.avatar_url ?? meta?.picture ?? null
@@ -62,8 +60,8 @@ export default function AuthCallback() {
             .single()
 
           if (insertErr) {
-            setDebugMsg(`Error al crear perfil: ${insertErr.message} (${insertErr.code})`)
-            setTimeout(() => navigate('/entrada'), 4000)
+            setError('Error al crear tu perfil. Redirigiendo…')
+            setTimeout(() => navigate('/entrada'), 3000)
             return
           }
           user = toUser(created)
@@ -73,43 +71,36 @@ export default function AuthCallback() {
 
         setAuth(user, session.access_token, session.refresh_token ?? '')
         navigate(user.onboarding_done ? '/perfil' : '/bienvenida')
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        setDebugMsg(`Error inesperado: ${msg}`)
-        setTimeout(() => navigate('/entrada'), 4000)
+      } catch {
+        setError('Algo salió mal. Redirigiendo…')
+        setTimeout(() => navigate('/entrada'), 3000)
       }
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setDebugMsg(`Auth event: ${event}`)
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session) {
         handleSession(session)
       }
     })
 
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error) setDebugMsg(`getSession error: ${error.message}`)
+    supabase.auth.getSession().then(({ data }) => {
       if (data.session) { handleSession(data.session); return }
 
-      // Implicit flow: tokens arrive in the URL hash
       const hash = new URLSearchParams(window.location.hash.substring(1))
       const access_token  = hash.get('access_token')
       const refresh_token = hash.get('refresh_token') ?? ''
       if (access_token) {
-        setDebugMsg('Tokens en hash, estableciendo sesión…')
         supabase.auth.setSession({ access_token, refresh_token }).then(({ data: sd, error: se }) => {
-          if (se) { setDebugMsg(`setSession error: ${se.message}`); return }
+          if (se) { setError('Error al establecer sesión. Redirigiendo…'); setTimeout(() => navigate('/entrada'), 3000); return }
           if (sd.session) handleSession(sd.session)
         })
-      } else {
-        setDebugMsg('getSession: sin sesión, esperando evento…')
       }
     })
 
     const timeout = setTimeout(() => {
       if (!resolved.current) {
         resolved.current = true
-        setDebugMsg('Timeout: no se pudo establecer sesión')
+        setError('La sesión tardó demasiado. Redirigiendo…')
         setTimeout(() => navigate('/entrada'), 2000)
       }
     }, 10_000)
@@ -118,9 +109,19 @@ export default function AuthCallback() {
   }, [navigate, setAuth])
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-8">
-      <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      <p className="text-white/60 text-sm text-center">{debugMsg}</p>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6">
+      <img src="/icon.svg" alt="myDreams" className="w-16 h-16 opacity-90" />
+      <span
+        className="text-2xl text-white/90"
+        style={{ fontFamily: "'Instrument Serif', serif" }}
+      >
+        myDreams
+      </span>
+      {error ? (
+        <p className="text-white/50 text-sm text-center px-8">{error}</p>
+      ) : (
+        <div className="w-5 h-5 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
+      )}
     </div>
   )
 }
