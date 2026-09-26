@@ -294,11 +294,6 @@ export default function DreamDetailPage() {
                 ))}
               </div>
             )}
-            {analysis.interpretations?.[0] && (
-              <p className="text-[11px] text-white/35 mt-3 leading-relaxed border-t border-white/6 pt-3">
-                {analysis.interpretations[0].text}
-              </p>
-            )}
           </div>
         ) : (
           <div className="mb-4">

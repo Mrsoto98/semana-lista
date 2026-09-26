@@ -39,7 +39,7 @@ export async function analyzeDream(title: string | null, body: string): Promise<
         role: 'user',
         content: `Analiza este sueño en profundidad. Devuelve EXACTAMENTE este JSON sin texto extra:
 {
-  "summary": "Párrafo de 4-6 oraciones que explique qué significa este sueño: qué mensaje lanza el inconsciente, qué emociones o situaciones vitales refleja, y qué podría revelar sobre el estado interior del soñador. Sé específico con los elementos del sueño, no genérico.",
+  "summary": "2-3 oraciones concisas que expliquen el significado del sueño: qué mensaje lanza el inconsciente, qué refleja emocionalmente. Sé específico con los elementos del sueño, no genérico.",
   "themes": ["tema central 1", "tema central 2", "tema central 3"],
   "symbols": ["símbolo clave 1 con su significado breve", "símbolo clave 2 con su significado breve"],
   "emotional_tone": "descripción precisa de la atmósfera emocional del sueño en una frase",
@@ -51,7 +51,7 @@ export async function analyzeDream(title: string | null, body: string): Promise<
 Sueño a analizar: ${dreamText}`,
       },
     ],
-    max_tokens: 1200,
+    max_tokens: 700,
     temperature: 0.7,
   })
 
