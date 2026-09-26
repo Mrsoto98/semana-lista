@@ -6,16 +6,34 @@ import { analyzeDream, MODEL } from '../services/analysis.js'
 const router = Router()
 router.use(requireAuth)
 
+// ── GET /dreams/:id/analyze ───────────────────────────────────
+// Returns cached analysis if it exists (any auth'd user)
+router.get('/:id/analyze', async (req, res) => {
+  const { id } = req.params
+
+  const cached = await query(
+    'SELECT * FROM dream_analyses WHERE dream_id = $1',
+    [id]
+  )
+  if (!cached.rowCount) {
+    res.status(404).json({ error: 'Sin análisis todavía' })
+    return
+  }
+  res.json(cached.rows[0])
+})
+
 // ── POST /dreams/:id/analyze ──────────────────────────────────
-// Generates (or returns cached) AI analysis for a dream
+// Generates (or returns cached) AI analysis.
+// Any auth'd user can analyze public dreams — result is cached and shared.
+// Private dreams: only the author can analyze.
 router.post('/:id/analyze', async (req, res) => {
   const userId = req.user!.id
   const { id } = req.params
 
   const { rows } = await query<{
-    id: string; user_id: string; title: string | null; body: string
+    id: string; user_id: string; title: string | null; body: string; visibility: string
   }>(
-    'SELECT id, user_id, title, body FROM dreams WHERE id = $1',
+    'SELECT id, user_id, title, body, visibility FROM dreams WHERE id = $1',
     [id]
   )
 
@@ -24,12 +42,13 @@ router.post('/:id/analyze', async (req, res) => {
     return
   }
 
-  if (rows[0].user_id !== userId) {
-    res.status(403).json({ error: 'Solo el autor puede analizar su sueño' })
+  // Private dreams: only the author can trigger analysis
+  if (rows[0].visibility === 'private' && rows[0].user_id !== userId) {
+    res.status(403).json({ error: 'No tienes acceso a este sueño' })
     return
   }
 
-  // Return cached analysis if it exists
+  // Return cached analysis if it exists (shared across all users)
   const cached = await query(
     'SELECT * FROM dream_analyses WHERE dream_id = $1',
     [id]
@@ -40,29 +59,40 @@ router.post('/:id/analyze', async (req, res) => {
   }
 
   const dream = rows[0]
-  const result = await analyzeDream(dream.title, dream.body)
 
-  const { rows: saved } = await query(
-    `INSERT INTO dream_analyses
-       (dream_id, summary, themes, symbols, emotional_tone, interpretations, model_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)
-     RETURNING *`,
-    [
-      id,
-      result.summary,
-      result.themes,
-      result.symbols,
-      result.emotional_tone,
-      JSON.stringify(result.interpretations),
-      MODEL,
-    ]
-  )
+  try {
+    const result = await analyzeDream(dream.title, dream.body)
 
-  res.json(saved[0])
+    const { rows: saved } = await query(
+      `INSERT INTO dream_analyses
+         (dream_id, summary, themes, symbols, emotional_tone, interpretations, model_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       RETURNING *`,
+      [
+        id,
+        result.summary,
+        result.themes,
+        result.symbols,
+        result.emotional_tone,
+        JSON.stringify(result.interpretations),
+        MODEL,
+      ]
+    )
+
+    res.json(saved[0])
+  } catch (err: any) {
+    // Groq rate limit
+    if (err?.status === 429 || err?.statusCode === 429) {
+      res.status(429).json({ error: 'Límite de análisis alcanzado. Inténtalo de nuevo en un momento.' })
+      return
+    }
+    console.error('Analysis error:', err)
+    res.status(500).json({ error: 'No se pudo analizar el sueño. Inténtalo más tarde.' })
+  }
 })
 
 // ── DELETE /dreams/:id/analyze ────────────────────────────────
-// Force re-analysis by clearing cached result
+// Force re-analysis by clearing cached result (only author)
 router.delete('/:id/analyze', async (req, res) => {
   const userId = req.user!.id
   const { id } = req.params

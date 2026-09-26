@@ -1,16 +1,21 @@
-// Uses Z.ai (ZhipuAI) — OpenAI-compatible API, free tier
+// Groq — OpenAI-compatible API, free tier (1000 req/day, 30 req/min)
 import OpenAI from 'openai'
 
 const client = new OpenAI({
-  apiKey: process.env.ZAI_API_KEY,
-  baseURL: 'https://api.z.ai/api/paas/v4',
-  timeout: 60_000,
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1',
+  timeout: 30_000,
 })
 
-export const MODEL = 'glm-4.5-air'  // lighter & faster than glm-4.6
+export const MODEL = 'llama-3.3-70b-versatile'
 
-const SYSTEM_PROMPT = `Eres un intérprete onírico. Analizas sueños de forma simbólica y reflexiva,
-nunca como diagnóstico médico o psicológico. Responde ÚNICAMENTE con JSON válido, sin texto extra.`
+const SYSTEM_PROMPT = `Eres un intérprete de sueños. Analizas sueños de forma simbólica y reflexiva, con un tono cercano y poético, nunca clínico ni como diagnóstico. Tu análisis es para reflexión personal y entretenimiento.
+
+REGLAS:
+- Detecta el idioma del sueño y responde SIEMPRE en ese mismo idioma
+- No incluyas ni menciones datos personales del soñador
+- Tono cálido, cercano, como un amigo que entiende de simbolismo onírico
+- Responde ÚNICAMENTE con JSON válido`
 
 interface DreamAnalysisResult {
   summary: string
@@ -25,36 +30,36 @@ export async function analyzeDream(title: string | null, body: string): Promise<
 
   const completion = await client.chat.completions.create({
     model: MODEL,
+    response_format: { type: 'json_object' },
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Analiza este sueño. Devuelve SOLO este JSON:
+        content: `Analiza este sueño. Devuelve EXACTAMENTE este JSON sin texto extra:
 {
-  "summary": "resumen en 2-3 oraciones",
-  "themes": ["tema1", "tema2"],
+  "summary": "interpretación simbólica en 2-3 oraciones, tono reflexivo",
+  "themes": ["tema1", "tema2", "tema3"],
   "symbols": ["símbolo1", "símbolo2"],
-  "emotional_tone": "tono emocional en una frase",
+  "emotional_tone": "descripción del tono emocional en una frase",
   "interpretations": [
-    { "text": "interpretación reflexiva (no diagnóstico)", "confidence": 0.85 }
+    { "text": "lectura simbólica reflexiva (no diagnóstico)", "confidence": 0.85 }
   ]
 }
 
 Sueño: ${dreamText}`,
       },
     ],
-    max_tokens: 600,
+    max_tokens: 700,
+    temperature: 0.7,
   })
 
   const text = completion.choices[0]?.message?.content ?? '{}'
-  const clean = text.replace(/^```json?\s*/m, '').replace(/```\s*$/m, '').trim()
 
   try {
-    return JSON.parse(clean) as DreamAnalysisResult
+    return JSON.parse(text) as DreamAnalysisResult
   } catch {
-    // Fallback if model wraps output in extra text
-    const match = clean.match(/\{[\s\S]*\}/)
+    const match = text.match(/\{[\s\S]*\}/)
     if (match) return JSON.parse(match[0]) as DreamAnalysisResult
-    throw new Error('No se pudo parsear la respuesta de Z.ai')
+    throw new Error('No se pudo parsear la respuesta de Groq')
   }
 }
