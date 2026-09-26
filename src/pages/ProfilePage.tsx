@@ -241,7 +241,7 @@ export default function ProfilePage() {
         style={{ top: 'max(12px, env(safe-area-inset-top))' }}
       >
         <button
-          onClick={() => navigate('/ajustes')}
+          onClick={() => navigate('/configuracion')}
           className="pointer-events-auto p-2 rounded-xl text-white/50 hover:text-white/80 transition-colors"
           style={{ background: 'transparent' }}
         >

@@ -17,6 +17,7 @@ const WhispersPage     = lazy(() => import('./pages/WhispersPage'))
 const ExplorePage      = lazy(() => import('./pages/ExplorePage'))
 const ProfilePage      = lazy(() => import('./pages/ProfilePage'))
 const Settings         = lazy(() => import('./pages/Settings'))
+const AppSettings      = lazy(() => import('./pages/AppSettings'))
 const Audio            = lazy(() => import('./pages/Audio'))
 const Friends          = lazy(() => import('./pages/Friends'))
 const LucidTechniques  = lazy(() => import('./pages/LucidTechniques'))
@@ -68,6 +69,7 @@ export default function App() {
               <Route path="/perfil/:id"          element={<UserProfile />} />
               <Route path="/amigos"              element={<Friends />} />
               <Route path="/ajustes"             element={<Settings />} />
+              <Route path="/configuracion"       element={<AppSettings />} />
               <Route path="/audio"               element={<Audio />} />
               <Route path="/tecnicas"            element={<LucidTechniques />} />
               <Route path="/notificaciones"      element={<NotificationsPage />} />
