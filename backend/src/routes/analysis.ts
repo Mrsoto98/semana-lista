@@ -65,8 +65,8 @@ router.post('/:id/analyze', async (req, res) => {
 
     const { rows: saved } = await query(
       `INSERT INTO dream_analyses
-         (dream_id, summary, themes, symbols, emotional_tone, interpretations)
-       VALUES ($1,$2,$3,$4,$5,$6)
+         (dream_id, summary, themes, symbols, emotional_tone, interpretations, model_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        RETURNING *`,
       [
         id,
@@ -75,6 +75,7 @@ router.post('/:id/analyze', async (req, res) => {
         result.symbols,
         result.emotional_tone,
         JSON.stringify(result.interpretations),
+        MODEL,
       ]
     )
 
