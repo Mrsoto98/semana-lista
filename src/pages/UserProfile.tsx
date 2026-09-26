@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { formatUserNumber } from '../lib/formatUserNumber'
 import { useAuthStore } from '../lib/store'
+import { getZodiac } from '../lib/zodiac'
 import type { Dream } from '../types'
 
 interface PublicProfile {
   id: string; name: string; avatar_url: string | null; avatar_emoji: string | null; bio: string | null
   user_number: number | null; followers_count: number; following_count: number; dream_count: number
   instagram_username: string | null; show_public_stats: boolean
+  is_verified: boolean
   birth_date: string | null; birth_visibility: 'date' | 'age' | 'none'
   location: string | null; country: string | null
   residence_city: string | null; residence_country: string | null
@@ -70,6 +72,7 @@ export default function UserProfile() {
           dream_count: dreamsRes.data?.length ?? 0,
           instagram_username: p?.instagram_username ?? null,
           show_public_stats: p?.show_public_stats !== false,
+          is_verified: p?.is_verified ?? false,
           birth_date: p?.birth_date ?? null,
           birth_visibility: p?.birth_visibility ?? 'none',
           location: p?.location ?? null,
@@ -144,6 +147,8 @@ export default function UserProfile() {
   )
 
   const { profile, dreams, isSelf, isFollowing } = data
+
+  const zodiac = useMemo(() => getZodiac(profile.birth_date), [profile.birth_date])
 
   // Compute stats
   const emotionCounts: Record<string, number> = {}
@@ -234,11 +239,16 @@ export default function UserProfile() {
         <div className="mb-4">
           <h2 className="text-[17px] font-bold text-white leading-tight flex items-center gap-1.5">
             {profile.name}
-            {(profile as any).is_verified && (
+            {profile.is_verified && (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="#4FC3F7" aria-label="Verificado">
                 <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34z"/>
                 <polyline points="8,12.5 10.5,15 16,9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </svg>
+            )}
+            {zodiac && profile.birth_date && profile.birth_visibility !== 'none' && (
+              <span title={zodiac.name} style={{ color: `hsl(var(--accent-h),var(--accent-s),70%)`, fontSize: '0.9rem' }}>
+                {zodiac.symbol}
+              </span>
             )}
           </h2>
           {profile.user_number && (
