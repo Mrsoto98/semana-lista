@@ -5,10 +5,11 @@ import { motion } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
-import { likesApi } from '../lib/queries'
+import { likesApi, dreamsApi } from '../lib/queries'
 import { useAuthStore } from '../lib/store'
 import { CommentSection } from '../components/dreams/CommentSection'
 import { pageVariants, pageTransition } from '../lib/motion'
+import type { DreamAnalysis } from '../types'
 
 const VIS_LABEL = { private: '🔒', friends: '👥', public: '🌍' }
 
@@ -50,6 +51,27 @@ export default function DreamDetailPage() {
       qc.invalidateQueries({ queryKey: ['dreams'] })
       qc.invalidateQueries({ queryKey: ['my-dreams-profile'] })
       navigate('/perfil', { replace: true })
+    },
+  })
+
+  const { data: analysis, isLoading: analysisLoading } = useQuery<DreamAnalysis>({
+    queryKey: ['dream-analysis', id],
+    queryFn: () => dreamsApi.getAnalysis(id!).then(r => r.data),
+    enabled: !!id,
+    retry: false,
+  })
+
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null)
+
+  const analyzeMutation = useMutation({
+    mutationFn: () => dreamsApi.analyze(id!).then(r => r.data),
+    onSuccess: (result) => {
+      qc.setQueryData(['dream-analysis', id], result)
+      setAnalyzeError(null)
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error ?? err?.message ?? 'No se pudo analizar el sueño. Inténtalo más tarde.'
+      setAnalyzeError(msg)
     },
   })
 
@@ -222,14 +244,90 @@ export default function DreamDetailPage() {
           ))}
         </div>
 
-        {/* AI summary */}
-        {dream.summary && (
+        {/* AI Analysis */}
+        {analysisLoading ? (
+          <div className="glass rounded-2xl p-4 mb-4 border border-white/6 shimmer h-24" />
+        ) : analysis ? (
           <div className="glass rounded-2xl p-4 mb-4 border border-white/6">
-            <p className="text-[10px] font-medium uppercase tracking-widest mb-2"
-               style={{ color: `hsl(var(--accent-h), var(--accent-s), 60%)` }}>
-              ✦ Análisis IA
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-medium uppercase tracking-widest"
+                 style={{ color: `hsl(var(--accent-h), var(--accent-s), 60%)` }}>
+                ✦ Análisis IA
+              </p>
+              <div className="flex items-center gap-2">
+                {analysis.cached && (
+                  <span className="text-[9px] text-white/25 uppercase tracking-widest">caché</span>
+                )}
+                {isMine && (
+                  <button
+                    onClick={() => { setAnalyzeError(null); analyzeMutation.mutate() }}
+                    disabled={analyzeMutation.isPending}
+                    className="text-[10px] text-white/30 hover:text-white/60 transition-colors disabled:opacity-40"
+                  >
+                    ↺ Re-analizar
+                  </button>
+                )}
+              </div>
+            </div>
+            <p className="text-[13px] text-white/65 italic leading-relaxed mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
+              {analysis.summary}
             </p>
-            <p className="text-[13px] text-white/55 italic leading-relaxed">{dream.summary}</p>
+            {analysis.emotional_tone && (
+              <span className="inline-block text-[10px] px-2 py-0.5 rounded-full mb-2"
+                    style={{ background: 'rgba(var(--glow),0.12)', color: `hsl(var(--accent-h),var(--accent-s),70%)` }}>
+                {analysis.emotional_tone}
+              </span>
+            )}
+            {(analysis.themes?.length > 0 || analysis.symbols?.length > 0) && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {analysis.themes?.map(t => (
+                  <span key={t} className="text-[10px] px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>
+                    {t}
+                  </span>
+                ))}
+                {analysis.symbols?.map(s => (
+                  <span key={s} className="text-[10px] px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    ◈ {s}
+                  </span>
+                ))}
+              </div>
+            )}
+            {analysis.interpretations?.[0] && (
+              <p className="text-[11px] text-white/35 mt-3 leading-relaxed border-t border-white/6 pt-3">
+                {analysis.interpretations[0].text}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="mb-4">
+            {analyzeError && (
+              <p className="text-[11px] text-center mb-2" style={{ color: 'rgba(240,100,100,0.7)' }}>
+                {analyzeError}
+              </p>
+            )}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setAnalyzeError(null); analyzeMutation.mutate() }}
+              disabled={analyzeMutation.isPending}
+              className="w-full py-3 rounded-2xl text-[13px] font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+              style={{
+                background: 'rgba(var(--glow),0.10)',
+                border: '1px dashed rgba(var(--glow),0.25)',
+                color: `hsl(var(--accent-h),var(--accent-s),72%)`,
+              }}
+            >
+              {analyzeMutation.isPending ? (
+                <>
+                  <div className="w-3.5 h-3.5 rounded-full border-2 animate-spin"
+                       style={{ borderColor: 'rgba(var(--glow),0.2)', borderTopColor: 'rgba(var(--glow),0.7)' }} />
+                  Analizando…
+                </>
+              ) : (
+                <>🔮 Analizar sueño</>
+              )}
+            </motion.button>
           </div>
         )}
 

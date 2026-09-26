@@ -6,8 +6,8 @@ import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tansta
 import { formatDistanceToNow, startOfMonth, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
-import { likesApi, coincidencesApi } from '../lib/queries'
-import type { Coincidence } from '../types'
+import { likesApi, coincidencesApi, dreamsApi } from '../lib/queries'
+import type { Coincidence, DreamAnalysis } from '../types'
 import { useAuthStore } from '../lib/store'
 import { pageVariants, pageTransition, listContainerVariants, listItemVariants } from '../lib/motion'
 import type { FeedDream } from '../types'
@@ -94,6 +94,8 @@ export default function ExplorePage() {
   const [tab, setTab] = useState<Tab>('recientes')
   const [search] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [analyses, setAnalyses] = useState<Record<string, DreamAnalysis | 'loading' | 'error'>>({})
+  const [openAnalysis, setOpenAnalysis] = useState<string | null>(null)
 
   const recentKey       = ['feed', 'recientes', search, user?.id]
   const popularKey      = ['feed', 'populares', user?.id]
@@ -166,6 +168,24 @@ export default function ExplorePage() {
     if (tab === 'populares') return popularKey
     return seguidosKey
   }
+
+  const analyzeMutation = useMutation({
+    mutationFn: async (dreamId: string) => {
+      setAnalyses(prev => ({ ...prev, [dreamId]: 'loading' }))
+      try {
+        const res = await dreamsApi.analyze(dreamId)
+        setAnalyses(prev => ({ ...prev, [dreamId]: res.data }))
+        setOpenAnalysis(dreamId)
+      } catch (err: any) {
+        const msg = err?.response?.data?.error
+        if (msg?.includes('429') || msg?.includes('Límite')) {
+          setAnalyses(prev => ({ ...prev, [dreamId]: 'error' }))
+        } else {
+          setAnalyses(prev => ({ ...prev, [dreamId]: 'error' }))
+        }
+      }
+    },
+  })
 
   const likeMutation = useMutation({
     mutationFn: async ({ id, liked }: { id: string; liked: boolean }) => {
@@ -458,6 +478,10 @@ export default function ExplorePage() {
                   onLike={() => likeMutation.mutate({ id: dream.id, liked: dream.user_liked })}
                   onOpen={() => navigate(`/perfil/${dream.author_id}`)}
                   onDetail={() => navigate(`/sueno/${dream.id}`)}
+                  analysisState={analyses[dream.id] ?? null}
+                  analysisOpen={openAnalysis === dream.id}
+                  onAnalyze={() => analyzeMutation.mutate(dream.id)}
+                  onToggleAnalysis={() => setOpenAnalysis(prev => prev === dream.id ? null : dream.id)}
                 />
               </motion.div>
             ))}
@@ -607,14 +631,23 @@ function FeedCard({
   onLike,
   onOpen,
   onDetail,
+  analysisState,
+  analysisOpen,
+  onAnalyze,
+  onToggleAnalysis,
 }: {
   dream: FeedDream
   rank?: number
   onLike: () => void
   onOpen: () => void
   onDetail: () => void
+  analysisState: DreamAnalysis | 'loading' | 'error' | null
+  analysisOpen: boolean
+  onAnalyze: () => void
+  onToggleAnalysis: () => void
 }) {
   const timeAgo = formatDistanceToNow(new Date(dream.created_at), { addSuffix: true, locale: es })
+  const hasAnalysis = analysisState && analysisState !== 'loading' && analysisState !== 'error'
 
   return (
     <motion.div
@@ -685,8 +718,46 @@ function FeedCard({
         </div>
       )}
 
+      {/* Inline analysis panel */}
+      <AnimatePresence>
+        {analysisOpen && hasAnalysis && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-2xl p-3 mb-3" style={{ background: 'rgba(var(--glow),0.07)', border: '1px solid rgba(var(--glow),0.15)' }}>
+              <p className="text-[9px] font-medium uppercase tracking-widest mb-2"
+                 style={{ color: `hsl(var(--accent-h),var(--accent-s),60%)` }}>
+                ✦ Análisis IA
+              </p>
+              <p className="text-[12px] text-white/60 italic leading-relaxed mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
+                {(analysisState as DreamAnalysis).summary}
+              </p>
+              {(analysisState as DreamAnalysis).emotional_tone && (
+                <span className="inline-block text-[9px] px-2 py-0.5 rounded-full mb-1.5"
+                      style={{ background: 'rgba(var(--glow),0.10)', color: `hsl(var(--accent-h),var(--accent-s),65%)` }}>
+                  {(analysisState as DreamAnalysis).emotional_tone}
+                </span>
+              )}
+              {(analysisState as DreamAnalysis).themes?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(analysisState as DreamAnalysis).themes.slice(0, 4).map(t => (
+                    <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full"
+                          style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.40)' }}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Actions */}
-      <div className="flex items-center gap-4 border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center gap-3 border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
         <motion.button
           whileTap={{ scale: 1.28 }}
           transition={{ type: 'spring', stiffness: 400, damping: 14 }}
@@ -712,6 +783,48 @@ function FeedCard({
           </svg>
           <span>{dream.comment_count > 0 ? dream.comment_count : 'Comentar'}</span>
         </button>
+
+        <div className="ml-auto">
+          {!analysisState ? (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={onAnalyze}
+              className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full transition-all"
+              style={{
+                background: 'rgba(var(--glow),0.08)',
+                color: `hsl(var(--accent-h),var(--accent-s),65%)`,
+                border: '1px solid rgba(var(--glow),0.18)',
+              }}
+            >
+              🔮 Analizar
+            </motion.button>
+          ) : analysisState === 'loading' ? (
+            <div className="flex items-center gap-1.5 text-[11px] text-white/30 px-2">
+              <div className="w-3 h-3 rounded-full border-2 animate-spin"
+                   style={{ borderColor: 'rgba(var(--glow),0.15)', borderTopColor: 'rgba(var(--glow),0.6)' }} />
+              Analizando…
+            </div>
+          ) : analysisState === 'error' ? (
+            <button onClick={onAnalyze}
+              className="text-[10px] px-2 py-0.5 rounded-full"
+              style={{ color: 'rgba(240,100,100,0.6)', background: 'rgba(240,100,100,0.08)' }}>
+              Error · Reintentar
+            </button>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={onToggleAnalysis}
+              className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full transition-all"
+              style={{
+                background: analysisOpen ? 'rgba(var(--glow),0.18)' : 'rgba(var(--glow),0.08)',
+                color: `hsl(var(--accent-h),var(--accent-s),${analysisOpen ? '82%' : '60%'})`,
+                border: `1px solid rgba(var(--glow),${analysisOpen ? '0.30' : '0.14'})`,
+              }}
+            >
+              ✦ {analysisOpen ? 'Ocultar' : 'Ver análisis'}
+            </motion.button>
+          )}
+        </div>
       </div>
     </motion.div>
   )

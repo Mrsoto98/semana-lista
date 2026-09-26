@@ -23,6 +23,7 @@ export const dreamsApi = {
   create: (data: Partial<Dream>) => api.post<{ id: string }>('/dreams', data),
   update: (id: string, data: Partial<Dream>) => api.patch<Dream>(`/dreams/${id}`, data),
   remove: (id: string) => api.delete(`/dreams/${id}`),
+  getAnalysis: (id: string) => api.get<DreamAnalysis>(`/dreams/${id}/analyze`),
   analyze: (id: string) => api.post<DreamAnalysis>(`/dreams/${id}/analyze`),
   reanalyze: (id: string) =>
     api.delete(`/dreams/${id}/analyze`).then(() => api.post<DreamAnalysis>(`/dreams/${id}/analyze`)),
