@@ -88,11 +88,11 @@ export const useAuthStore = create<AuthState>()(
   )
 )
 
-// Apply persisted theme on store load
+// Apply persisted theme on store load — only when a user session exists
 const stored = localStorage.getItem('dreamlog-v2')
 if (stored) {
   try {
     const { state } = JSON.parse(stored)
-    if (state?.themeId) applyTheme(state.themeId)
+    if (state?.themeId && state?.user) applyTheme(state.themeId)
   } catch { /* ignore */ }
 }
