@@ -12,7 +12,7 @@ interface PublicProfile {
   user_number: number | null; followers_count: number; following_count: number; dream_count: number
   instagram_username: string | null; show_public_stats: boolean
   is_verified: boolean
-  birth_date: string | null; birth_visibility: 'date' | 'age' | 'none'
+  birth_date: string | null; birth_visibility: 'date' | 'age' | 'date_age' | 'none'
   location: string | null; country: string | null
   residence_city: string | null; residence_country: string | null
   location_visibility: 'birth' | 'residence' | 'both' | 'none'
