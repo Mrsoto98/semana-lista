@@ -9,7 +9,6 @@ import {
 } from 'recharts'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../lib/store'
-import { formatUserNumber } from '../lib/formatUserNumber'
 import { getZodiac } from '../lib/zodiac'
 import { DreamCard } from '../components/dreams/DreamCard'
 import type { Dream } from '../types'
@@ -320,9 +319,9 @@ export default function ProfilePage() {
                 </span>
               )}
             </p>
-            {user.user_number != null && (
+            {user.username && (
               <p className="text-[11px] mt-0.5" style={{ color: `hsl(var(--accent-h), var(--accent-s), 60%)` }}>
-                #{formatUserNumber(user.user_number)}
+                @{user.username}
               </p>
             )}
             {(() => {

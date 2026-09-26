@@ -137,6 +137,7 @@ function toUser(p: Record<string, unknown>): User {
     email_verified:       (p.email_verified as boolean) ?? true,
     default_visibility:   (p.default_visibility as User['default_visibility']) ?? 'private',
     user_number:          (p.user_number as number | null) ?? null,
+    username:             (p.username as string | null) ?? null,
     birth_date:           (p.birth_date as string | null) ?? null,
     birth_visibility:     (p.birth_visibility as User['birth_visibility']) ?? 'none',
     birth_time:           (p.birth_time as string | null) ?? null,

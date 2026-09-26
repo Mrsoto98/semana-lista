@@ -33,6 +33,19 @@ const UpdateProfileSchema = z.object({
   birth_visibility: z.enum(['date', 'age', 'date_age', 'none']).optional(),
   onboarding_done: z.boolean().optional(),
   instagram_username: z.string().max(30).nullable().optional(),
+  username: z.string().min(3).max(30).regex(/^[a-z0-9_]+$/).nullable().optional(),
+})
+
+// ── GET /user/username-available ─────────────────────────────
+// Public endpoint — no auth required
+router.get('/username-available', async (req, res) => {
+  const { username } = req.query as { username?: string }
+  if (!username || !/^[a-z0-9_]{3,30}$/.test(username)) {
+    res.json({ available: false })
+    return
+  }
+  const { rows } = await query('SELECT 1 FROM profiles WHERE username = $1', [username])
+  res.json({ available: rows.length === 0 })
 })
 
 // ── PATCH /user/profile ───────────────────────────────────────
@@ -59,7 +72,7 @@ router.patch('/profile', validate(UpdateProfileSchema), async (req, res) => {
   values.push(userId)
   const { rows } = await query(
     `UPDATE profiles SET ${sets.join(', ')} WHERE id = $${idx}
-     RETURNING id, name, avatar_url, avatar_emoji, bio, instagram_username,
+     RETURNING id, name, avatar_url, avatar_emoji, bio, instagram_username, username,
                default_visibility, user_number, birth_date, birth_visibility, onboarding_done, created_at`,
     values
   )
@@ -75,7 +88,7 @@ router.get('/:id/profile', async (req, res) => {
 
   // Get profile
   const { rows: profiles } = await query(
-    'SELECT id, name, avatar_url, bio, instagram_username, user_number, created_at FROM profiles WHERE id = $1',
+    'SELECT id, name, avatar_url, bio, instagram_username, username, user_number, created_at FROM profiles WHERE id = $1',
     [targetId]
   )
   if (!profiles.length) { res.status(404).json({ error: 'Usuario no encontrado' }); return }

@@ -2,14 +2,13 @@ import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { formatUserNumber } from '../lib/formatUserNumber'
 import { useAuthStore } from '../lib/store'
 import { getZodiac } from '../lib/zodiac'
 import type { Dream } from '../types'
 
 interface PublicProfile {
   id: string; name: string; avatar_url: string | null; avatar_emoji: string | null; bio: string | null
-  user_number: number | null; followers_count: number; following_count: number; dream_count: number
+  user_number: number | null; username: string | null; followers_count: number; following_count: number; dream_count: number
   instagram_username: string | null; show_public_stats: boolean
   is_verified: boolean
   birth_date: string | null; birth_visibility: 'date' | 'age' | 'date_age' | 'none'
@@ -66,7 +65,7 @@ export default function UserProfile() {
         profile: {
           id: p?.id ?? id!, name: p?.name ?? 'Usuario',
           avatar_url: p?.avatar_url ?? null, avatar_emoji: p?.avatar_emoji ?? null,
-          bio: p?.bio ?? null, user_number: p?.user_number ?? null,
+          bio: p?.bio ?? null, user_number: p?.user_number ?? null, username: p?.username ?? null,
           followers_count: p?.followers_count ?? 0,
           following_count: p?.following_count ?? 0,
           dream_count: dreamsRes.data?.length ?? 0,
@@ -251,8 +250,8 @@ export default function UserProfile() {
               </span>
             )}
           </h2>
-          {profile.user_number && (
-            <p className="text-[11px] accent-text mt-0.5">#{formatUserNumber(profile.user_number)}</p>
+          {profile.username && (
+            <p className="text-[11px] accent-text mt-0.5">@{profile.username}</p>
           )}
           {profile.bio && (
             <p className="text-[13px] text-white/55 leading-snug mt-2">{profile.bio}</p>

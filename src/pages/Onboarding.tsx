@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router'
 import { useAuthStore } from '../lib/store'
@@ -7,6 +7,18 @@ import { api } from '../lib/api'
 import { getZodiac } from '../lib/zodiac'
 import { ThemePicker } from '../components/ui/ThemePicker'
 import type { Visibility } from '../types'
+
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+
+function suggestUsername(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 30)
+}
 
 const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
 
@@ -62,6 +74,10 @@ export default function Onboarding() {
   const [step, setStep]           = useState(0)
   const [dir, setDir]             = useState(1)
   const [name, setName]           = useState(user?.name ?? '')
+  const [username, setUsername]   = useState('')
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle')
+  const usernameTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoSuggested = useRef(false)
   const [bio, setBio]             = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [birthText, setBirthText] = useState('')
@@ -83,6 +99,37 @@ export default function Onboarding() {
   const [visibility, setVisibility] = useState<Visibility>('public')
 
   const steps = ['Nombre', 'Bio', 'Cumpleaños', 'Lugares', 'Avatar', 'Privacidad', 'Tema']
+
+  // Auto-suggest username from name (once)
+  useEffect(() => {
+    if (!name.trim() || autoSuggested.current || username) return
+    const suggestion = suggestUsername(name)
+    if (suggestion.length >= 3) {
+      autoSuggested.current = true
+      setUsername(suggestion)
+    }
+  }, [name, username])
+
+  // Debounced username availability check
+  useEffect(() => {
+    if (usernameTimer.current) clearTimeout(usernameTimer.current)
+    if (!username) { setUsernameStatus('idle'); return }
+    if (!/^[a-z0-9_]{3,30}$/.test(username)) { setUsernameStatus('invalid'); return }
+    setUsernameStatus('checking')
+    usernameTimer.current = setTimeout(async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle()
+        setUsernameStatus(data ? 'taken' : 'available')
+      } catch {
+        setUsernameStatus('idle')
+      }
+    }, 500)
+    return () => { if (usernameTimer.current) clearTimeout(usernameTimer.current) }
+  }, [username])
 
   function goTo(next: number) {
     setDir(next > step ? 1 : -1)
@@ -114,6 +161,7 @@ export default function Onboarding() {
     try {
       const updates: Record<string, unknown> = {
         name,
+        username: username || null,
         bio: bio || null,
         onboarding_done: true,
         default_visibility: visibility,
@@ -207,22 +255,78 @@ export default function Onboarding() {
             className="p-6"
           >
 
-            {/* ── Step 0: Nombre ── */}
+            {/* ── Step 0: Nombre + Username ── */}
             {step === 0 && (
               <div className="flex flex-col gap-5">
                 <div>
                   <h2 className="text-white font-semibold text-lg mb-1">¿Cómo te llamamos?</h2>
-                  <p className="text-white/35 text-sm">Aparecerá en tu perfil y sueños públicos.</p>
+                  <p className="text-white/35 text-sm">Tu nombre y usuario único en la comunidad.</p>
                 </div>
-                <input
-                  autoFocus
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  maxLength={80}
-                  placeholder="Tu nombre o apodo..."
-                  className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/20"
-                />
-                <button onClick={() => goTo(1)} disabled={!name.trim()}
+
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-[10px] text-white/35 uppercase tracking-wider mb-1.5 block">Nombre</label>
+                    <input
+                      autoFocus
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      maxLength={80}
+                      placeholder="Tu nombre o apodo..."
+                      className="glass-input w-full rounded-2xl px-4 py-3.5 text-sm text-white placeholder:text-white/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-white/35 uppercase tracking-wider mb-1.5 block">Nombre de usuario</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 text-sm font-medium select-none">@</span>
+                      <input
+                        value={username}
+                        onChange={e => {
+                          const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30)
+                          setUsername(v)
+                        }}
+                        maxLength={30}
+                        placeholder="tu_usuario"
+                        className={`glass-input w-full rounded-2xl pl-8 pr-10 py-3.5 text-sm text-white placeholder:text-white/20 transition-all ${
+                          usernameStatus === 'available' ? 'border border-emerald-500/40' :
+                          usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border border-red-500/30' : ''
+                        }`}
+                      />
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                        {usernameStatus === 'checking' && (
+                          <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                        )}
+                        {usernameStatus === 'available' && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-emerald-400">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        )}
+                        {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-red-400">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <p className={`text-[11px] mt-1.5 px-1 transition-all ${
+                      usernameStatus === 'available' ? 'text-emerald-400/80' :
+                      usernameStatus === 'taken' ? 'text-red-400/80' :
+                      usernameStatus === 'invalid' ? 'text-orange-400/70' :
+                      'text-white/25'
+                    }`}>
+                      {usernameStatus === 'idle' && 'Solo letras minúsculas, números y guiones bajos. Mín. 3.'}
+                      {usernameStatus === 'checking' && 'Comprobando disponibilidad...'}
+                      {usernameStatus === 'available' && `@${username} está disponible ✓`}
+                      {usernameStatus === 'taken' && `@${username} ya está en uso`}
+                      {usernameStatus === 'invalid' && 'Solo minúsculas, números y _ · entre 3 y 30 caracteres'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => goTo(1)}
+                  disabled={!name.trim() || usernameStatus !== 'available'}
                   className="glass-btn-primary w-full py-3.5 rounded-2xl text-sm font-semibold text-white disabled:opacity-30 transition-all active:scale-[0.98]">
                   Continuar →
                 </button>

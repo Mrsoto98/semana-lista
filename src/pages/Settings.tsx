@@ -1,11 +1,12 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useAuthStore } from '../lib/store'
 import { supabase } from '../lib/supabase'
-import { formatUserNumber } from '../lib/formatUserNumber'
 import { getZodiac } from '../lib/zodiac'
 import { ThemePicker } from '../components/ui/ThemePicker'
+
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'same' | 'invalid'
 
 const DREAM_EMOJIS = ['🌙', '⭐', '💫', '✨', '🌟', '🌌', '🔮', '🌊', '🌀', '🦋', '🌸', '🦉', '🌠', '🪐', '👁️', '🧿', '🎭', '🌈', '🌺', '🎑']
 
@@ -29,6 +30,9 @@ export default function Settings() {
   const currentUser = freshProfile ?? user
 
   const [name,       setName]       = useState(user?.name ?? '')
+  const [username,   setUsername]   = useState(user?.username ?? '')
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle')
+  const usernameTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [bio,        setBio]        = useState(user?.bio ?? '')
   const [instagram,  setInstagram]  = useState(user?.instagram_username ?? '')
   const [saved,      setSaved]      = useState(false)
@@ -72,6 +76,29 @@ export default function Settings() {
     } catch { return true }
   })
 
+  // Debounced username availability check (skip if same as current)
+  useEffect(() => {
+    if (usernameTimer.current) clearTimeout(usernameTimer.current)
+    if (!username) { setUsernameStatus('idle'); return }
+    if (username === (user?.username ?? '')) { setUsernameStatus('same'); return }
+    if (!/^[a-z0-9_]{3,30}$/.test(username)) { setUsernameStatus('invalid'); return }
+    setUsernameStatus('checking')
+    usernameTimer.current = setTimeout(async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username)
+          .neq('id', user!.id)
+          .maybeSingle()
+        setUsernameStatus(data ? 'taken' : 'available')
+      } catch {
+        setUsernameStatus('idle')
+      }
+    }, 500)
+    return () => { if (usernameTimer.current) clearTimeout(usernameTimer.current) }
+  }, [username, user?.username, user?.id])
+
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !user) return
@@ -101,6 +128,7 @@ export default function Settings() {
     mutationFn: async () => {
       const updates: Record<string, unknown> = {
         name, bio,
+        username: username.trim() || null,
         instagram_username: instagram.replace('@', '').trim() || null,
         birth_date: birthDate || null,
         birth_visibility: birthVisibility,
@@ -263,13 +291,13 @@ export default function Settings() {
           <span className="text-xs text-white/70 font-medium truncate max-w-[200px]">{currentUser?.email}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-white/40">Nº de usuario</span>
-          <span className="text-base font-bold accent-text tracking-wider">
-            #{currentUser?.user_number != null ? formatUserNumber(currentUser.user_number) : '…'}
+          <span className="text-xs text-white/40">Usuario</span>
+          <span className="text-sm font-semibold accent-text">
+            {currentUser?.username ? `@${currentUser.username}` : '—'}
           </span>
         </div>
         <p className="text-[10px] text-white/25 leading-relaxed pt-1 border-t border-white/6">
-          Comparte tu número o correo para que otros te agreguen como amigo.
+          Comparte tu @usuario para que otros te encuentren fácilmente.
         </p>
       </div>
 
@@ -280,6 +308,46 @@ export default function Settings() {
           <input value={name} onChange={e => setName(e.target.value)} maxLength={80}
             placeholder="Tu nombre"
             className="glass-input w-full rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20" />
+        </div>
+        <div>
+          <label className="text-[11px] text-white/40 uppercase tracking-wider mb-1.5 block">Nombre de usuario</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-sm font-medium select-none">@</span>
+            <input
+              value={username}
+              onChange={e => {
+                const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30)
+                setUsername(v)
+              }}
+              maxLength={30}
+              placeholder="tu_usuario"
+              className={`glass-input w-full rounded-xl pl-8 pr-10 py-3 text-sm text-white placeholder:text-white/20 transition-all ${
+                usernameStatus === 'available' ? 'border border-emerald-500/30' :
+                usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border border-red-500/25' : ''
+              }`}
+            />
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+              {usernameStatus === 'checking' && (
+                <div className="w-3 h-3 border-2 border-white/20 border-t-white/50 rounded-full animate-spin" />
+              )}
+              {(usernameStatus === 'available' || usernameStatus === 'same') && (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-emerald-400">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+              {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-red-400">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              )}
+            </div>
+          </div>
+          {usernameStatus === 'taken' && (
+            <p className="text-[11px] text-red-400/80 mt-1 px-1">@{username} no está disponible</p>
+          )}
+          {usernameStatus === 'invalid' && (
+            <p className="text-[11px] text-orange-400/70 mt-1 px-1">Solo minúsculas, números y _ · 3-30 caracteres</p>
+          )}
         </div>
         <div>
           <label className="text-[11px] text-white/40 uppercase tracking-wider mb-1.5 block">Biografía</label>

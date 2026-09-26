@@ -13,6 +13,7 @@ export interface User {
   email_verified: boolean
   default_visibility: Visibility
   user_number: number | null
+  username: string | null
   birth_date: string | null
   birth_visibility: 'date' | 'age' | 'date_age' | 'none'
   birth_time: string | null
@@ -104,6 +105,7 @@ export interface FollowUser {
   avatar_emoji: string | null
   bio: string | null
   user_number: number | null
+  username: string | null
   followers_count: number
 }
 

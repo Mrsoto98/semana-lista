@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { supabase } from '../lib/supabase'
-import { formatUserNumber } from '../lib/formatUserNumber'
 import { useAuthStore } from '../lib/store'
 import type { FollowUser } from '../types'
 
@@ -12,7 +11,7 @@ interface SearchUser {
   avatar_url: string | null
   avatar_emoji: string | null
   bio: string | null
-  user_number: number | null
+  username: string | null
 }
 
 type TabId = 'seguidores' | 'seguidos'
@@ -37,7 +36,7 @@ export default function FollowsPage() {
   const [results, setResults]     = useState<SearchUser[]>([])
   const [searching, setSearching] = useState(false)
   const [searchErr, setSearchErr] = useState('')
-  const [copiedNum, setCopiedNum] = useState(false)
+  const [copiedUser, setCopiedUser] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // My following IDs set — used to show correct button state everywhere
@@ -57,7 +56,7 @@ export default function FollowsPage() {
       const { data: rows } = await supabase.from('follows').select('follower_id').eq('following_id', user!.id)
       if (!rows?.length) return []
       const { data: profs } = await supabase.from('profiles')
-        .select('id, name, avatar_url, avatar_emoji, bio, user_number, followers_count')
+        .select('id, name, avatar_url, avatar_emoji, bio, username, followers_count')
         .in('id', rows.map((r: any) => r.follower_id))
       return (profs ?? []) as FollowUser[]
     },
@@ -71,7 +70,7 @@ export default function FollowsPage() {
       const { data: rows } = await supabase.from('follows').select('following_id').eq('follower_id', user!.id)
       if (!rows?.length) return []
       const { data: profs } = await supabase.from('profiles')
-        .select('id, name, avatar_url, avatar_emoji, bio, user_number, followers_count')
+        .select('id, name, avatar_url, avatar_emoji, bio, username, followers_count')
         .in('id', rows.map((r: any) => r.following_id))
       return (profs ?? []) as FollowUser[]
     },
@@ -104,21 +103,22 @@ export default function FollowsPage() {
     setSearchErr('')
     setSearching(true)
     try {
-      const numMatch = q.match(/^#?(\d{1,4})$/)
       let rows: SearchUser[] = []
-      if (numMatch) {
+      const cleanQ = q.startsWith('@') ? q.slice(1) : q
+      if (q.startsWith('@') || /^[a-z0-9_]+$/.test(cleanQ)) {
         const { data } = await supabase.from('profiles')
-          .select('id, name, avatar_url, avatar_emoji, bio, user_number')
-          .eq('user_number', parseInt(numMatch[1])).neq('id', user!.id).limit(10)
+          .select('id, name, avatar_url, avatar_emoji, bio, username')
+          .ilike('username', `${cleanQ}%`).neq('id', user!.id).limit(10)
         rows = (data ?? []) as SearchUser[]
-      } else {
+      }
+      if (!rows.length) {
         const { data } = await supabase.from('profiles')
-          .select('id, name, avatar_url, avatar_emoji, bio, user_number')
-          .ilike('name', `%${q}%`).neq('id', user!.id).limit(10)
+          .select('id, name, avatar_url, avatar_emoji, bio, username')
+          .ilike('name', `%${cleanQ}%`).neq('id', user!.id).limit(10)
         rows = (data ?? []) as SearchUser[]
       }
       setResults(rows)
-      if (!rows.length) setSearchErr('No se encontró ningún usuario.')
+      if (!rows.length) setSearchErr('No se encontró ningún soñador.')
     } catch {
       setSearchErr('Error al buscar. Inténtalo de nuevo.')
     } finally {
@@ -128,11 +128,11 @@ export default function FollowsPage() {
 
   useEffect(() => { if (!query) { setResults([]); setSearchErr('') } }, [query])
 
-  function copyNumber() {
-    if (!user?.user_number) return
-    navigator.clipboard.writeText(formatUserNumber(user.user_number))
-    setCopiedNum(true)
-    setTimeout(() => setCopiedNum(false), 2000)
+  function copyUsername() {
+    if (!user?.username) return
+    navigator.clipboard.writeText(`@${user.username}`)
+    setCopiedUser(true)
+    setTimeout(() => setCopiedUser(false), 2000)
   }
 
   const list = tab === 'seguidores' ? followers : following
@@ -157,26 +157,26 @@ export default function FollowsPage() {
 
       <div className="px-4 py-4 flex flex-col gap-5">
 
-        {/* Tu número */}
+        {/* Tu usuario */}
         <div className="glass-card rounded-2xl p-4 flex items-center gap-4">
           <Avatar name={user?.name ?? '?'} url={user?.avatar_url} size={10} />
           <div className="flex-1 min-w-0">
             <p className="text-white/60 text-xs font-medium mb-0.5">{user?.name}</p>
-            <p className="text-[10px] text-white/30 mb-1.5">Tu número de soñador</p>
+            <p className="text-[10px] text-white/30 mb-1.5">Tu nombre de usuario</p>
             <div className="flex items-center gap-2">
-              <span className="font-mono font-bold text-2xl tracking-wider accent-text">
-                #{formatUserNumber(user?.user_number)}
+              <span className="font-semibold text-xl tracking-tight accent-text">
+                {user?.username ? `@${user.username}` : '—'}
               </span>
               <button
-                onClick={copyNumber}
-                disabled={!user?.user_number}
+                onClick={copyUsername}
+                disabled={!user?.username}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all border disabled:opacity-40 ${
-                  copiedNum
+                  copiedUser
                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                     : 'border-white/10 bg-white/5 text-white/35 hover:text-white hover:bg-white/10'
                 }`}
               >
-                {copiedNum
+                {copiedUser
                   ? <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg> Copiado</>
                   : <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar</>
                 }
@@ -226,8 +226,8 @@ export default function FollowsPage() {
                   </button>
                   <button onClick={() => navigate(`/perfil/${u.id}`)} className="flex-1 min-w-0 text-left">
                     <p className="text-sm font-semibold text-white">{u.name}</p>
-                    {u.user_number != null && (
-                      <p className="text-[10px] accent-text">#{formatUserNumber(u.user_number)}</p>
+                    {u.username && (
+                      <p className="text-[10px] accent-text">@{u.username}</p>
                     )}
                     {u.bio && <p className="text-[11px] text-white/35 truncate">{u.bio}</p>}
                   </button>
@@ -255,7 +255,7 @@ export default function FollowsPage() {
         <div className="glass-card rounded-2xl p-4 flex flex-col gap-3">
           <div>
             <h3 className="text-sm font-semibold text-white/70">Buscar soñadores</h3>
-            <p className="text-[11px] text-white/30 mt-0.5">Por nombre o número de soñador (#0001)</p>
+            <p className="text-[11px] text-white/30 mt-0.5">Por nombre o @usuario</p>
           </div>
           <form onSubmit={doSearch} className="flex gap-2">
             <div className="relative flex-1">
@@ -263,7 +263,7 @@ export default function FollowsPage() {
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Nombre o #0001…"
+                placeholder="@usuario o nombre…"
                 className="glass-input w-full rounded-xl px-3 py-2.5 text-sm pr-8"
               />
               {query && (
@@ -298,8 +298,8 @@ export default function FollowsPage() {
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white leading-tight">{u.name}</p>
-                      {u.user_number != null && (
-                        <p className="text-[11px] accent-text">#{formatUserNumber(u.user_number)}</p>
+                      {u.username && (
+                        <p className="text-[11px] accent-text">@{u.username}</p>
                       )}
                       {u.bio && <p className="text-[10px] text-white/25 truncate mt-0.5">{u.bio}</p>}
                     </div>

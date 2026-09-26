@@ -59,7 +59,7 @@ router.post('/login', validate(LoginSchema), async (req, res) => {
   // Fetch profile
   const { rows } = await query(
     `SELECT id, name, avatar_url, avatar_emoji, bio, instagram_username,
-            default_visibility, user_number, birth_date, birth_visibility, onboarding_done, created_at
+            default_visibility, user_number, username, birth_date, birth_visibility, onboarding_done, created_at
      FROM profiles WHERE id = $1`,
     [data.user.id]
   )
@@ -109,7 +109,7 @@ router.post('/logout', requireAuth, async (_req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const { rows } = await query(
-      'SELECT id, name, avatar_url, avatar_emoji, bio, instagram_username, default_visibility, user_number, birth_date, onboarding_done, created_at FROM profiles WHERE id = $1',
+      'SELECT id, name, avatar_url, avatar_emoji, bio, instagram_username, default_visibility, user_number, username, birth_date, onboarding_done, created_at FROM profiles WHERE id = $1',
       [req.user!.id]
     )
     if (!rows.length) {
