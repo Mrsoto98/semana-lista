@@ -46,7 +46,8 @@ export const useAuthStore = create<AuthState>()(
         set((s) => ({ user: s.user ? { ...s.user, ...patch } : s.user })),
 
       logout: () => {
-        set({ user: null, accessToken: null, refreshToken: null })
+        applyTheme(DEFAULT_THEME)
+        set({ user: null, accessToken: null, refreshToken: null, themeId: DEFAULT_THEME })
       },
 
       refresh: async () => {

@@ -19,7 +19,7 @@ function isStandalone() { return window.matchMedia('(display-mode: standalone)')
 
 export default function Login() {
   const navigate = useNavigate()
-  const { setAuth, themeId } = useAuthStore()
+  const { setAuth } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -31,8 +31,8 @@ export default function Login() {
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
-    applyTheme(themeId ?? DEFAULT_THEME)
-  }, [themeId])
+    applyTheme(DEFAULT_THEME)
+  }, [])
 
   useEffect(() => {
     if (!isAndroid() || isStandalone()) return

@@ -3,19 +3,17 @@ import { Link } from 'react-router'
 import { authApi } from '../lib/queries'
 import { signInWithGoogle } from '../lib/supabase'
 import { applyTheme, DEFAULT_THEME } from '../lib/themes'
-import { useAuthStore } from '../lib/store'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
 export default function Register() {
-  const { themeId } = useAuthStore()
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [done, setDone] = useState(false)
 
-  useEffect(() => { applyTheme(themeId ?? DEFAULT_THEME) }, [themeId])
+  useEffect(() => { applyTheme(DEFAULT_THEME) }, [])
 
   const set = (field: string) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
