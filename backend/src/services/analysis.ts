@@ -32,12 +32,12 @@ export async function analyzeDream(title: string | null, body: string): Promise<
 
   const completion = await client.chat.completions.create({
     model: MODEL,
-    response_format: { type: 'json_object' },
+    // response_format not supported by reasoning models (openai/gpt-oss-120b)
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Analiza este sueño en profundidad. Devuelve EXACTAMENTE este JSON sin texto extra:
+        content: `Analiza este sueño en profundidad. Devuelve EXACTAMENTE este JSON sin texto extra ni marcadores de código:
 {
   "summary": "2-3 oraciones concisas que expliquen el significado del sueño: qué mensaje lanza el inconsciente, qué refleja emocionalmente. Sé específico con los elementos del sueño, no genérico.",
   "themes": ["tema central 1", "tema central 2", "tema central 3"],
@@ -51,8 +51,8 @@ export async function analyzeDream(title: string | null, body: string): Promise<
 Sueño a analizar: ${dreamText}`,
       },
     ],
-    max_tokens: 700,
-    temperature: 0.7,
+    max_completion_tokens: 2048,
+    temperature: 1,
   })
 
   const text = completion.choices[0]?.message?.content ?? '{}'
