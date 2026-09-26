@@ -106,7 +106,7 @@ export default function ExplorePage() {
     getNextPageParam: (last, all) =>
       last.length === PAGE_SIZE ? all.flat().length : undefined,
     initialPageParam: 0,
-    enabled: tab === 'recientes',
+    staleTime: 60_000,
   })
 
   const popularQ = useQuery({
