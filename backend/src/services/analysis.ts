@@ -7,7 +7,7 @@ const client = new OpenAI({
   timeout: 30_000,
 })
 
-export const MODEL = 'llama3-70b-8192'
+export const MODEL = 'openai/gpt-oss-120b'
 
 const SYSTEM_PROMPT = `Eres un intérprete de sueños. Analizas sueños de forma simbólica y reflexiva, con un tono cercano y poético, nunca clínico ni como diagnóstico. Tu análisis es para reflexión personal y entretenimiento.
 
