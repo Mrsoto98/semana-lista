@@ -19,6 +19,32 @@ REGLAS:
 - Conecta los símbolos con emociones, miedos, deseos o etapas vitales
 - Responde ÚNICAMENTE con JSON válido`
 
+export async function analyzeConnection(
+  myTitle: string | null, myBody: string,
+  theirTitle: string | null, theirBody: string,
+): Promise<string> {
+  const dreamA = myTitle ? `${myTitle}: ${myBody.slice(0, 300)}` : myBody.slice(0, 300)
+  const dreamB = theirTitle ? `${theirTitle}: ${theirBody.slice(0, 300)}` : theirBody.slice(0, 300)
+
+  const completion = await client.chat.completions.create({
+    model: MODEL,
+    messages: [
+      {
+        role: 'system',
+        content: 'Eres un intérprete de sueños. Responde con UNA sola frase corta (máx 120 caracteres) que revele la conexión onírica entre dos sueños de personas distintas. Sé específico, poético y revelador. Sin comillas ni texto extra.',
+      },
+      {
+        role: 'user',
+        content: `Sueño A: ${dreamA}\n\nSueño B: ${dreamB}\n\n¿Qué conexión profunda comparten estos dos sueños?`,
+      },
+    ],
+    max_tokens: 120,
+    temperature: 0.85,
+  })
+
+  return completion.choices[0]?.message?.content?.trim() ?? 'Ambos soñadores comparten un espacio onírico común.'
+}
+
 interface DreamAnalysisResult {
   summary: string
   themes: string[]

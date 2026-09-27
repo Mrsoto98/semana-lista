@@ -119,12 +119,14 @@ export interface Coincidence {
   created_at: string
   my_dream_id: string
   my_dream_title: string | null
+  my_dream_body: string
   my_dream_date: string
   my_dream_tags: string[]
   their_dream_id: string
   their_dream_date: string
   their_dream_tags: string[]
   their_dream_title: string | null
+  their_dream_body: string
   their_user_id: string | null
   their_user_name: string
   their_avatar: string | null

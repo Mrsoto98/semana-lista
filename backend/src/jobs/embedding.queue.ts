@@ -2,7 +2,7 @@
 // For a first free version this is fine; add a queue later if load increases.
 
 import { query } from '../db/client.js'
-import { embed, MODEL } from '../services/embedding.js'
+import { embed, warmupModel, MODEL } from '../services/embedding.js'
 
 const SIMILARITY_THRESHOLD = 0.82
 
@@ -80,7 +80,23 @@ async function findCoincidences(
   }
 }
 
-export function startEmbeddingWorker() {
-  // No-op: no worker needed without Redis
+export async function startEmbeddingWorker() {
   console.log('Embedding: synchronous mode (no Redis required)')
+  try {
+    await warmupModel()
+  } catch (err) {
+    console.error('[embedding] Model warmup failed, backfill skipped:', err)
+    return
+  }
+  try {
+    const { rows } = await query<{ id: string }>(
+      `SELECT id FROM dreams WHERE visibility = 'public' AND embedding IS NULL ORDER BY created_at DESC LIMIT 200`
+    )
+    if (rows.length) {
+      console.log(`[embedding] Backfilling ${rows.length} unembedded public dream(s)`)
+      for (const { id } of rows) { await enqueueDreamEmbedding(id) }
+    }
+  } catch (err) {
+    console.error('[embedding] Backfill error', err)
+  }
 }

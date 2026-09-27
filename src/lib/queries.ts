@@ -101,6 +101,7 @@ export const coincidencesApi = {
   list: () => api.get<import('../types').Coincidence[]>('/coincidences'),
   accept: (id: string) => api.post(`/coincidences/${id}/accept`),
   dismiss: (id: string) => api.post(`/coincidences/${id}/dismiss`),
+  insight: (id: string) => api.post<{ insight: string }>(`/coincidences/${id}/insight`),
 }
 
 // ── Push notifications ────────────────────────────────────────

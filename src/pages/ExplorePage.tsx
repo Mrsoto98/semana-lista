@@ -438,6 +438,7 @@ export default function ExplorePage() {
                     match={match}
                     onConnect={() => match.their_user_id ? navigate(`/perfil/${match.their_user_id}`) : undefined}
                     onDetail={() => navigate(`/sueno/${match.their_dream_id}`)}
+                    onMyDetail={() => navigate(`/sueno/${match.my_dream_id}`)}
                     onDismiss={() => dismissMutation.mutate(match.id)}
                   />
                 </motion.div>
@@ -510,19 +511,30 @@ export default function ExplorePage() {
   )
 }
 
-function MatchCard({ match, onConnect, onDetail, onDismiss }: {
+function scoreLabel(pct: number) {
+  if (pct >= 90) return 'Conexión profunda'
+  if (pct >= 80) return 'Alta conexión'
+  if (pct >= 70) return 'Buena conexión'
+  return 'Conexión leve'
+}
+
+function MatchCard({ match, onConnect, onDetail, onMyDetail, onDismiss }: {
   match: Coincidence
   onConnect: () => void
   onDetail: () => void
+  onMyDetail: () => void
   onDismiss: () => void
 }) {
   const pct = Math.round(match.score * 100)
-  const scoreColor = pct >= 70
-    ? `hsl(var(--accent-h), var(--accent-s), 78%)`
-    : pct >= 50 ? '#f59e0b' : '#94a3b8'
+  const scoreColor =
+    pct >= 90 ? '#a78bfa' :
+    pct >= 80 ? `hsl(var(--accent-h), var(--accent-s), 78%)` :
+    pct >= 70 ? '#60a5fa' :
+    pct >= 55 ? '#f59e0b' : '#94a3b8'
 
   const sharedTags = match.my_dream_tags.filter(t => match.their_dream_tags.includes(t))
   const allTags = [...new Set([...match.my_dream_tags, ...match.their_dream_tags])]
+  const bothAccepted = match.status === 'accepted'
 
   const myDateLabel = match.my_dream_date
     ? new Date(match.my_dream_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
@@ -531,11 +543,24 @@ function MatchCard({ match, onConnect, onDetail, onDismiss }: {
     ? new Date(match.their_dream_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
     : ''
 
+  const [insight, setInsight] = useState<string | 'loading' | 'error' | null>(null)
+
+  async function loadInsight() {
+    if (insight) return
+    setInsight('loading')
+    try {
+      const res = await coincidencesApi.insight(match.id)
+      setInsight(res.data.insight)
+    } catch {
+      setInsight('error')
+    }
+  }
+
   return (
     <motion.div whileTap={{ scale: 0.99 }} className="glass-card overflow-hidden">
 
       {/* Author header */}
-      <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-3">
+      <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2.5">
         <button onClick={onConnect} className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0 flex-1">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
             style={{ background: 'rgba(var(--glow), 0.20)' }}>
@@ -543,26 +568,44 @@ function MatchCard({ match, onConnect, onDetail, onDismiss }: {
               ? <img src={match.their_avatar} alt="" className="w-full h-full rounded-full object-cover" />
               : match.their_user_name[0]?.toUpperCase()}
           </div>
-          <p className="text-[12px] font-medium text-white/75 truncate">{match.their_user_name}</p>
+          <div className="min-w-0">
+            <p className="text-[12px] font-medium text-white/80 truncate">{match.their_user_name}</p>
+            {bothAccepted && (
+              <p className="text-[10px]" style={{ color: scoreColor }}>✦ Conectados</p>
+            )}
+            {!bothAccepted && match.i_accepted && (
+              <p className="text-[10px] text-white/30">Has aceptado · esperando respuesta</p>
+            )}
+          </div>
         </button>
         {/* % badge */}
-        <div className="flex items-center gap-1 px-2 py-1 rounded-full shrink-0"
-          style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${scoreColor}45` }}>
-          <span className="text-[14px] font-bold leading-none" style={{ color: scoreColor, fontFamily: 'var(--font-mono)' }}>{pct}%</span>
-          <span className="text-[9px] text-white/30">match</span>
+        <div className="flex flex-col items-end gap-0.5 shrink-0">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full"
+            style={{ background: 'rgba(0,0,0,0.3)', border: `1px solid ${scoreColor}45` }}>
+            <span className="text-[14px] font-bold leading-none" style={{ color: scoreColor, fontFamily: 'var(--font-mono)' }}>{pct}%</span>
+            <span className="text-[9px] text-white/30">match</span>
+          </div>
+          <span className="text-[9px] text-white/30 pr-0.5">{scoreLabel(pct)}</span>
         </div>
       </div>
 
       {/* Two-dream comparison */}
-      <div className="px-3 pb-3 space-y-1.5">
+      <div className="px-3 pb-2 space-y-1.5">
         {/* My dream */}
-        <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="flex items-center justify-between mb-1.5">
+        <div onClick={onMyDetail} className="rounded-xl p-3 cursor-pointer active:opacity-80 transition-opacity"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between mb-1">
             <span className="text-[9px] uppercase tracking-widest text-white/25" style={{ fontFamily: 'var(--font-mono)' }}>Tu sueño</span>
             {myDateLabel && <span className="text-[9px] text-white/20">{myDateLabel}</span>}
           </div>
-          <p className="text-[12px] text-white/65 leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-serif)' }}>
-            {match.my_dream_title ?? 'Sueño sin título'}
+          {match.my_dream_title && (
+            <p className="text-[12px] font-medium text-white/70 leading-snug mb-0.5" style={{ fontFamily: 'var(--font-serif)' }}>
+              {match.my_dream_title}
+            </p>
+          )}
+          <p className="text-[11px] text-white/40 leading-snug line-clamp-2">
+            {match.my_dream_body?.slice(0, 100) ?? ''}
+            {(match.my_dream_body?.length ?? 0) > 100 ? '…' : ''}
           </p>
         </div>
 
@@ -574,7 +617,7 @@ function MatchCard({ match, onConnect, onDetail, onDismiss }: {
               animate={{ width: `${pct}%` }}
               transition={{ delay: 0.2, duration: 0.7, ease: 'easeOut' }}
               className="h-full rounded-full"
-              style={{ background: `linear-gradient(90deg, ${scoreColor}80, ${scoreColor})` }}
+              style={{ background: `linear-gradient(90deg, ${scoreColor}60, ${scoreColor})` }}
             />
           </div>
           <span className="text-[10px] shrink-0" style={{ color: scoreColor, fontFamily: 'var(--font-mono)' }}>{pct}% similar</span>
@@ -583,50 +626,100 @@ function MatchCard({ match, onConnect, onDetail, onDismiss }: {
         {/* Their dream */}
         <div onClick={onDetail} className="rounded-xl p-3 cursor-pointer active:opacity-80 transition-opacity"
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center justify-between mb-1">
             <span className="text-[9px] uppercase tracking-widest text-white/25" style={{ fontFamily: 'var(--font-mono)' }}>Su sueño</span>
             {theirDateLabel && <span className="text-[9px] text-white/20">{theirDateLabel}</span>}
           </div>
-          <p className="text-[12px] text-white/65 leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-serif)' }}>
-            {match.their_dream_title ?? 'Sueño anónimo — acepta para revelar'}
+          {match.their_dream_title && (
+            <p className="text-[12px] font-medium text-white/70 leading-snug mb-0.5" style={{ fontFamily: 'var(--font-serif)' }}>
+              {match.their_dream_title}
+            </p>
+          )}
+          <p className="text-[11px] text-white/40 leading-snug line-clamp-2">
+            {match.their_dream_body?.slice(0, 100) ?? ''}
+            {(match.their_dream_body?.length ?? 0) > 100 ? '…' : ''}
           </p>
         </div>
       </div>
 
       {/* Shared tags */}
       {allTags.length > 0 && (
-        <div className="flex flex-wrap gap-1 px-4 pb-3">
-          {allTags.slice(0, 5).map(t => (
+        <div className="flex flex-wrap gap-1 px-3 pb-2">
+          {allTags.slice(0, 6).map(t => (
             <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full"
               style={{
-                background: sharedTags.includes(t) ? 'rgba(var(--glow),0.12)' : 'rgba(255,255,255,0.05)',
-                color: sharedTags.includes(t) ? `hsl(var(--accent-h),var(--accent-s),70%)` : 'rgba(255,255,255,0.35)',
+                background: sharedTags.includes(t) ? 'rgba(var(--glow),0.14)' : 'rgba(255,255,255,0.05)',
+                color: sharedTags.includes(t) ? `hsl(var(--accent-h),var(--accent-s),72%)` : 'rgba(255,255,255,0.30)',
+                border: sharedTags.includes(t) ? `1px solid rgba(var(--glow),0.25)` : '1px solid transparent',
                 fontFamily: 'var(--font-mono)',
               }}>
               #{t}
             </span>
           ))}
+          {sharedTags.length > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full text-white/25">
+              {sharedTags.length} {sharedTags.length === 1 ? 'tema común' : 'temas comunes'}
+            </span>
+          )}
         </div>
       )}
+
+      {/* AI connection insight */}
+      <AnimatePresence>
+        {insight && insight !== 'loading' && insight !== 'error' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden px-3 pb-2"
+          >
+            <div className="rounded-xl px-3 py-2.5"
+              style={{ background: `linear-gradient(120deg, rgba(var(--glow),0.08), rgba(var(--glow),0.04))`, border: `1px solid rgba(var(--glow),0.18)` }}>
+              <p className="text-[9px] uppercase tracking-widest mb-1.5"
+                style={{ color: `hsl(var(--accent-h),var(--accent-s),55%)`, fontFamily: 'var(--font-mono)' }}>
+                ✦ Conexión onírica
+              </p>
+              <p className="text-[12px] leading-relaxed italic" style={{ color: 'rgba(255,255,255,0.65)', fontFamily: 'var(--font-serif)' }}>
+                {insight}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Actions */}
       <div className="flex gap-2 px-3 pb-3.5">
         <motion.button whileTap={{ scale: 0.96 }} onClick={onConnect}
-          className="flex-1 glass-btn-primary py-2.5 text-[12px] font-semibold flex items-center justify-center gap-1.5">
+          className="flex-1 py-2.5 text-[12px] font-semibold flex items-center justify-center gap-1.5 rounded-xl transition-all"
+          style={bothAccepted
+            ? { background: `rgba(var(--glow),0.18)`, border: `1px solid rgba(var(--glow),0.35)`, color: `hsl(var(--accent-h),var(--accent-s),82%)` }
+            : { background: `rgba(var(--glow),0.12)`, border: `1px solid rgba(var(--glow),0.25)`, color: `hsl(var(--accent-h),var(--accent-s),78%)` }
+          }>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          Conectar
+          {bothAccepted ? 'Ver perfil' : match.i_accepted ? 'Aceptado ✓' : 'Conectar'}
         </motion.button>
-        <motion.button whileTap={{ scale: 0.96 }} onClick={onDetail}
-          className="flex-1 py-2.5 text-[12px] font-medium transition-all rounded-xl"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }}>
-          Ver sueño
+
+        {/* AI insight button */}
+        <motion.button whileTap={{ scale: 0.96 }} onClick={loadInsight}
+          disabled={insight === 'loading'}
+          className="flex items-center justify-center gap-1 px-3 py-2.5 text-[11px] rounded-xl transition-all"
+          style={insight && insight !== 'loading' && insight !== 'error'
+            ? { background: `rgba(var(--glow),0.14)`, border: `1px solid rgba(var(--glow),0.28)`, color: `hsl(var(--accent-h),var(--accent-s),72%)` }
+            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)' }
+          }>
+          {insight === 'loading'
+            ? <div className="w-3 h-3 rounded-full border border-white/20 border-t-white/60 animate-spin" />
+            : insight === 'error'
+            ? <span className="text-red-400/60">✕</span>
+            : '✦'}
         </motion.button>
+
         <motion.button whileTap={{ scale: 0.96 }} onClick={onDismiss}
-          className="w-10 flex items-center justify-center rounded-xl transition-colors text-white/30"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          className="w-10 flex items-center justify-center rounded-xl transition-colors text-white/25"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
