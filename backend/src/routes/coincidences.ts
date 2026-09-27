@@ -174,15 +174,22 @@ router.post('/:id/insight', async (req, res) => {
       my_title: string | null; my_body: string;
       their_title: string | null; their_body: string;
     }>(
-      `SELECT
-         my_d.title AS my_title, my_d.body AS my_body,
-         their_d.title AS their_title, their_d.body AS their_body
-       FROM coincidences c
-       JOIN dreams my_d ON (c.dream_a_id = my_d.id OR c.dream_b_id = my_d.id)
-         AND my_d.user_id = $2
-       JOIN dreams their_d ON their_d.id = CASE
-         WHEN c.dream_a_id = my_d.id THEN c.dream_b_id ELSE c.dream_a_id END
-       WHERE c.id = $1`,
+      `WITH my_dream AS (
+         SELECT d.title, d.body
+         FROM dreams d
+         JOIN coincidences c ON (c.dream_a_id = d.id OR c.dream_b_id = d.id)
+         WHERE c.id = $1 AND d.user_id = $2
+         LIMIT 1
+       ), their_dream AS (
+         SELECT d.title, d.body
+         FROM dreams d
+         JOIN coincidences c ON (c.dream_a_id = d.id OR c.dream_b_id = d.id)
+         WHERE c.id = $1 AND d.user_id != $2
+         LIMIT 1
+       )
+       SELECT m.title AS my_title, m.body AS my_body,
+              t.title AS their_title, t.body AS their_body
+       FROM my_dream m CROSS JOIN their_dream t`,
       [id, userId]
     )
 
