@@ -439,7 +439,6 @@ export default function ExplorePage() {
                     onConnect={() => match.their_user_id ? navigate(`/perfil/${match.their_user_id}`) : undefined}
                     onDetail={() => navigate(`/sueno/${match.their_dream_id}`)}
                     onMyDetail={() => navigate(`/sueno/${match.my_dream_id}`)}
-                    onDismiss={() => dismissMutation.mutate(match.id)}
                   />
                 </motion.div>
               ))}
@@ -518,12 +517,11 @@ function scoreLabel(pct: number) {
   return 'Conexión leve'
 }
 
-function MatchCard({ match, onConnect, onDetail, onMyDetail, onDismiss }: {
+function MatchCard({ match, onConnect, onDetail, onMyDetail }: {
   match: Coincidence
   onConnect: () => void
   onDetail: () => void
   onMyDetail: () => void
-  onDismiss: () => void
 }) {
   const pct = Math.round(match.score * 100)
   const scoreColor =
@@ -536,12 +534,14 @@ function MatchCard({ match, onConnect, onDetail, onMyDetail, onDismiss }: {
   const allTags = [...new Set([...match.my_dream_tags, ...match.their_dream_tags])]
   const bothAccepted = match.status === 'accepted'
 
-  const myDateLabel = match.my_dream_date
-    ? new Date(match.my_dream_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-    : ''
-  const theirDateLabel = match.their_dream_date
-    ? new Date(match.their_dream_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-    : ''
+  const formatDate = (d: string | null) => {
+    if (!d) return ''
+    const dt = new Date(d)
+    if (isNaN(dt.getTime())) return ''
+    return dt.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+  }
+  const myDateLabel = formatDate(match.my_dream_date)
+  const theirDateLabel = formatDate(match.their_dream_date)
 
   const [insight, setInsight] = useState<string | 'loading' | 'error' | null>(null)
 
@@ -705,24 +705,16 @@ function MatchCard({ match, onConnect, onDetail, onMyDetail, onDismiss }: {
         {/* AI insight button */}
         <motion.button whileTap={{ scale: 0.96 }} onClick={loadInsight}
           disabled={insight === 'loading'}
-          className="flex items-center justify-center gap-1 px-3 py-2.5 text-[11px] rounded-xl transition-all"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] font-medium rounded-xl transition-all"
           style={insight && insight !== 'loading' && insight !== 'error'
             ? { background: `rgba(var(--glow),0.14)`, border: `1px solid rgba(var(--glow),0.28)`, color: `hsl(var(--accent-h),var(--accent-s),72%)` }
-            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)' }
+            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.50)' }
           }>
           {insight === 'loading'
-            ? <div className="w-3 h-3 rounded-full border border-white/20 border-t-white/60 animate-spin" />
+            ? <><div className="w-3 h-3 rounded-full border border-white/20 border-t-white/60 animate-spin" /><span>Analizando</span></>
             : insight === 'error'
-            ? <span className="text-red-400/60">✕</span>
-            : '✦'}
-        </motion.button>
-
-        <motion.button whileTap={{ scale: 0.96 }} onClick={onDismiss}
-          className="w-10 flex items-center justify-center rounded-xl transition-colors text-white/25"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+            ? <span className="text-red-400/60">Error</span>
+            : <><span>✦</span><span>Ver conexión</span></>}
         </motion.button>
       </div>
     </motion.div>
